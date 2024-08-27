@@ -6,7 +6,7 @@ import { authOptions } from "../auth/[...nextauth]/auth";
 export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         const data = await request.json();
-        const {name, isActive, collegeId } = data;
+        const { name, isActive, collegeId } = data;
 
         if (!name || !isActive || !collegeId) {
             return new NextResponse(JSON.stringify({ message: "All fields are required" }), { status: 400 });
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
                 }
             );
             return NextResponse.json({ message: "Department Created Successfully", department: newDepartment }, { status: 201 });
-        }else {
+        } else {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
     } catch (error) {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 export async function PUT(request: NextRequest): Promise<NextResponse> {
     try {
         const data = await request.json();
-        const {departmentId, name, isActive, collegeId } = data;
+        const { departmentId, name, isActive, collegeId } = data;
 
         if (!departmentId || !name || isActive === undefined || !collegeId) {
             return new NextResponse(JSON.stringify({ message: "All fields (creator_id, departmentId, name, isActive, and collegeId) are required." }), { status: 400 });
@@ -79,7 +79,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
             });
 
             return NextResponse.json({ message: "Department updated successfully", department: updatedDepartment }, { status: 200 });
-        }else {
+        } else {
             return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
         }
     } catch (error) {
@@ -128,14 +128,19 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 }
 
 
-// export async function GET(): Promise<NextResponse> {
-//     try {
-//         const departments = await prisma.department.findMany();
-//         return NextResponse.json(departments);
-//     } catch (error) {
-//         console.error("Error fetching departments:", error);
-//         return new NextResponse("Internal Server Error", { status: 500 });
-//     }
-// }
+export async function GET(): Promise<NextResponse> {
+    try {
+        const session = await getServerSession(authOptions);
+        if (session && session.user.role === "SBTE_ADMIN") {
+            const departments = await prisma.department.findMany();
+            return NextResponse.json(departments);
+        } else {
+            return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
+        }
+    } catch (error) {
+        console.error("Error fetching departments:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
+}
 
 
