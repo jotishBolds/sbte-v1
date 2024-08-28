@@ -16,8 +16,8 @@ export default async function DashboardPage() {
 
   return (
     <SideBarLayout>
-      <div className="p-6 space-y-6">
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+      <div className="container mx-auto py-10">
+        <h1 className="text-3xl font-bold tracking-tight mb-4">Dashboard</h1>
         <Card>
           <CardHeader>
             <CardTitle>Welcome Back!</CardTitle>
