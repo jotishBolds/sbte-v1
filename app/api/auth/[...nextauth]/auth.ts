@@ -40,6 +40,8 @@ export const authOptions: NextAuthOptions = {
 
         return {
           id: user.id,
+          username: user.username || "",
+          collegeId: user.collegeId || "",
           email: user.email,
           role: user.role,
         };
@@ -49,20 +51,26 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
+  // In the callbacks section
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
         token.role = user.role;
+        token.username = user.username;
+        token.collegeId = user.collegeId;
       }
       return token;
     },
     async session({ session, token }) {
       if (session?.user) {
         session.user.role = token.role as string;
+        session.user.username = token.username as string;
+        session.user.collegeId = token.collegeId as string;
       }
       return session;
     },
   },
+
   pages: {
     signIn: "/login",
   },
