@@ -12,7 +12,11 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user?.role !== "SBTE_ADMIN") {
+    if (
+      !session ||
+      (session.user?.role !== "SBTE_ADMIN" &&
+        session.user?.role !== "COLLEGE_SUPER_ADMIN")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

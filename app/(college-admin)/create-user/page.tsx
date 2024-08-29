@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -11,6 +11,7 @@ import {
   FaEnvelope,
   FaLock,
   FaUserTag,
+  FaBuilding,
 } from "react-icons/fa";
 
 import { Button } from "@/components/ui/button";
@@ -32,7 +33,6 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import SideBarLayout from "@/components/sidebar/layout";
-import UserManagement from "./users-list/page";
 
 // Schemas
 const roleSchema = z.enum([
@@ -50,6 +50,7 @@ const userSchema = z
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
     role: roleSchema,
+    departmentId: z.string().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
@@ -71,12 +72,21 @@ const formFields = [
   },
 ];
 
+interface Department {
+  id: string;
+  name: string;
+}
+
 const UserRegistrationForm: React.FC = () => {
   const router = useRouter();
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [showDepartmentField, setShowDepartmentField] = useState(false);
+
   const {
     control,
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -86,8 +96,37 @@ const UserRegistrationForm: React.FC = () => {
       password: "",
       confirmPassword: "",
       role: undefined,
+      departmentId: undefined,
     },
   });
+
+  const selectedRole = watch("role");
+
+  useEffect(() => {
+    setShowDepartmentField(["HOD", "STUDENT"].includes(selectedRole));
+  }, [selectedRole]);
+
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const response = await fetch("/api/departments");
+        if (!response.ok) {
+          throw new Error("Failed to fetch departments");
+        }
+        const data = await response.json();
+        setDepartments(data);
+      } catch (error) {
+        console.error("Error fetching departments:", error);
+        toast({
+          title: "Error",
+          description: "Failed to fetch departments. Please try again.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    fetchDepartments();
+  }, []);
 
   const onSubmit = async (data: UserFormData) => {
     try {
@@ -138,7 +177,7 @@ const UserRegistrationForm: React.FC = () => {
   return (
     <SideBarLayout>
       <div className="flex flex-col justify-center items-center min-h-[70vh]">
-        <Card className="w-full max-w-2xl shadow-lg ">
+        <Card className="w-full max-w-2xl shadow-lg">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold mb-2">
               User Registration
@@ -186,6 +225,43 @@ const UserRegistrationForm: React.FC = () => {
                   <p className="text-sm text-red-500">{errors.role.message}</p>
                 )}
               </div>
+
+              {showDepartmentField && (
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="departmentId"
+                    className="flex items-center text-sm font-medium"
+                  >
+                    <FaBuilding className="mr-2 text-gray-500" /> Department
+                  </Label>
+                  <Controller
+                    name="departmentId"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {departments.map((dept) => (
+                            <SelectItem key={dept.id} value={dept.id}>
+                              {dept.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.departmentId && (
+                    <p className="text-sm text-red-500">
+                      {errors.departmentId.message}
+                    </p>
+                  )}
+                </div>
+              )}
 
               <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (

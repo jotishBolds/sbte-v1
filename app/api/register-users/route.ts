@@ -67,19 +67,94 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { username, email, password, role } = await request.json();
+    const { username, email, password, role, departmentId } =
+      await request.json();
 
     const hashedPassword = await hash(password, 10);
 
+    let userData: any = {
+      username,
+      email,
+      password: hashedPassword,
+      role,
+      collegeId: session.user.collegeId,
+    };
+
+    if (departmentId) {
+      userData.departmentId = departmentId;
+    }
+
     const user = await prisma.user.create({
-      data: {
-        username,
-        email,
-        password: hashedPassword,
-        role,
-        collegeId: session.user.collegeId,
-      },
+      data: userData,
     });
+
+    // Create role-specific records
+    switch (role) {
+      case "HOD":
+        await prisma.headOfDepartment.create({
+          data: {
+            userId: user.id,
+            departmentId: departmentId,
+            name: username, // You might want to collect full name separately
+            phoneNo: "", // These fields can be filled out later
+            address: "",
+            qualification: "",
+            experience: "",
+          },
+        });
+        break;
+      case "TEACHER":
+        await prisma.teacher.create({
+          data: {
+            userId: user.id,
+            name: username,
+            phoneNo: "",
+            address: "",
+            qualification: "",
+            designation: "",
+            experience: "",
+          },
+        });
+        break;
+      case "FINANCE_MANAGER":
+        await prisma.financeManager.create({
+          data: {
+            userId: user.id,
+            name: username,
+            phoneNo: "",
+            address: "",
+            collegeId: session.user.collegeId,
+          },
+        });
+        break;
+      case "STUDENT":
+        await prisma.student.create({
+          data: {
+            userId: user.id,
+            enrollmentNo: "", // This should be generated or provided
+            admissionYear: new Date(),
+            name: username,
+            phoneNo: "",
+            address: "",
+            father_name: "",
+            mother_name: "",
+            dob: new Date(), // This should be collected separately
+            collegeId: session.user.collegeId,
+            departmentId: departmentId,
+          },
+        });
+        break;
+      case "ALUMNUS":
+        await prisma.alumnus.create({
+          data: {
+            userId: user.id,
+            batchYear: new Date().getFullYear(), // This should be collected separately
+            graduationYear: new Date().getFullYear(), // This should be collected separately
+            jobStatus: "",
+          },
+        });
+        break;
+    }
 
     return NextResponse.json(
       { message: "User created successfully" },
