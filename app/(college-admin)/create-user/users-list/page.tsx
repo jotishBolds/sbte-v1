@@ -192,7 +192,7 @@ const UserManagement: React.FC = () => {
     <SideBarLayout>
       <div className="container mx-auto px-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader className="flex flex-col md:flex-row items-start gap-2 md:gap-0 md:items-center justify-between">
             <CardTitle className="text-2xl font-bold">
               User Management
             </CardTitle>

@@ -56,19 +56,53 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user?.role !== "SBTE_ADMIN") {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    if (!session || !session.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const departments = await prisma.department.findMany({
-      include: {
-        college: {
-          select: {
-            name: true,
+    // Allow access for SBTE_ADMIN and COLLEGE_SUPER_ADMIN
+    if (
+      session.user.role !== "SBTE_ADMIN" &&
+      session.user.role !== "COLLEGE_SUPER_ADMIN"
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    let departments;
+
+    if (session.user.role === "SBTE_ADMIN") {
+      // SBTE_ADMIN can see all departments
+      departments = await prisma.department.findMany({
+        include: {
+          college: {
+            select: {
+              name: true,
+            },
           },
         },
-      },
-    });
+      });
+    } else if (session.user.role === "COLLEGE_SUPER_ADMIN") {
+      // COLLEGE_SUPER_ADMIN can only see departments of their college
+      if (!session.user.collegeId) {
+        return NextResponse.json(
+          { error: "College ID not found for user" },
+          { status: 400 }
+        );
+      }
+      departments = await prisma.department.findMany({
+        where: {
+          collegeId: session.user.collegeId,
+        },
+        include: {
+          college: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+    }
+
     return NextResponse.json(departments);
   } catch (error) {
     console.error("Error fetching departments:", error);
