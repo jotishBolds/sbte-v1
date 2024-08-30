@@ -1,79 +1,79 @@
-import prisma from "@/prisma/client";
 import { NextResponse, NextRequest } from "next/server";
 import { getServerSession } from "next-auth";
+import prisma from "@/prisma/client";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth"
 export async function POST(request: NextRequest): Promise<NextResponse> {
-    console.log(request)
     try {
         const data = await request.json();
-        const { name, code, semester, creditScore, departmentId, teacherId} = data;
+        let { name, code, semester, creditScore, departmentId, teacherId } = data;
 
-        // Check if all fields are provided
-        if (!name || !code || !semester || creditScore === undefined || !departmentId ) {
+        if (!name || !code || !semester || creditScore === undefined || !departmentId) {
             return new NextResponse(JSON.stringify({ message: "All fields are required" }), { status: 400 });
-        }else{
-            console.log("passed 1");
         }
 
-        // Get the session of the current user
         const session = await getServerSession(authOptions);
-        // Check if the user is logged in and is an HOD
-        if (session && session.user.role === "HOD") {
-            // Verify if the HOD belongs to the department they are trying to add the subject to
-            console.log('entered as HOD',session.user);
-            // const hod = await prisma.user.findUnique(id);
-            const hod = await prisma.user.findUnique({
-                where: { id: params.id },
-                select: { id: true, username: true, email: true, role: true, departmentId: true },
-              });
-            console.log(hod);
-
-            if (!hod || hod.departmentId !== departmentId) {
-                return new NextResponse(JSON.stringify({ message: "Unauthorized to add subjects to this department" }), { status: 403 });
-            }else{
-                    console.log("user is HOD");
-            }
-
-            // Check if a subject with the same name and code already exists in the department
-            const existingSubject = await prisma.subject.findFirst({
-                where: {
-                    name: name,
-                    code: code,
-                    departmentId: departmentId,
-                },
-            });
-
-            if (existingSubject) {
-                return new NextResponse("Subject with the same name and code already exists in this department", { status: 409 }); // 409 Conflict
-            }
-
-            // Create the new subject
-            const newSubject = await prisma.subject.create({
-                data: {
-                    name,
-                    code,
-                    semester,
-                    creditScore,
-                    department: {
-                        connect: { id: departmentId },
-                    },
-                    ...(teacherId && {
-                        teacher: {
-                            connect: { id: teacherId },
-                        },
-                    }),
-                },
-            });
-
-            return NextResponse.json({ message: "Subject Created Successfully", subject: newSubject }, { status: 201 });
-        } else {
-            return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
+        if (!session) {
+            return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 403 });
         }
+
+        if (session.user.role !== "HOD") {
+            return new NextResponse(JSON.stringify({ message: "Unauthorized: Only HOD can create subjects" }), { status: 403 });
+        }
+
+        if (session.user.departmentId !== departmentId) {
+            return new NextResponse(JSON.stringify({ message: "Unauthorized: You are not authorized to create subjects in this department" }), { status: 403 });
+        }
+        if(teacherId){
+            const existingTeacher = await prisma.teacher.findUnique({
+                where: {
+                    id: teacherId,
+                },
+            });
+            if (!existingTeacher) {
+                return new NextResponse(JSON.stringify({ message: "Teacher not found" }), { status: 404 });
+            }
+        }
+       
+        creditScore = parseFloat(creditScore);  //conversion as it was giving error saying string not allowed
+        if (isNaN(creditScore)) {
+            return new NextResponse(JSON.stringify({ message: "Invalid credit score value" }), { status: 400 });
+        }
+
+        const existingSubject = await prisma.subject.findFirst({
+            where: {
+                name,
+                code,
+                departmentId,
+            },
+        });
+
+        if (existingSubject) {
+            return new NextResponse("Subject with the same name and code already exists in this department", { status: 409 }); // 409 Conflict
+        }
+        const newSubject = await prisma.subject.create({
+            data: {
+                name,
+                code,
+                semester,
+                creditScore,
+                department: {
+                    connect: { id: departmentId },
+                },
+                ...(teacherId && {
+                    teacher: {
+                        connect: { id: teacherId },
+                    },
+                }),
+            },
+        });
+
+        return NextResponse.json({ message: "Subject Created Successfully", subject: newSubject }, { status: 201 });
+
     } catch (error) {
         console.error("Error Creating Subject:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
-}   
+}
 export async function PUT(request: NextRequest): Promise<NextResponse> {
     try {
         const data = await request.json();

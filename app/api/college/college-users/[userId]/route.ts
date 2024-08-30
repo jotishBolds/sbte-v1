@@ -94,11 +94,10 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
         const allowedFields = ["email", "role", "departmentId", "username"];
         const filteredData = Object.fromEntries(
             Object.entries(updateData)
-            .filter(([key]) => allowedFields.includes(key))
+            .filter(([key, value]) => {
+                return allowedFields.includes(key) && (key !== "departmentId" || (key == "departmentId" && value !== "" ));
+            })
             .map(([key, value]) => {
-                if (key === "departmentId" && value === "") {
-                    return [key, null];
-                }
                 return [key, value];
             })
         );
