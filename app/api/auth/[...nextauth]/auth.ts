@@ -59,7 +59,7 @@ departmentId: user.departmentId || "",
         token.role = user.role;
         token.username = user.username;
         token.collegeId = user.collegeId;
-token.departmentId = user.collegeId;
+        token.departmentId = user.departmentId;
       }
       return token;
     },
