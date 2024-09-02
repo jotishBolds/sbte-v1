@@ -87,6 +87,13 @@ export async function PUT(
         if (typeof body.verified !== 'boolean') {
             return new NextResponse(JSON.stringify({ message: "The 'verified' field must be a boolean" }), { status: 400 });
         }
+        const alumnusToUpdate = await prisma.alumnus.findUnique({
+            where: { id },
+        });
+        if (!alumnusToUpdate) {
+            return new NextResponse(JSON.stringify({ message: "Alumnus not found with this ID" }), { status: 404 });
+        }
+
         const alumnus = await prisma.alumnus.update({
             where: { id },
             data: { verified: body.verified },
