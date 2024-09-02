@@ -22,7 +22,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             if (!departments || departments.length == 0) {
                 return new NextResponse(JSON.stringify({ error: "No departments found for this college." }), { status: 404 });
             }
-            return NextResponse.json(departments);
+            return NextResponse.json(departments);  
         }
         else if (session && session.user.role == "COLLEGE_SUPER_ADMIN") {
             const departments = await prisma.department.findMany({
