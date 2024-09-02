@@ -68,10 +68,13 @@ import bcrypt from "bcrypt";
                             achievements
                         }
                     }
+                },
+                include: {
+                    alumnus: true // Include the related alumnus record in the response
                 }
             });
 
-            return NextResponse.json({ message: "Alumnus registered successfully", user: newUser }, { status: 201 });
+            return NextResponse.json({ message: "Alumnus registered successfully", user: newUser}, { status: 201 });
 
         } catch (error) {
             console.error("Error registering alumnus:", error);

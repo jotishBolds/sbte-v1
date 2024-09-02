@@ -22,7 +22,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         // If the user is SBTE_ADMIN, fetch users for the provided collegeId
         if (session && session.user.role === "SBTE_ADMIN") {
             const collegeUsers = await prisma.user.findMany({
-                where: {
+                where: {    
                     collegeId: collegeId,
                 },
             });
