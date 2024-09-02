@@ -9,7 +9,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
         const { pathname } = request.nextUrl;
         const collegeId = pathname.split("/").pop();
         if (!collegeId) {
-            return new NextResponse(JSON.stringify({ message: "College Id needs to be passed." }), { status: 400 });
+            return new NextResponse(JSON.stringify({ error: "College Id needs to be passed." }), { status: 400 });
         }
 
         const session = await getServerSession(authOptions);
@@ -20,7 +20,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                 }
             });
             if (!departments || departments.length == 0) {
-                return new NextResponse("No departments found for this college.", { status: 404 });
+                return new NextResponse(JSON.stringify({ error: "No departments found for this college." }), { status: 404 });
             }
             return NextResponse.json(departments);
         }
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
                 }
             });
             if (!departments || departments.length == 0) {
-                return new NextResponse("No departments found for this college.", { status: 404 });
+                return new NextResponse(JSON.stringify({ error: "No departments found for this college." }), { status: 404 });
             }
             return NextResponse.json(departments);
         } else {
@@ -41,6 +41,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
 
     } catch (error) {
         console.error("Error fetching departments:", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+        return new NextResponse(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+
     }
 }
