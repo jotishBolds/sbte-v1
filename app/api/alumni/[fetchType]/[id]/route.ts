@@ -11,7 +11,7 @@ export async function GET(
         if (!id) {
             return new NextResponse(JSON.stringify({ message: "ID is required" }), { status: 400 });
         }
-        
+
         const allowedFetchTypes = ['college', 'department', 'alumni'];
         if (!allowedFetchTypes.includes(fetchType)) {
             return new NextResponse(JSON.stringify({ message: "Invalid fetch type" }), { status: 400 });
@@ -72,4 +72,31 @@ export async function GET(
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 }
+
+
+export async function PUT(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+): Promise<NextResponse> {
+    try {
+        const { id } = params;
+        if (!id) {
+            return new NextResponse(JSON.stringify({ message: "ID is required" }), { status: 400 });
+        }
+        const body = await request.json();
+        if (typeof body.verified !== 'boolean') {
+            return new NextResponse(JSON.stringify({ message: "The 'verified' field must be a boolean" }), { status: 400 });
+        }
+        const alumnus = await prisma.alumnus.update({
+            where: { id },
+            data: { verified: body.verified },
+        });
+        return NextResponse.json({ message: "Alumnus verification status updated successfully", alumnus }, { status: 200 });
+    } catch (error) {
+        console.error("Error updating alumni verification status:", (error as Error).message);
+        return new NextResponse(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
+    }
+}
+
+
 
