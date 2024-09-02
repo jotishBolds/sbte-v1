@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import prisma from "@/prisma/client";
-
+import bcrypt from "bcrypt";
 export async function GET(
     request: NextRequest,
     { params }: { params: { fetchType: string; id: string } }
@@ -73,20 +73,23 @@ export async function GET(
     }
 }
 
-
-export async function PUT(
+export async function PATCH(
     request: NextRequest,
     { params }: { params: { id: string } }
 ): Promise<NextResponse> {
     try {
         const { id } = params;
+
         if (!id) {
             return new NextResponse(JSON.stringify({ message: "ID is required" }), { status: 400 });
         }
+
         const body = await request.json();
+
         if (typeof body.verified !== 'boolean') {
             return new NextResponse(JSON.stringify({ message: "The 'verified' field must be a boolean" }), { status: 400 });
         }
+
         const alumnusToUpdate = await prisma.alumnus.findUnique({
             where: { id },
         });
@@ -94,16 +97,152 @@ export async function PUT(
             return new NextResponse(JSON.stringify({ message: "Alumnus not found with this ID" }), { status: 404 });
         }
 
-        const alumnus = await prisma.alumnus.update({
+        const updatedAlumnus = await prisma.alumnus.update({
             where: { id },
             data: { verified: body.verified },
         });
-        return NextResponse.json({ message: "Alumnus verification status updated successfully", alumnus }, { status: 200 });
+
+        return NextResponse.json({ updatedAlumnus }, { status: 200 });
     } catch (error) {
-        console.error("Error updating alumni verification status:", (error as Error).message);
+        console.error("Error verifying alumnus:", (error as Error).message);
         return new NextResponse(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
     }
 }
 
 
+export async function PUT(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+): Promise<NextResponse> {
+    try {
+        const { id } = params;
 
+        if (!id) {
+            return new NextResponse(JSON.stringify({ message: "ID is required" }), { status: 400 });
+        }
+
+        const data = await request.json();
+        let {
+            email, password, username, collegeId,
+            name, phoneNo, dateOfBirth, address,
+            departmentId, batchYear, graduationYear,
+            gpa, jobStatus, currentEmployer, currentPosition,
+            industry, linkedInProfile, achievements
+        } = data;
+
+        // Optional field validation
+        if (gpa !== undefined && gpa !== null && gpa !== "") {
+            gpa = parseFloat(gpa);
+            if (isNaN(gpa)) {
+                return new NextResponse(JSON.stringify({ message: "Invalid GPA value" }), { status: 400 });
+            }
+        } else {
+            gpa = null; // Set GPA to null if it's not provided
+        }
+        // Check if the alumnus exists
+        const alumnusToUpdate = await prisma.alumnus.findUnique({
+            where: { id },
+            include: { user: true }
+        });
+        if (!alumnusToUpdate) {
+            return new NextResponse(JSON.stringify({ message: "Alumnus not found with this ID" }), { status: 404 });
+        }
+
+        const userId = alumnusToUpdate.userId;
+
+        // Check if the user exists
+        const userToUpdate = await prisma.user.findUnique({
+            where: { id: userId }
+        });
+
+        if (!userToUpdate) {
+            return new NextResponse(JSON.stringify({ message: "User not found with this ID" }), { status: 404 });
+        }
+
+        // Check if the email is already used by another user
+        if (email) {
+            const existingUserWithEmail = await prisma.user.findFirst({
+                where: { email }
+            });
+
+            if (existingUserWithEmail && existingUserWithEmail.id !== userId) {
+                return new NextResponse(JSON.stringify({ message: "Email is already in use by another user" }), { status: 400 });
+            }
+        }
+
+
+
+
+        const updateData: any = {
+            name,
+            phoneNo,
+            dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
+            address,
+            batchYear,
+            graduationYear,
+            gpa,
+            jobStatus,
+            currentEmployer,
+            currentPosition,
+            industry,
+            linkedInProfile,
+            achievements
+        };
+
+        if (departmentId && departmentId.trim() !== "") {
+            updateData.departmentId = departmentId; // Only add departmentId if it's not empty
+        }
+
+        // Update the alumnus record
+        const updatedAlumnus = await prisma.alumnus.update({
+            where: { id },
+            data: updateData,
+        });
+
+        // Optionally, update the user record if email, password, or username is provided
+        if (email || password || username || collegeId || departmentId) {
+
+            const userId = alumnusToUpdate.userId;
+
+            // Check if the user exists
+            const userToUpdate = await prisma.user.findUnique({
+                where: { id: userId }
+            });
+
+            if (!userToUpdate) {
+                return new NextResponse(JSON.stringify({ message: "User not found with this ID" }), { status: 404 });
+            }
+
+            // Check if the email is already used by another user
+            if (email) {
+                const existingUserWithEmail = await prisma.user.findFirst({
+                    where: { email }
+                });
+
+                if (existingUserWithEmail && existingUserWithEmail.id !== userId) {
+                    return new NextResponse(JSON.stringify({ message: "Email is already in use by another user" }), { status: 400 });
+                }
+            }
+
+            const userUpdates: any = {};
+            if (email) userUpdates.email = email;
+            if (password) userUpdates.password = await bcrypt.hash(password, 10);
+            if (username) userUpdates.username = username;
+            if (collegeId && collegeId != '') userUpdates.collegeId = collegeId;
+            if (departmentId && departmentId != '') userUpdates.departmentId = departmentId;
+
+            const updatedUser = await prisma.user.update({
+                where: { id: updatedAlumnus.userId },
+                data: userUpdates,
+            });
+
+            return NextResponse.json({ message: "Alumnus and user data updated successfully", alumnus: updatedAlumnus, user: updatedUser }, { status: 200 });
+        }
+
+        return NextResponse.json({ message: "Alumnus data updated successfully", alumnus: updatedAlumnus }, { status: 200 });
+
+    } catch (error) {
+        console.error("Error updating alumnus data:", (error as Error).message);
+        return new NextResponse(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
+    }
+}
