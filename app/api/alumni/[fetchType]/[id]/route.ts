@@ -109,6 +109,45 @@ export async function PATCH(
     }
 }
 
+export async function DELETE(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+): Promise<NextResponse> {
+    try {
+        const { id } = params;
+
+        if (!id) {
+            return new NextResponse(JSON.stringify({ message: "ID is required" }), { status: 400 });
+        }
+
+        const alumnusToDelete = await prisma.alumnus.findUnique({
+            where: { id },
+            include: { user: true } // Include user if you need to handle user record deletion
+        });
+
+        if (!alumnusToDelete) {
+            return new NextResponse(JSON.stringify({ message: "Alumnus not found with this ID" }), { status: 404 });
+        }
+
+        await prisma.alumnus.delete({
+            where: { id }
+        });
+
+
+        if (alumnusToDelete.user) { 
+            await prisma.user.delete({
+                where: { id: alumnusToDelete.user.id }
+            });
+        }
+
+        
+        return NextResponse.json({ message: "Alumnus and associated user deleted successfully" }, { status: 200 });
+
+    } catch (error) {
+        console.error("Error deleting alumnus:", (error as Error).message);
+        return new NextResponse(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
+    }
+}
 
 export async function PUT(
     request: NextRequest,
