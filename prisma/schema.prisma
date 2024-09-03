@@ -59,21 +59,21 @@ model College {
   financeManagers FinanceManager[]
 }
 
-// Department model to represent departments within colleges
-model Department {
-  id               String            @id @default(cuid())
-  name             String
-  isActive         Boolean           @default(true)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  college          College           @relation(fields: [collegeId], references: [id])
-  collegeId        String
-  headOfDepartment HeadOfDepartment?
-  users            User[]
-  subjects         Subject[]
-  students         Student[]
-  alumnus          Alumnus[]
-}
+  // Department model to represent departments within colleges
+  model Department {
+    id               String            @id @default(cuid())
+    name             String
+    isActive         Boolean           @default(true)
+    createdAt        DateTime          @default(now())
+    updatedAt        DateTime          @updatedAt
+    college          College           @relation(fields: [collegeId], references: [id])
+    collegeId        String
+    headOfDepartment HeadOfDepartment?
+    users            User[]
+    subjects         Subject[]
+    students         Student[]
+    alumnus          Alumnus[]
+  }
 
 // Student model to store student information
 model Student {

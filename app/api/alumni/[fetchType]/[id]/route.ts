@@ -134,13 +134,12 @@ export async function DELETE(
         });
 
 
-        if (alumnusToDelete.user) { 
+        if (alumnusToDelete.user) {
             await prisma.user.delete({
                 where: { id: alumnusToDelete.user.id }
             });
         }
 
-        
         return NextResponse.json({ message: "Alumnus and associated user deleted successfully" }, { status: 200 });
 
     } catch (error) {
