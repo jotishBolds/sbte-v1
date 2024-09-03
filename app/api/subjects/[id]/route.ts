@@ -147,3 +147,53 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 }
+
+
+
+
+export async function GET(request: NextRequest, { params }: { params: { id: string } }): Promise<NextResponse> {
+    try {
+        const subjectId = params.id;
+        // Fetch the session to validate the user
+        const session = await getServerSession(authOptions);
+        if (!session) {
+            return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 403 });
+        }
+
+        // Ensure that the user is an HOD
+        if (session.user.role !== "HOD") {
+            return new NextResponse(JSON.stringify({ message: "Unauthorized: Only HODs can delete subjects" }), { status: 403 });
+        }
+        
+        // Fetch the subject by ID
+        const subject = await prisma.subject.findUnique({
+            where: {
+                id: subjectId,
+            },
+            include: {
+                department: {
+                    include: {
+                        college: true,
+                    },
+                },
+                teacher: {
+                    include: {
+                        user: true,
+                    },
+                },
+            },
+        });
+
+        // Check if the subject exists
+        if (!subject) {
+            return new NextResponse(JSON.stringify({ message: "Subject not found" }), { status: 404 });
+        }
+
+        // Return the fetched subject
+        return NextResponse.json(subject, { status: 200 });
+
+    } catch (error) {
+        console.error("Error fetching subject:", error);
+        return new NextResponse("Internal Server Error", { status: 500 });
+    }
+}
