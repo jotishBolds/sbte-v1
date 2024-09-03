@@ -75,18 +75,24 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     }
 }
 
-
+//to fetch all the subjects
 export async function GET(): Promise<NextResponse> {
     try {
+
         const session = await getServerSession(authOptions);
-        if (session && session.user.role === "SBTE_ADMIN") {
-            const departments = await prisma.department.findMany();
-            return NextResponse.json(departments);
+        if (session && session.user.role === "HOD") {
+            const subjects = await prisma.subject.findMany({
+                include: {
+                    teacher: true,
+                    department: true,
+                },
+            });
+            return NextResponse.json({ subjects }, { status: 200 });
         } else {
             return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
         }
     } catch (error) {
-        console.error("Error fetching departments:", error);
+        console.error("Error Fetching Subjects:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
     }
 }
