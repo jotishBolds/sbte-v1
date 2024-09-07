@@ -128,19 +128,46 @@ export async function DELETE(request: NextRequest): Promise<NextResponse> {
 }
 
 
-export async function GET(): Promise<NextResponse> {
+export async function GET(request: NextRequest): Promise<NextResponse> {
     try {
-        const session = await getServerSession(authOptions);
-        if (session && session.user.role === "SBTE_ADMIN") {
-            const departments = await prisma.department.findMany();
-            return NextResponse.json(departments);
-        } else {
-            return new NextResponse(JSON.stringify({ error: "Unauthorized" }), { status: 403 });
+      // Fetch the session to validate the user
+      const session = await getServerSession(authOptions);
+      if (!session) {
+        return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 403 });
+      }
+  
+      // Determine the query based on the user role
+      const whereClause: any = {};
+  
+      if (session.user.role !== "SBTE_ADMIN") {
+        // Add isActive condition for non-SBTE_ADMIN roles
+        whereClause.isActive = true;
+      }
+  
+      // Fetch all departments with the conditional `isActive` filter
+      const departments = await prisma.department.findMany({
+        where: whereClause,
+        include: {
+          college: {
+            select: {
+              name: true
+            }
+          }
         }
+      });
+  
+      // Check if any departments were found
+      if (!departments || departments.length === 0) {
+        return new NextResponse(JSON.stringify({ message: "No departments found" }), { status: 404 });
+      }
+  
+      // Return the fetched data (list of departments)
+      return NextResponse.json(departments, { status: 200 });
+  
     } catch (error) {
-        console.error("Error fetching departments:", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+      console.error("Error fetching departments:", error);
+      return new NextResponse("Internal Server Error", { status: 500 });
     }
-}
+  }
 
 

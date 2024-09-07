@@ -16,12 +16,12 @@ export async function GET(request: NextRequest) {
             return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
         }
 
-        if (!session.user.collegeId) {
-            return NextResponse.json(
-                { message: "College not associated with HOD" },
-                { status: 400 }
-            );
-        }
+        // if (!session.user.collegeId) {
+        //     return NextResponse.json(
+        //         { message: "College not associated with HOD" },
+        //         { status: 400 }
+        //     );
+        // }
         if (session.user.role !== "SBTE_ADMIN" && session.user.role !== "EDUCATION_DEPARTMENT") {
             const teachers = await prisma.teacher.findMany({
                 where: {
