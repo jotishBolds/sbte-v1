@@ -63,7 +63,8 @@ export async function GET(request: NextRequest) {
     // Allow access for SBTE_ADMIN and COLLEGE_SUPER_ADMIN
     if (
       session.user.role !== "SBTE_ADMIN" &&
-      session.user.role !== "COLLEGE_SUPER_ADMIN"
+      session.user.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user.role !== "ADM"
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

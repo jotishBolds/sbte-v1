@@ -11,7 +11,8 @@ export async function GET(request: NextRequest) {
     if (
       !session ||
       !session.user ||
-      session.user.role !== "COLLEGE_SUPER_ADMIN"
+      (session.user.role !== "COLLEGE_SUPER_ADMIN" &&
+        session.user.role !== "ADM")
     ) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -26,7 +27,14 @@ export async function GET(request: NextRequest) {
     const users = await prisma.user.findMany({
       where: {
         role: {
-          in: ["HOD", "TEACHER", "FINANCE_MANAGER", "STUDENT", "ALUMNUS"],
+          in: [
+            "HOD",
+            "TEACHER",
+            "FINANCE_MANAGER",
+            "STUDENT",
+            "ALUMNUS",
+            "ADM",
+          ],
         },
         collegeId: session.user.collegeId,
       },
@@ -54,7 +62,7 @@ export async function POST(request: NextRequest) {
   if (
     !session ||
     !session.user ||
-    session.user.role !== "COLLEGE_SUPER_ADMIN"
+    (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ADM")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -91,12 +99,27 @@ export async function POST(request: NextRequest) {
     // Create role-specific records
     switch (role) {
       case "HOD":
+        // Check if a HeadOfDepartment already exists for the given departmentId
+        const existingHOD = await prisma.headOfDepartment.findUnique({
+          where: { departmentId: departmentId },
+        });
+
+        if (existingHOD) {
+          return NextResponse.json(
+            {
+              message:
+                "A Head of Department already exists for this department",
+            },
+            { status: 400 }
+          );
+        }
+
         await prisma.headOfDepartment.create({
           data: {
             userId: user.id,
             departmentId: departmentId,
-            name: username, // You might want to collect full name separately
-            phoneNo: "", // These fields can be filled out later
+            name: username,
+            phoneNo: "",
             address: "",
             qualification: "",
             experience: "",
@@ -104,6 +127,18 @@ export async function POST(request: NextRequest) {
         });
         break;
       case "TEACHER":
+        // Check if a Teacher already exists for the given userId
+        const existingTeacher = await prisma.teacher.findUnique({
+          where: { userId: user.id },
+        });
+
+        if (existingTeacher) {
+          return NextResponse.json(
+            { message: "A Teacher already exists for this user" },
+            { status: 400 }
+          );
+        }
+
         await prisma.teacher.create({
           data: {
             userId: user.id,
@@ -117,6 +152,18 @@ export async function POST(request: NextRequest) {
         });
         break;
       case "FINANCE_MANAGER":
+        // Check if a Finance Manager already exists for the given userId
+        const existingFinanceManager = await prisma.financeManager.findUnique({
+          where: { userId: user.id },
+        });
+
+        if (existingFinanceManager) {
+          return NextResponse.json(
+            { message: "A Finance Manager already exists for this user" },
+            { status: 400 }
+          );
+        }
+
         await prisma.financeManager.create({
           data: {
             userId: user.id,
@@ -128,6 +175,18 @@ export async function POST(request: NextRequest) {
         });
         break;
       case "STUDENT":
+        // Check if a Student already exists for the given userId
+        const existingStudent = await prisma.student.findUnique({
+          where: { userId: user.id },
+        });
+
+        if (existingStudent) {
+          return NextResponse.json(
+            { message: "A Student already exists for this user" },
+            { status: 400 }
+          );
+        }
+
         await prisma.student.create({
           data: {
             userId: user.id,
@@ -145,14 +204,38 @@ export async function POST(request: NextRequest) {
         });
         break;
       case "ALUMNUS":
+        // Check if an Alumnus already exists for the given userId
+        const existingAlumnus = await prisma.alumnus.findUnique({
+          where: { userId: user.id },
+        });
+
+        if (existingAlumnus) {
+          return NextResponse.json(
+            { message: "An Alumnus already exists for this user" },
+            { status: 400 }
+          );
+        }
+
         await prisma.alumnus.create({
           data: {
             userId: user.id,
-            batchYear: new Date().getFullYear(), // This should be collected separately
-            graduationYear: new Date().getFullYear(), // This should be collected separately
+            name: username,
+            departmentId: departmentId,
+            batchYear: new Date().getFullYear(),
+            graduationYear: new Date().getFullYear(),
             jobStatus: "",
+            phoneNo: "",
+            dateOfBirth: null,
+            address: "",
+            gpa: null,
+            currentEmployer: null,
+            currentPosition: null,
+            industry: null,
+            linkedInProfile: null,
+            achievements: null,
           },
         });
+
         break;
     }
 

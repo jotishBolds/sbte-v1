@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, Lock } from "lucide-react";
+import { CheckCircle2, Lock, AlertTriangle } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -26,7 +26,13 @@ export default function LoginPage() {
     });
 
     if (result?.error) {
-      setError("Invalid email or password. Please try again.");
+      if (result.error === "Account not verified") {
+        setError(
+          "Your alumni account has not been verified yet. Please check back later or contact the administrator."
+        );
+      } else {
+        setError("Invalid email or password. Please try again.");
+      }
     } else {
       router.push("/dashboard");
     }
@@ -48,6 +54,7 @@ export default function LoginPage() {
             </div>
             {error && (
               <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-4 w-4 mr-2" />
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}

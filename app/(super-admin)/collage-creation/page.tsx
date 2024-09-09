@@ -195,7 +195,8 @@ const CreateCollegePage: React.FC = () => {
                         />
                       </FormControl>
                       <FormDescription>
-                        Enter the college's official website URL (optional).
+                        Enter the college &apos; s official website URL
+                        (optional).
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

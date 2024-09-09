@@ -72,6 +72,7 @@ model Department {
   users            User[]
   subjects         Subject[]
   students         Student[]
+  alumini          Alumnus[]
 }
 
 // Student model to store student information
@@ -125,13 +126,13 @@ model Subject {
   creditScore  Float
   department   Department   @relation(fields: [departmentId], references: [id])
   departmentId String
-  teacher      Teacher      @relation(fields: [teacherId], references: [id])
-  teacherId    String
+  teacher      Teacher?     @relation(fields: [teacherId], references: [id])
+  teacherId    String?
   createdAt    DateTime     @default(now())
   updatedAt    DateTime     @updatedAt
   marks        Mark[]
   attendance   Attendance[]
-  feedbacks    Feedback[]
+  feedbacks    Feedback[]
 }
 
 // Teacher model to store teacher information
@@ -227,14 +228,27 @@ model Certificate {
 
 // Alumnus model to store information about alumni
 model Alumnus {
-  id             String   @id @default(cuid())
-  user           User     @relation(fields: [userId], references: [id])
-  userId         String   @unique
-  batchYear      Int
-  graduationYear Int
-  jobStatus      String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id              String     @id @default(cuid())
+  user            User       @relation(fields: [userId], references: [id])
+  userId          String     @unique
+  name            String
+  phoneNo         String?
+  dateOfBirth     DateTime?
+  address         String?
+  department      Department @relation(fields: [departmentId], references: [id])
+  departmentId    String
+  batchYear       Int
+  graduationYear  Int
+  gpa             Float?
+  jobStatus       String?
+  currentEmployer String?
+  currentPosition String?
+  industry        String?
+  linkedInProfile String?
+  achievements    String?
+  verified        Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 }
 
 // Notification model to store notifications and circulars
