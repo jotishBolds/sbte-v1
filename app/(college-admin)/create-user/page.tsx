@@ -36,6 +36,7 @@ import SideBarLayout from "@/components/sidebar/layout";
 
 // Schemas
 const roleSchema = z.enum([
+  "ADM",
   "HOD",
   "TEACHER",
   "FINANCE_MANAGER",

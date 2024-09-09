@@ -8,6 +8,7 @@ declare module "next-auth" {
       email: string;
       role: string;
       collegeId?: string;
+      departmentId?: string;
     } & DefaultSession["user"];
   }
 
@@ -17,5 +18,6 @@ declare module "next-auth" {
     username: string;
     role: string;
     collegeId?: string;
+    departmentId?: string;
   }
 }

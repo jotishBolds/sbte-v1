@@ -3,52 +3,59 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import prisma from "@/src/lib/prisma";
 
-// async function getAdminCollege(userId: string) {
-//   const adminUser = await prisma.user.findUnique({
-//     where: { id: userId },
-//     include: { college: true },
-//   });
+// Helper function to get admin's college ID
+async function getAdminCollege(userId: string) {
+  const adminUser = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { college: true },
+  });
 
-//   if (!adminUser || !adminUser.college) {
-//     throw new Error("College not found");
-//   }
+  if (!adminUser || !adminUser.college) {
+    throw new Error("College not found");
+  }
 
-//   return adminUser.college.id;
-// }
+  return adminUser.college.id;
+}
 
-// export async function GET(
-//   request: NextRequest,
-//   { params }: { params: { id: string } }
-// ) {
-//   const session = await getServerSession(authOptions);
-//   if (!session || session.user.role !== "COLLEGE_SUPER_ADMIN") {
-//     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-//   }
-//   console.log("usesesssion" + session);
-//   try {
-//     const collegeId = await getAdminCollege(session.user.id);
+// GET request handler
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  const session = await getServerSession(authOptions);
+  if (
+    !session ||
+    (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ADM")
+  ) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
 
-//     const user = await prisma.user.findFirst({
-//       where: {
-//         id: params.id,
-//         collegeId: collegeId,
-//       },
-//       select: { id: true, username: true, email: true, role: true },
-//     });
+  try {
+    const collegeId = await getAdminCollege(session.user.id);
 
-//     if (!user) {
-//       return NextResponse.json({ message: "User not found" }, { status: 404 });
-//     }
+    const user = await prisma.user.findFirst({
+      where: {
+        id: params.id,
+        collegeId: collegeId,
+      },
+      select: { id: true, username: true, email: true, role: true },
+    });
 
-//     return NextResponse.json(user);
-//   } catch (error) {
-//     console.error("Error fetching user:", error);
-//     return NextResponse.json(
-//       { message: "Error fetching user" },
-//       { status: 500 }
-//     );
-//   }
-// }
+    if (!user) {
+      return NextResponse.json({ message: "User not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(user);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    return NextResponse.json(
+      { message: "Error fetching user" },
+      { status: 500 }
+    );
+  }
+}
+
+// PUT request handler
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -57,7 +64,7 @@ export async function PUT(
   if (
     !session ||
     !session.user ||
-    session.user.role !== "COLLEGE_SUPER_ADMIN"
+    (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ADM")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -98,6 +105,7 @@ export async function PUT(
   }
 }
 
+// DELETE request handler
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -106,34 +114,44 @@ export async function DELETE(
   if (
     !session ||
     !session.user ||
-    session.user.role !== "COLLEGE_SUPER_ADMIN"
+    (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ADM")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
-  if (!session.user.collegeId) {
-    return NextResponse.json(
-      { message: "College not associated with admin" },
-      { status: 400 }
-    );
-  }
-
   try {
-    const deletedUser = await prisma.user.deleteMany({
-      where: {
-        id: params.id,
-        collegeId: session.user.collegeId,
-      },
+    const id = params.id;
+
+    // Delete related records first
+    await prisma.headOfDepartment.deleteMany({
+      where: { userId: id },
     });
 
-    if (deletedUser.count === 0) {
-      return NextResponse.json(
-        { message: "User not found or not in your college" },
-        { status: 404 }
-      );
-    }
+    await prisma.teacher.deleteMany({
+      where: { userId: id },
+    });
 
-    return NextResponse.json({ message: "User deleted successfully" });
+    await prisma.financeManager.deleteMany({
+      where: { userId: id },
+    });
+
+    await prisma.student.deleteMany({
+      where: { userId: id },
+    });
+
+    await prisma.alumnus.deleteMany({
+      where: { userId: id },
+    });
+
+    // Now delete the user
+    await prisma.user.delete({
+      where: { id: id },
+    });
+
+    return NextResponse.json(
+      { message: "User deleted successfully" },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Error deleting user:", error);
     return NextResponse.json(

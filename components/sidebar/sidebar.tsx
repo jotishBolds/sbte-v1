@@ -31,6 +31,7 @@ import {
   MessageSquare,
   Menu,
   X,
+  GraduationCapIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -82,9 +83,10 @@ export const Sidebar: React.FC = () => {
           },
           {
             href: "/departments",
-            icon: <BookOpen size={18} />,
+            icon: <GraduationCapIcon size={18} />,
             label: "Departments",
           },
+
           { href: "/reports", icon: <FileText size={18} />, label: "Reports" },
           { href: "/users", icon: <Users size={18} />, label: "Users" },
         ];
@@ -106,10 +108,24 @@ export const Sidebar: React.FC = () => {
             label: "Users",
           },
           {
-            href: "/finance",
-            icon: <DollarSign size={18} />,
-            label: "Finance",
+            href: "/alumni-list",
+            icon: <BookOpen size={18} />,
+            label: "Alumni",
           },
+          // {
+          //   href: "/finance",
+          //   icon: <DollarSign size={18} />,
+          //   label: "Finance",
+          // },
+        ];
+      case "ADM":
+        return [
+          {
+            href: "/create-user/users-list",
+            icon: <Users size={18} />,
+            label: "Manage Users",
+          },
+          { href: "/reports", icon: <FileText size={18} />, label: "Reports" },
         ];
       case "HOD":
         return [
