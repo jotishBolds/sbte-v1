@@ -64,7 +64,7 @@ export async function PUT(
       );
     }
     return NextResponse.json(
-      { message: "Error updating subject" },
+      { message: "Error updating subject", errors: error},
       { status: 500 }
     );
   }
