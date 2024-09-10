@@ -33,7 +33,9 @@ export async function GET(request: NextRequest) {
       where: { departmentId },
       include: {
         teacher: {
-          select: { name: true },
+          select: { 
+            name: true 
+          },
         },
       },
     });

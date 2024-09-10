@@ -12,13 +12,11 @@ export async function GET(
 ) {
   try {
     const session = await getServerSession(authOptions);
-
     if (!session || session.user.role !== "COLLEGE_SUPER_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { id } = params;
-
     const departments = await prisma.department.findMany({
       where: {
         collegeId: id,
@@ -26,6 +24,13 @@ export async function GET(
       },
       include: { headOfDepartment: true },
     });
+    // Check if the departments array is empty
+    if (departments.length === 0) {
+      return NextResponse.json(
+        { message: "No departments found for this college" },
+        { status: 404 }
+      );
+    }
 
     return NextResponse.json(departments);
   } catch (error) {

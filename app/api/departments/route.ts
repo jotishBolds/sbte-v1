@@ -13,7 +13,7 @@ interface DepartmentCreationData {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions);  
 
     if (!session || session.user?.role !== "SBTE_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
           },
         },
       });
-    } else if (session.user.role === "COLLEGE_SUPER_ADMIN") {
+    } else if (session.user.role === "COLLEGE_SUPER_ADMIN" || session.user.role === "ADM" ) {
       // COLLEGE_SUPER_ADMIN can only see departments of their college
       if (!session.user.collegeId) {
         return NextResponse.json(
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-
+    
     return NextResponse.json(departments);
   } catch (error) {
     console.error("Error fetching departments:", error);

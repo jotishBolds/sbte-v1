@@ -140,12 +140,12 @@ model Teacher {
   id            String    @id @default(cuid())
   user          User      @relation(fields: [userId], references: [id])
   userId        String    @unique
-  name          String
-  phoneNo       String
-  address       String
-  qualification String
-  designation   String
-  experience    String
+  name          String?
+  phoneNo       String?
+  address       String?
+  qualification String?
+  designation   String?
+  experience    String?
   subjects      Subject[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
