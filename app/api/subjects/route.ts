@@ -39,6 +39,13 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+    
+    if(!subjects){
+      return NextResponse.json(
+        { message: "No subject found for this college" },
+        { status: 400 }
+      );
+    }
 
     return NextResponse.json(subjects);
   } catch (error) {
