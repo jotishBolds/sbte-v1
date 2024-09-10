@@ -13,25 +13,41 @@ export async function DELETE(
   try {
     const session = await getServerSession(authOptions);
 
+    // Ensure only SBTE_ADMIN can perform this operation
     if (!session || session.user?.role !== "SBTE_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
     const { id } = params;
 
-    await prisma.college.delete({
-      where: { id },
+    // Perform the transaction
+    await prisma.$transaction(async (prisma) => {
+      // Delete the COLLEGE_SUPER_ADMIN associated with the college
+      await prisma.user.deleteMany({
+        where: {
+          collegeId: id,
+          role: "COLLEGE_SUPER_ADMIN",
+        },
+      });
+
+      // Delete the college
+      await prisma.college.delete({
+        where: { id },
+      });
     });
 
-    return NextResponse.json({ message: "College deleted successfully" });
+    // Success response
+    return NextResponse.json({ message: "College and associated super admin deleted successfully" });
+
   } catch (error) {
-    console.error("Error deleting college:", error);
+    console.error("Error deleting college and super admin:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
     );
   }
 }
+
 
 export async function PUT(
   request: NextRequest,
