@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const departmentId = session.user.departmentId;
+    const departmentId = session?.user.departmentId;
     if (!departmentId) {
       return NextResponse.json(
         { message: "Department ID not found" },
@@ -76,6 +76,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = subjectSchema.parse(body);
 
+    // Check for existing subject by code in the same department (Name can be duplicated)
+    const existingSubject = await prisma.subject.findFirst({
+      where: {
+        code: validatedData.code,
+        departmentId: departmentId,
+      },
+    });
+
+    if (existingSubject) {
+      return NextResponse.json(
+        { message: "Subject with the same code already exists" },
+        { status: 409 } // Conflict
+      );
+    }
+    
     const subjectData: any = {
       name: validatedData.name,
       code: validatedData.code,

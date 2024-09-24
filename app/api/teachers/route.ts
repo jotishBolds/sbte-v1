@@ -47,6 +47,14 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Check if no teachers are found
+    if (teachers.length === 0) {
+      return NextResponse.json(
+        { message: "No teachers found for this college." },
+        { status: 404 } // Using 404 Not Found status
+      );
+    }
+
     const formattedTeachers = teachers.map((teacher) => ({
       id: teacher.id,
       name: teacher.name,
@@ -64,9 +72,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-
-
-
 export async function PUT(
   request: NextRequest) {
   try {
@@ -74,7 +79,7 @@ export async function PUT(
     const userId = session?.user.id;
 
     if (!session || session.user.role !== "TEACHER") {
-      return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 403 });
+      return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
     }
     // Fetch teacher and user details
     const teacher = await prisma.teacher.findUnique({

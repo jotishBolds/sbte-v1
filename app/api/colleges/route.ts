@@ -31,17 +31,40 @@ export async function POST(request: NextRequest) {
     const data: CollegeCreationData = await request.json();
 
     // Validate required fields
-    if (
-      !data.name ||
-      !data.address ||
-      !data.establishedOn ||
-      !data.username ||
-      !data.superAdminEmail ||
-      !data.superAdminPassword
-    ) {
+    const missingFields = [];
+    if (!data.name) missingFields.push("name");
+    if (!data.address) missingFields.push("address");
+    if (!data.establishedOn) missingFields.push("establishedOn");
+    if (!data.username) missingFields.push("username");
+    if (!data.superAdminEmail) missingFields.push("superAdminEmail");
+    if (!data.superAdminPassword) missingFields.push("superAdminPassword");
+
+    if (missingFields.length > 0) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: `Missing required fields: ${missingFields.join(", ")}` },
         { status: 400 }
+      );
+    }
+
+    // Validate the establishedOn date
+    if (isNaN(new Date(data.establishedOn).getTime())) {
+      return NextResponse.json(
+        { error: "Invalid date format for 'establishedOn'" },
+        { status: 400 }
+      );
+    }
+
+    // Check if email or username already exists
+    const existingUser = await prisma.user.findFirst({
+      where: {
+        OR: [{ email: data.superAdminEmail }, { username: data.username }],
+      },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: "Username or email already in use" },
+        { status: 409 }
       );
     }
 
@@ -86,12 +109,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error("Error creating college and super admin:", error);
+
+    // Handle specific Prisma errors
+    // if (error instanceof prisma.PrismaClientKnownRequestError) {
+    //   if (error.code === "P2002") {
+    //     // Unique constraint violation (email or username already exists)
+    //     return NextResponse.json(
+    //       { error: "A user with this email or username already exists" },
+    //       { status: 409 }
+    //     );
+    //   }
+    // }
+
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
     );
   }
 }
+
 
 export async function GET(request: NextRequest) {
   try {
