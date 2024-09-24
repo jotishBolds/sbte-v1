@@ -26,6 +26,7 @@ async function getTeacherStatistics(userId: string) {
         (sum, subject) => sum + subject._count.marks,
         0
     );
+
     const totalFeedbacks = await prisma.feedback.count({
         where: {
             subject: {
@@ -48,16 +49,15 @@ async function getTeacherStatistics(userId: string) {
     };
 }
 
-
 export async function GET(
-    request: NextRequest, 
-    { params }: { params: {userId: string } }
-  ): Promise<NextResponse> {
+    request: NextRequest,
+    { params }: { params: { userId: string } }
+): Promise<NextResponse> {
     try {
         // Fetch session to validate the user
         const session = await getServerSession(authOptions);
         if (!session) {
-            return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 403 });
+            return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
         }
 
         // Ensure the session user is a teacher or admin
@@ -68,6 +68,11 @@ export async function GET(
         // Fetch the userId from the session for teachers or from the URL for admins
         const userId = session.user.role === "TEACHER" ? session.user.id : params.userId;
 
+        // Validate userId parameter
+        if (!userId) {
+            return NextResponse.json({ message: "Invalid userId" }, { status: 400 });
+        }
+
         // Fetch teacher statistics
         const data = await getTeacherStatistics(userId);
 
@@ -76,6 +81,11 @@ export async function GET(
 
     } catch (error) {
         console.error("Error fetching teacher statistics:", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+        
+        if (error.message === "Teacher not found") {
+            return NextResponse.json({ message: "Teacher not found" }, { status: 404 });
+        }
+
+        return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }
-  }
+}
