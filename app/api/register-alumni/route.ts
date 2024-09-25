@@ -20,12 +20,13 @@ const registrationSchema = z.object({
     .int()
     .min(1900)
     .max(new Date().getFullYear() + 5),
-  gpa: z.number().min(0).max(4).optional(),
+  gpa: z.number().min(0).max(10).optional(),
   jobStatus: z.string().optional(),
   currentEmployer: z.string().optional(),
   currentPosition: z.string().optional(),
   industry: z.string().optional(),
-  linkedInProfile: z.string().url().optional(),
+  // linkedInProfile: z.string().url().optional(),
+  linkedInProfile: z.union([z.string().url(), z.literal("")]).optional(), // Allow empty string or valid URL
   achievements: z.string().optional(),
 });
 
@@ -78,12 +79,12 @@ export async function POST(request: NextRequest) {
             batchYear: validatedData.batchYear,
             graduationYear: validatedData.graduationYear,
             gpa: validatedData.gpa,
-            jobStatus: validatedData.jobStatus,
-            currentEmployer: validatedData.currentEmployer,
-            currentPosition: validatedData.currentPosition,
-            industry: validatedData.industry,
-            linkedInProfile: validatedData.linkedInProfile,
-            achievements: validatedData.achievements,
+            jobStatus: validatedData.jobStatus || null, // Set to null if empty
+            currentEmployer: validatedData.currentEmployer || null, // Set to null if empty
+            currentPosition: validatedData.currentPosition || null, // Set to null if empty
+            industry: validatedData.industry || null, // Set to null if empty
+            linkedInProfile: validatedData.linkedInProfile || null, // Set to null if empty
+            achievements: validatedData.achievements || null, // Set to null if empty
             verified: false, // Set to false by default
           },
         },
