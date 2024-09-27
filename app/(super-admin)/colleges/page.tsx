@@ -18,6 +18,28 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Edit, PlusCircle, Save, Trash2, X } from "lucide-react";
 import SideBarLayout from "@/components/sidebar/layout";
+import { ClipLoader } from "react-spinners";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
 
 interface College {
   id: string;
@@ -34,14 +56,19 @@ const CollegesPage: React.FC = () => {
   const router = useRouter();
   const [colleges, setColleges] = useState<College[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<Partial<College>>({});
+  const [editingCollege, setEditingCollege] = useState<College | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     fetchColleges();
   }, []);
 
   const fetchColleges = async () => {
+    setIsLoading(true);
     try {
       const response = await fetch("/api/colleges");
       if (!response.ok) {
@@ -51,10 +78,13 @@ const CollegesPage: React.FC = () => {
       setColleges(data);
     } catch (err) {
       setError("Failed to fetch colleges");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleDelete = async (id: string) => {
+    setIsLoading(true);
     try {
       const response = await fetch(`/api/colleges/${id}`, {
         method: "DELETE",
@@ -62,42 +92,53 @@ const CollegesPage: React.FC = () => {
       if (!response.ok) {
         throw new Error("Failed to delete college");
       }
-      fetchColleges();
+      setColleges(colleges.filter((college) => college.id !== id));
+      setDeleteConfirmation(null);
     } catch (err) {
       setError("Failed to delete college");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleEdit = (college: College) => {
-    setEditingId(college.id);
-    setEditForm(college);
+    setEditingCollege(college);
+    setIsEditModalOpen(true);
   };
 
-  const handleUpdate = async () => {
+  const handleUpdate = async (updatedCollege: College) => {
+    setIsLoading(true);
     try {
-      const response = await fetch(`/api/colleges/${editingId}`, {
+      const response = await fetch(`/api/colleges/${updatedCollege.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(editForm),
+        body: JSON.stringify(updatedCollege),
       });
       if (!response.ok) {
         throw new Error("Failed to update college");
       }
-      setEditingId(null);
-      fetchColleges();
+      setColleges(
+        colleges.map((college) =>
+          college.id === updatedCollege.id ? updatedCollege : college
+        )
+      );
+      setIsEditModalOpen(false);
+      setEditingCollege(null);
     } catch (err) {
       setError("Failed to update college");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditForm({ ...editForm, [e.target.name]: e.target.value });
-  };
-
   if (status === "loading") {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <ClipLoader color="#4A90E2" size={50} />
+      </div>
+    );
   }
 
   if (status === "unauthenticated" || session?.user?.role !== "SBTE_ADMIN") {
@@ -125,130 +166,197 @@ const CollegesPage: React.FC = () => {
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Established On</TableHead>
-                  <TableHead>Website</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Phone</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {colleges.map((college) => (
-                  <TableRow key={college.id}>
-                    <TableCell>
-                      {editingId === college.id ? (
-                        <Input
-                          name="name"
-                          value={editForm.name || ""}
-                          onChange={handleInputChange}
-                        />
-                      ) : (
-                        college.name
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === college.id ? (
-                        <Input
-                          name="address"
-                          value={editForm.address || ""}
-                          onChange={handleInputChange}
-                        />
-                      ) : (
-                        college.address
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === college.id ? (
-                        <Input
-                          name="establishedOn"
-                          type="date"
-                          value={editForm.establishedOn || ""}
-                          onChange={handleInputChange}
-                        />
-                      ) : (
-                        new Date(college.establishedOn).toLocaleDateString()
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === college.id ? (
-                        <Input
-                          name="websiteUrl"
-                          value={editForm.websiteUrl || ""}
-                          onChange={handleInputChange}
-                        />
-                      ) : (
-                        college.websiteUrl
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === college.id ? (
-                        <Input
-                          name="contactEmail"
-                          value={editForm.contactEmail || ""}
-                          onChange={handleInputChange}
-                        />
-                      ) : (
-                        college.contactEmail
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {editingId === college.id ? (
-                        <Input
-                          name="contactPhone"
-                          value={editForm.contactPhone || ""}
-                          onChange={handleInputChange}
-                        />
-                      ) : (
-                        college.contactPhone
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        {editingId === college.id ? (
-                          <>
-                            <Button
-                              onClick={handleUpdate}
-                              className="bg-green-500 hover:bg-green-600 text-white"
-                            >
-                              <Save className="mr-2 h-4 w-4" /> Save
-                            </Button>
-                            <Button
-                              onClick={() => setEditingId(null)}
-                              className="bg-gray-500 hover:bg-gray-600 text-white"
-                            >
-                              <X className="mr-2 h-4 w-4" /> Cancel
-                            </Button>
-                          </>
-                        ) : (
-                          <>
-                            <Button
-                              onClick={() => handleEdit(college)}
-                              className="bg-blue-500 hover:bg-blue-600 text-white"
-                            >
-                              <Edit className="mr-2 h-4 w-4" /> Edit
-                            </Button>
-                            <Button
-                              onClick={() => handleDelete(college.id)}
-                              className="bg-red-500 hover:bg-red-600 text-white"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
+            {isLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <ClipLoader color="#4A90E2" size={50} />
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Address</TableHead>
+                    <TableHead>Established On</TableHead>
+                    <TableHead>Website</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {colleges.map((college) => (
+                    <TableRow key={college.id}>
+                      <TableCell>{college.name}</TableCell>
+                      <TableCell>{college.address}</TableCell>
+                      <TableCell>
+                        {new Date(college.establishedOn).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>{college.websiteUrl}</TableCell>
+                      <TableCell>{college.contactEmail}</TableCell>
+                      <TableCell>{college.contactPhone}</TableCell>
+                      <TableCell>
+                        <div className="flex space-x-2">
+                          <Button
+                            onClick={() => handleEdit(college)}
+                            className="bg-blue-500 hover:bg-blue-600 text-white"
+                          >
+                            <Edit className=" h-4 w-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button className="bg-red-500 hover:bg-red-600 text-white">
+                                <Trash2 className=" h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>
+                                  Are you absolutely sure?
+                                </AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This action cannot be undone. This will
+                                  permanently delete the college and all data
+                                  associated with it.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDelete(college.id)}
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit College</DialogTitle>
+          </DialogHeader>
+          {editingCollege && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleUpdate(editingCollege);
+              }}
+            >
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Name
+                  </Label>
+                  <Input
+                    id="name"
+                    value={editingCollege.name}
+                    onChange={(e) =>
+                      setEditingCollege({
+                        ...editingCollege,
+                        name: e.target.value,
+                      })
+                    }
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="address" className="text-right">
+                    Address
+                  </Label>
+                  <Input
+                    id="address"
+                    value={editingCollege.address}
+                    onChange={(e) =>
+                      setEditingCollege({
+                        ...editingCollege,
+                        address: e.target.value,
+                      })
+                    }
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="establishedOn" className="text-right">
+                    Established On
+                  </Label>
+                  <Input
+                    id="establishedOn"
+                    type="date"
+                    value={editingCollege.establishedOn}
+                    onChange={(e) =>
+                      setEditingCollege({
+                        ...editingCollege,
+                        establishedOn: e.target.value,
+                      })
+                    }
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="websiteUrl" className="text-right">
+                    Website
+                  </Label>
+                  <Input
+                    id="websiteUrl"
+                    value={editingCollege.websiteUrl || ""}
+                    onChange={(e) =>
+                      setEditingCollege({
+                        ...editingCollege,
+                        websiteUrl: e.target.value,
+                      })
+                    }
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="contactEmail" className="text-right">
+                    Email
+                  </Label>
+                  <Input
+                    id="contactEmail"
+                    value={editingCollege.contactEmail || ""}
+                    onChange={(e) =>
+                      setEditingCollege({
+                        ...editingCollege,
+                        contactEmail: e.target.value,
+                      })
+                    }
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="contactPhone" className="text-right">
+                    Phone
+                  </Label>
+                  <Input
+                    id="contactPhone"
+                    value={editingCollege.contactPhone || ""}
+                    onChange={(e) =>
+                      setEditingCollege({
+                        ...editingCollege,
+                        contactPhone: e.target.value,
+                      })
+                    }
+                    className="col-span-3"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Save changes</Button>
+              </DialogFooter>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </SideBarLayout>
   );
 };
