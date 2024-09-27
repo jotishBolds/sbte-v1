@@ -68,10 +68,10 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4 sm:px-6 lg:px-8">
+    <div className="flex items-center justify-center min-h-[80vh] bg-gray-100 px-4 sm:px-6 lg:px-8">
       <div className="w-full max-w-md">
         <div className="bg-white shadow-2xl rounded-lg overflow-hidden">
-          <div className="px-6 sm:px-10 py-12">
+          <div className="px-6 sm:px-10 py-6">
             <div className="text-center mb-8">
               <Lock className="mx-auto h-12 w-12 text-blue-500" />
               <h1 className="mt-4 text-3xl font-bold text-gray-900">
@@ -148,7 +148,7 @@ export default function LoginPage() {
                   </Link>
                 </div>
               </div>
-              <div className="flex justify-start">
+              <div className="flex justify-center w-full">
                 <ReCAPTCHA
                   sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
                   onChange={(value) => setCaptchaValue(value)}
