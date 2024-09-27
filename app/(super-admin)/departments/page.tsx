@@ -45,6 +45,10 @@ const DepartmentsPage: React.FC = () => {
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(
     null
   );
+  const [toggleConfirmation, setToggleConfirmation] = useState<{
+    isOpen: boolean;
+    department: Department | null;
+  }>({ isOpen: false, department: null });
 
   useEffect(() => {
     fetchDepartments();
@@ -87,8 +91,12 @@ const DepartmentsPage: React.FC = () => {
         throw new Error("Failed to update department");
       }
 
+      setDepartments((prevDepartments) =>
+        prevDepartments.map((dept) =>
+          dept.id === editingDepartment.id ? editingDepartment : dept
+        )
+      );
       setEditingDepartment(null);
-      fetchDepartments();
     } catch (error) {
       console.error("Error updating department:", error);
     }
@@ -104,29 +112,48 @@ const DepartmentsPage: React.FC = () => {
         throw new Error("Failed to delete department");
       }
 
-      fetchDepartments();
+      setDepartments((prevDepartments) =>
+        prevDepartments.filter((dept) => dept.id !== id)
+      );
     } catch (error) {
       console.error("Error deleting department:", error);
     }
   };
 
-  const handleToggleActive = async (id: string, currentStatus: boolean) => {
+  const handleToggleActive = async (department: Department) => {
+    setToggleConfirmation({ isOpen: true, department });
+  };
+
+  const confirmToggleActive = async () => {
+    if (!toggleConfirmation.department) return;
+
     try {
-      const response = await fetch(`/api/departments/${id}`, {
+      const updatedDepartment = {
+        ...toggleConfirmation.department,
+        isActive: !toggleConfirmation.department.isActive,
+      };
+
+      const response = await fetch(`/api/departments/${updatedDepartment.id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ isActive: !currentStatus }),
+        body: JSON.stringify({ isActive: updatedDepartment.isActive }),
       });
 
       if (!response.ok) {
         throw new Error("Failed to update department status");
       }
 
-      fetchDepartments();
+      setDepartments((prevDepartments) =>
+        prevDepartments.map((dept) =>
+          dept.id === updatedDepartment.id ? updatedDepartment : dept
+        )
+      );
     } catch (error) {
       console.error("Error updating department status:", error);
+    } finally {
+      setToggleConfirmation({ isOpen: false, department: null });
     }
   };
 
@@ -163,9 +190,7 @@ const DepartmentsPage: React.FC = () => {
                 <TableCell>
                   <Switch
                     checked={department.isActive}
-                    onCheckedChange={() =>
-                      handleToggleActive(department.id, department.isActive)
-                    }
+                    onCheckedChange={() => handleToggleActive(department)}
                   />
                 </TableCell>
                 <TableCell>
@@ -244,6 +269,31 @@ const DepartmentsPage: React.FC = () => {
             </AlertDialogContent>
           </AlertDialog>
         )}
+        <AlertDialog
+          open={toggleConfirmation.isOpen}
+          onOpenChange={(isOpen) =>
+            setToggleConfirmation({ ...toggleConfirmation, isOpen })
+          }
+        >
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Confirm Department Status Change
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                Are you sure you want to{" "}
+                {toggleConfirmation.department?.isActive ? "disable" : "enable"}{" "}
+                the department "{toggleConfirmation.department?.name}"?
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={confirmToggleActive}>
+                Confirm
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </SideBarLayout>
   );
