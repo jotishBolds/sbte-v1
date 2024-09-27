@@ -7,6 +7,7 @@ import { getServerSession } from "next-auth/next";
 import { Navbar } from "@/components/navbar/navbar";
 import { authOptions } from "./api/auth/[...nextauth]/auth";
 import { Providers } from "@/lib/providers";
+import Footer from "@/components/navbar/footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,6 +25,7 @@ export default async function RootLayout({
           <Navbar />
           {children}
           <Toaster />
+          <Footer />
         </Providers>
       </body>
     </html>
