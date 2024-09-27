@@ -4,6 +4,7 @@ import { Prisma, PrismaClient } from "@prisma/client";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth"
 const prisma = new PrismaClient();
 async function getTeacherStatistics(userId: string) {
+    console.log(userId);
     const teacher = await prisma.teacher.findUnique({
         where: { userId },
         include: {
@@ -82,9 +83,9 @@ export async function GET(
     } catch (error) {
         console.error("Error fetching teacher statistics:", error);
         
-        if (error.message === "Teacher not found") {
-            return NextResponse.json({ message: "Teacher not found" }, { status: 404 });
-        }
+        // if (error.message === "Teacher not found") {
+        //     return NextResponse.json({ message: "Teacher not found" }, { status: 404 });
+        // }
 
         return NextResponse.json({ message: "Internal Server Error" }, { status: 500 });
     }

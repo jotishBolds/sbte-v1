@@ -83,14 +83,21 @@ const Dashboard: React.FC = () => {
   const [statistics, setStatistics] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
-console.log(session);
+  console.log(session);
   useEffect(() => {
     const fetchStatistics = async () => {
       try {
-        const response = await fetch(`/api/statistics/${session?.user.id}`);
-        if (!response.ok) throw new Error("Failed to fetch statistics");
-        const data = await response.json();
-        setStatistics(data);
+        if (session?.user.role == "TEACHER") {
+          const response = await fetch(`/api/statistics/${session?.user.id}`);
+          if (!response.ok) throw new Error("Failed to fetch statistics");
+          const data = await response.json();
+          setStatistics(data);
+        } else {
+          const response = await fetch(`/api/statistics`);
+          if (!response.ok) throw new Error("Failed to fetch statistics");
+          const data = await response.json();
+          setStatistics(data);
+        }
       } catch (error) {
         console.error("Error fetching statistics:", error);
       } finally {

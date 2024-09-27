@@ -54,6 +54,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if college with the same name already exists
+    // const existingCollege = await prisma.college.findUnique({
+    //   where: { name: data.name },
+    // });
+
+    // if (existingCollege) {
+    //   return NextResponse.json(
+    //     { error: "A college with this name already exists" },
+    //     { status: 409 }
+    //   );
+    // }
+
     // Check if email or username already exists
     const existingUser = await prisma.user.findFirst({
       where: {
@@ -131,19 +143,35 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Fetch the session to authenticate the user.
     const session = await getServerSession(authOptions);
 
+    // Check if the user is logged in and is an SBTE_ADMIN.
     if (!session || session.user?.role !== "SBTE_ADMIN") {
+      // If the user is not authorized, return a 403 Forbidden response.
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    // Query the database to retrieve all colleges.
     const colleges = await prisma.college.findMany();
+
+    // If no colleges are found, return a 404 Not Found response with a descriptive message.
+    if (colleges.length < 1) {
+      return NextResponse.json({ error: "No Colleges found" }, { status: 404 });
+    }
+
+    // If colleges are found, return them as a JSON response with a 200 OK status.
     return NextResponse.json(colleges);
+
   } catch (error) {
+    // Catch any errors that occur during the process and log them for debugging.
     console.error("Error fetching colleges:", error);
+
+    // Return a 500 Internal Server Error response with a descriptive error message.
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
     );
   }
 }
+
