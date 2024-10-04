@@ -114,8 +114,6 @@ model College {
   categories       Category[]
   subjectTypes     SubjectType[]
   certificateTypes CertificateType[]
-  examTypes        ExamType[]
-  subjects         Subject[]
 }
 
 model Department {
@@ -128,7 +126,7 @@ model Department {
   collegeId        String
   headOfDepartment HeadOfDepartment?
   users            User[]
-  // subjects         Subject[] //newChange
+  subjects         Subject[]
   students         Student[]
   alumini          Alumnus[]
   programs         Program[]
@@ -153,6 +151,7 @@ model Student {
   academicYear        AcademicYear                    @relation(fields: [academicYearId], references: [id])
   academicYearId      String
   term                Semester                        @relation(fields: [termId], references: [id])
+  monthlyAttendance   MonthlyBatchSubjectAttendance[]
   termId              String
   gender              String
   isLocalStudent      Boolean                         @default(false)
@@ -185,14 +184,12 @@ model Student {
   departmentId        String
   createdAt           DateTime                        @default(now())
   updatedAt           DateTime                        @updatedAt
-  // marks               Mark[] //newChange
-  // attendance          Attendance[] //newChange
+  marks               Mark[]
+  attendance          Attendance[]
   feePayments         FeePayment[]
   certificates        Certificate[]
   feedbacks           Feedback[]
   studentBatches      StudentBatch[]
-  examMarks           ExamMark[]
-  monthlyAttendance   MonthlyBatchSubjectAttendance[]
 }
 
 model HeadOfDepartment {
@@ -208,32 +205,6 @@ model HeadOfDepartment {
   updatedAt     DateTime   @updatedAt
   department    Department @relation(fields: [departmentId], references: [id])
   departmentId  String     @unique
-}
-
-model ExamType {
-  id         String     @id @default(cuid())
-  examName   String
-  totalMarks Decimal
-  college    College    @relation(fields: [collegeId], references: [id])
-  collegeId  String
-  status     Boolean    @default(true)
-  examMarks  ExamMark[]
-}
-
-model ExamMark {
-  id             String       @id @default(cuid())
-  examType       ExamType     @relation(fields: [examTypeId], references: [id])
-  examTypeId     String
-  student        Student      @relation(fields: [studentId], references: [id])
-  studentId      String
-  batchSubject   BatchSubject @relation(fields: [batchSubjectId], references: [id])
-  batchSubjectId String
-  achievedMarks  Decimal      @default(0)
-  wasAbsent      Boolean      @default(false)
-  debarred       Boolean      @default(false)
-  malpractice    Boolean      @default(false)
-
-  @@unique([examTypeId, studentId, batchSubjectId])
 }
 
 model ProgramType {
@@ -259,7 +230,6 @@ model Program {
   students         Student[]
   batches          Batch[]
   semesterPrograms SemesterProgram[]
-  Alumnus          Alumnus[]
 }
 
 model Semester {
@@ -299,7 +269,6 @@ model AdmissionYear {
   college   College   @relation(fields: [collegeId], references: [id])
   collegeId String
   students  Student[]
-  Alumnus   Alumnus[]
 }
 
 model BatchYear {
@@ -309,7 +278,6 @@ model BatchYear {
   college   College   @relation(fields: [collegeId], references: [id])
   collegeId String
   students  Student[]
-  Alumnus   Alumnus[]
 }
 
 model BatchType {
@@ -365,13 +333,11 @@ model Subject {
   createdById   String
   updatedBy     User?          @relation("SubjectUpdatedBy", fields: [updatedById], references: [id])
   updatedById   String?
-  college       College        @relation(fields: [collegeId], references: [id])
-  collegeId     String
-  // department    Department     @relation(fields: [departmentId], references: [id]) //newChange
-  // departmentId  String //newChange
-  // marks         Mark[] //newChange
-  // attendance    Attendance[] //newChange
-  // feedbacks     Feedback[] //newChange
+  department    Department     @relation(fields: [departmentId], references: [id])
+  departmentId  String
+  marks         Mark[]
+  attendance    Attendance[]
+  feedbacks     Feedback[]
   batchSubjects BatchSubject[]
 }
 
@@ -386,7 +352,6 @@ model BatchSubject {
   classType          ClassType
   teacherAssignments TeacherAssignedSubject[]
   monthlyClasses     MonthlyBatchSubjectClasses[]
-  examMarks          ExamMark[]
 }
 
 model MonthlyBatchSubjectClasses {
@@ -424,6 +389,40 @@ model StudentBatch {
   batchStatus BatchStatus
 }
 
+model Teacher {
+  id                 String                   @id @default(cuid())
+  userId             String                   @unique
+  user               User                     @relation(fields: [userId], references: [id])
+  name               String?
+  phoneNo            String?
+  address            String?
+  qualification      String?
+  designation        Designation?              @relation(fields: [designationId], references: [id])
+  designationId      String?
+  category           Category?                 @relation(fields: [categoryId], references: [id])
+  categoryId         String?
+  experience         String?
+  hasResigned        Boolean?                  @default(false)
+  maritalStatus      MaritalStatus?
+  joiningDate        DateTime?
+  gender             String?
+  religion           String?
+  caste              Caste?
+  isLocalResident    Boolean?                  @default(false)
+  isDifferentlyAbled Boolean?                  @default(false)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  assignedSubjects   TeacherAssignedSubject[]
+}
+
+model TeacherAssignedSubject {
+  id             String       @id @default(cuid())
+  teacher        Teacher      @relation(fields: [teacherId], references: [id])
+  teacherId      String
+  batchSubject   BatchSubject @relation(fields: [batchSubjectId], references: [id])
+  batchSubjectId String
+}
+
 model Designation {
   id          String    @id @default(cuid())
   name        String
@@ -444,39 +443,26 @@ model Category {
   teachers    Teacher[]
 }
 
-model Teacher {
-  id                 String                   @id @default(cuid())
-  userId             String                   @unique
-  user               User                     @relation(fields: [userId], references: [id])
-  name               String?
-  phoneNo            String?
-  address            String?
-  qualification      String?
-  designation        Designation?             @relation(fields: [designationId], references: [id])
-  designationId      String?
-  category           Category?                @relation(fields: [categoryId], references: [id])
-  categoryId         String?
-  experience         String?
-  hasResigned        Boolean?                 @default(false)
-  maritalStatus      MaritalStatus?
-  joiningDate        DateTime?
-  gender             String?
-  religion           String?
-  caste              Caste?
-  isLocalResident    Boolean?                 @default(false)
-  isDifferentlyAbled Boolean?                 @default(false)
-  createdAt          DateTime                 @default(now())
-  updatedAt          DateTime                 @updatedAt
-  assignedSubjects   TeacherAssignedSubject[]
+model Mark {
+  id        String   @id @default(cuid())
+  student   Student  @relation(fields: [studentId], references: [id])
+  studentId String
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  subjectId String
+  score     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
-model TeacherAssignedSubject {
-  id             String       @id @default(cuid())
-  teacher        Teacher      @relation(fields: [teacherId], references: [id])
-  teacherId      String
-  batchSubject   BatchSubject @relation(fields: [batchSubjectId], references: [id])
-  batchSubjectId String
-  Feedback      Feedback[] //newChange
+model Attendance {
+  id         String   @id @default(cuid())
+  student    Student  @relation(fields: [studentId], references: [id])
+  studentId  String
+  subject    Subject  @relation(fields: [subjectId], references: [id])
+  subjectId  String
+  percentage Float
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model FinanceManager {
@@ -518,27 +504,22 @@ model Certificate {
   certificateType   CertificateType @relation(fields: [certificateTypeId], references: [id])
   certificateTypeId String
   issueDate         DateTime
-  paymentStatus     PaymentStatus
+  paymentStatus     String
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 }
 
 model Alumnus {
-  id              String        @id @default(cuid())
-  userId          String        @unique
-  user            User          @relation(fields: [userId], references: [id])
+  id              String     @id @default(cuid())
+  userId          String     @unique
+  user            User       @relation(fields: [userId], references: [id])
   name            String
   phoneNo         String?
   dateOfBirth     DateTime?
   address         String?
-  department      Department    @relation(fields: [departmentId], references: [id])
+  department      Department @relation(fields: [departmentId], references: [id])
   departmentId    String
-  program         Program       @relation(fields: [programId], references: [id])  //newChange
-  programId       String
-  batchYear       BatchYear     @relation(fields: [batchYearId], references: [id])  //newChange
-  batchYearId     String
-  admissionYear   AdmissionYear @relation(fields: [admissionYearId], references: [id]) //newChange
-  admissionYearId String
+  batchYear       Int
   graduationYear  Int
   gpa             Float?
   jobStatus       String?
@@ -547,9 +528,9 @@ model Alumnus {
   industry        String?
   linkedInProfile String?
   achievements    String?
-  verified        Boolean       @default(false)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  verified        Boolean    @default(false)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 }
 
 model Notification {
@@ -565,8 +546,8 @@ model Feedback {
   id          String   @id @default(cuid())
   student     Student  @relation(fields: [studentId], references: [id])
   studentId   String
-  teacherAssignedSubject TeacherAssignedSubject @relation(fields: [teacherAssignedSubjectId], references: [id]) //newChange
-  teacherAssignedSubjectId String  //newChange
+  subject     Subject  @relation(fields: [subjectId], references: [id])
+  subjectId   String
   content     String
   isAnonymous Boolean  @default(true)
   createdAt   DateTime @default(now())
