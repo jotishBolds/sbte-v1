@@ -7,7 +7,11 @@ const prisma = new PrismaClient();
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password } = body as { email: string; password: string };
+    const { username, email, password } = body as {
+      username: string;
+      email: string;
+      password: string;
+    };
 
     if (!email || !password) {
       return NextResponse.json(
@@ -34,6 +38,7 @@ export async function POST(request: NextRequest) {
     // Create new user
     const newUser = await prisma.user.create({
       data: {
+        username,
         email,
         password: hashedPassword,
         role: "SBTE_ADMIN",

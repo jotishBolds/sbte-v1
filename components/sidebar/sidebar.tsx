@@ -31,6 +31,7 @@ import {
   MessageSquare,
   Menu,
   X,
+  GraduationCapIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -45,6 +46,7 @@ type NavLinkType = {
 
 export const Sidebar: React.FC = () => {
   const { data: session, status } = useSession();
+  console.log(session);
   const router = useRouter();
   const pathname = usePathname();
   const [isMobile, setIsMobile] = useState(false);
@@ -81,30 +83,49 @@ export const Sidebar: React.FC = () => {
           },
           {
             href: "/departments",
-            icon: <BookOpen size={18} />,
+            icon: <GraduationCapIcon size={18} />,
             label: "Departments",
           },
+
           { href: "/reports", icon: <FileText size={18} />, label: "Reports" },
           { href: "/users", icon: <Users size={18} />, label: "Users" },
         ];
       case "COLLEGE_SUPER_ADMIN":
         return [
           {
-            href: "/college",
+            href: "/csa-dashboard",
             icon: <Building size={18} />,
             label: "College Details",
           },
           {
-            href: "/departments",
+            href: `/departments/${session.user.collegeId}`,
             icon: <BookOpen size={18} />,
             label: "Departments",
           },
-          { href: "/users", icon: <Users size={18} />, label: "Users" },
           {
-            href: "/finance",
-            icon: <DollarSign size={18} />,
-            label: "Finance",
+            href: "/create-user/users-list",
+            icon: <Users size={18} />,
+            label: "Users",
           },
+          {
+            href: "/alumni-list",
+            icon: <BookOpen size={18} />,
+            label: "Alumni",
+          },
+          // {
+          //   href: "/finance",
+          //   icon: <DollarSign size={18} />,
+          //   label: "Finance",
+          // },
+        ];
+      case "ADM":
+        return [
+          {
+            href: "/create-user/users-list",
+            icon: <Users size={18} />,
+            label: "Manage Users",
+          },
+          { href: "/reports", icon: <FileText size={18} />, label: "Reports" },
         ];
       case "HOD":
         return [
@@ -201,8 +222,8 @@ export const Sidebar: React.FC = () => {
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
         <div className="flex flex-col">
-          <p className="font-semibold text-lg">{session.user.email}</p>
-          <Badge variant="secondary" className="mt-1 self-start">
+          <p className="font-semibold text-lg">{session.user.username}</p>
+          <Badge variant="default" className="mt-1 self-start">
             {session.user.role}
           </Badge>
         </div>
