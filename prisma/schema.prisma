@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,7 +7,66 @@ datasource db {
   url      = env("DATABASE_URL_LOCAL")
 }
 
-// User model to handle all types of users in the system
+enum Role {
+  EDUCATION_DEPARTMENT
+  SBTE_ADMIN
+  COLLEGE_SUPER_ADMIN
+  ADM
+  HOD
+  TEACHER
+  FINANCE_MANAGER
+  STUDENT
+  ALUMNUS
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum ClassType {
+  PRACTICAL
+  THEORY
+  BOTH
+}
+
+enum BatchStatus {
+  PROMOTED
+  IN_PROGRESS
+  RESIT
+}
+
+enum MaritalStatus {
+  MARRIED
+  WIDOWED
+  SEPARATED
+  DIVORCED
+  SINGLE
+}
+
+enum Caste {
+  GENERAL
+  OBC
+  ST
+  SC
+}
+
+enum Month {
+  JANUARY
+  FEBRUARY
+  MARCH
+  APRIL
+  MAY
+  JUNE
+  JULY
+  AUGUST
+  SEPTEMBER
+  OCTOBER
+  NOVEMBER
+  DECEMBER
+}
+
 model User {
   id               String            @id @default(cuid())
   username         String?
@@ -28,80 +84,117 @@ model User {
   financeManager   FinanceManager?
   alumnus          Alumnus?
   headOfDepartment HeadOfDepartment?
+  createdBatches   Batch[]           @relation("CreatedBy")
+  updatedBatches   Batch[]           @relation("UpdatedBy")
+  createdSubjects  Subject[]         @relation("SubjectCreatedBy")
+  updatedSubjects  Subject[]         @relation("SubjectUpdatedBy")
 }
 
-enum Role {
-  EDUCATION_DEPARTMENT
-  SBTE_ADMIN
-  COLLEGE_SUPER_ADMIN
-  ADM
-  HOD
-  TEACHER
-  FINANCE_MANAGER
-  STUDENT
-  ALUMNUS
-}
-
-// College model to store information about colleges
 model College {
-  id              String           @id @default(cuid())
-  name            String
-  address         String
-  establishedOn   DateTime
-  websiteUrl      String?
-  contactEmail    String?
-  contactPhone    String?
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
-  users           User[]
-  departments     Department[]
-  students        Student[]
-  financeManagers FinanceManager[]
+  id               String            @id @default(cuid())
+  name             String
+  address          String
+  establishedOn    DateTime
+  websiteUrl       String?
+  contactEmail     String?
+  contactPhone     String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  users            User[]
+  departments      Department[]
+  students         Student[]
+  financeManagers  FinanceManager[]
+  programTypes     ProgramType[]
+  semesters        Semester[]
+  academicYears    AcademicYear[]
+  admissionYears   AdmissionYear[]
+  batchYears       BatchYear[]
+  batchTypes       BatchType[]
+  designations     Designation[]
+  categories       Category[]
+  subjectTypes     SubjectType[]
+  certificateTypes CertificateType[]
+  examTypes        ExamType[]
+  subjects         Subject[]
 }
 
-  // Department model to represent departments within colleges
-  model Department {
-    id               String            @id @default(cuid())
-    name             String
-    isActive         Boolean           @default(true)
-    createdAt        DateTime          @default(now())
-    updatedAt        DateTime          @updatedAt
-    college          College           @relation(fields: [collegeId], references: [id])
-    collegeId        String
-    headOfDepartment HeadOfDepartment?
-    users            User[]
-    subjects         Subject[]
-    students         Student[]
-    alumnus          Alumnus[]
-  }
+model Department {
+  id               String            @id @default(cuid())
+  name             String
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  college          College           @relation(fields: [collegeId], references: [id])
+  collegeId        String
+  headOfDepartment HeadOfDepartment?
+  users            User[]
+  // subjects         Subject[] //newChange
+  students         Student[]
+  alumini          Alumnus[]
+  programs         Program[]
+}
 
-// Student model to store student information
 model Student {
-  id            String        @id @default(cuid())
-  user          User          @relation(fields: [userId], references: [id])
-  userId        String        @unique
-  enrollmentNo  String        @unique
-  admissionYear DateTime
-  name          String
-  phoneNo       String
-  address       String
-  father_name   String
-  mother_name   String
-  dob           DateTime
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  marks         Mark[]
-  attendance    Attendance[]
-  feePayments   FeePayment[]
-  certificates  Certificate[]
-  college       College       @relation(fields: [collegeId], references: [id])
-  collegeId     String
-  department    Department    @relation(fields: [departmentId], references: [id])
-  departmentId  String
-  feedbacks     Feedback[]
+  id                  String                          @id @default(cuid())
+  user                User                            @relation(fields: [userId], references: [id])
+  userId              String                          @unique
+  enrollmentNo        String                          @unique
+  name                String
+  dob                 DateTime
+  personalEmail       String                          @unique
+  phoneNo             String
+  studentAvatar       String?
+  abcId               String?
+  lastCollegeAttended String?
+  batchYear           BatchYear                       @relation(fields: [batchYearId], references: [id])
+  batchYearId         String
+  admissionYear       AdmissionYear                   @relation(fields: [admissionYearId], references: [id])
+  admissionYearId     String
+  academicYear        AcademicYear                    @relation(fields: [academicYearId], references: [id])
+  academicYearId      String
+  term                Semester                        @relation(fields: [termId], references: [id])
+  termId              String
+  gender              String
+  isLocalStudent      Boolean                         @default(false)
+  isDifferentlyAbled  Boolean                         @default(false)
+  motherName          String
+  fatherName          String
+  bloodGroup          String?
+  religion            String?
+  nationality         String?
+  caste               String?
+  admissionCategory   String?
+  resident            String?
+  admissionDate       DateTime
+  graduateDate        DateTime?
+  permanentAddress    String
+  permanentCountry    String
+  permanentState      String
+  permanentCity       String
+  permanentPincode    String
+  guardianName        String
+  guardianGender      String
+  guardianEmail       String?
+  guardianMobileNo    String
+  guardianRelation    String
+  program             Program                         @relation(fields: [programId], references: [id])
+  programId           String
+  college             College                         @relation(fields: [collegeId], references: [id])
+  collegeId           String
+  department          Department                      @relation(fields: [departmentId], references: [id])
+  departmentId        String
+  createdAt           DateTime                        @default(now())
+  updatedAt           DateTime                        @updatedAt
+  // marks               Mark[] //newChange
+  // attendance          Attendance[] //newChange
+  feePayments         FeePayment[]
+  certificates        Certificate[]
+  feedbacks           Feedback[]
+  studentBatches      StudentBatch[]
+  examMarks           ExamMark[]
+  monthlyAttendance   MonthlyBatchSubjectAttendance[]
 }
 
-// HeadOfDepartment model to store HOD information
 model HeadOfDepartment {
   id            String     @id @default(cuid())
   user          User       @relation(fields: [userId], references: [id])
@@ -117,69 +210,282 @@ model HeadOfDepartment {
   departmentId  String     @unique
 }
 
-// Subject model to represent subjects taught in departments
-model Subject {
-  id           String       @id @default(cuid())
-  name         String
-  code         String
-  semester     String
-  creditScore  Float
-  department   Department   @relation(fields: [departmentId], references: [id])
-  departmentId String
-  teacher      Teacher?      @relation(fields: [teacherId], references: [id])
-  teacherId    String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  marks        Mark[]
-  attendance   Attendance[]
-  feedbacks    Feedback[]
+model ExamType {
+  id         String     @id @default(cuid())
+  examName   String
+  totalMarks Decimal
+  college    College    @relation(fields: [collegeId], references: [id])
+  collegeId  String
+  status     Boolean    @default(true)
+  examMarks  ExamMark[]
 }
 
-// Teacher model to store teacher information
-model Teacher {
-  id            String    @id @default(cuid())
-  user          User      @relation(fields: [userId], references: [id])
-  userId        String    @unique
-  name          String?
-  phoneNo       String?
-  address       String?
-  qualification String?
-  designation   String?
-  experience    String?
-  subjects      Subject[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+model ExamMark {
+  id             String       @id @default(cuid())
+  examType       ExamType     @relation(fields: [examTypeId], references: [id])
+  examTypeId     String
+  student        Student      @relation(fields: [studentId], references: [id])
+  studentId      String
+  batchSubject   BatchSubject @relation(fields: [batchSubjectId], references: [id])
+  batchSubjectId String
+  achievedMarks  Decimal      @default(0)
+  wasAbsent      Boolean      @default(false)
+  debarred       Boolean      @default(false)
+  malpractice    Boolean      @default(false)
+
+  @@unique([examTypeId, studentId, batchSubjectId])
 }
 
-// Mark model to store student marks
-model Mark {
-  id        String   @id @default(cuid())
-  student   Student  @relation(fields: [studentId], references: [id])
-  studentId String
-  subject   Subject  @relation(fields: [subjectId], references: [id])
-  subjectId String
-  score     Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model ProgramType {
+  id        String    @id @default(cuid())
+  name      String
+  college   College   @relation(fields: [collegeId], references: [id])
+  collegeId String
+  programs  Program[]
 }
 
-// Attendance model to store student attendance
-model Attendance {
+model Program {
+  id               String            @id @default(cuid())
+  name             String
+  code             String            @unique
+  alias            String
+  department       Department        @relation(fields: [departmentId], references: [id])
+  departmentId     String
+  programType      ProgramType       @relation(fields: [programTypeId], references: [id])
+  programTypeId    String
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  students         Student[]
+  batches          Batch[]
+  semesterPrograms SemesterProgram[]
+  Alumnus          Alumnus[]
+}
+
+model Semester {
+  id               String            @id @default(cuid())
+  name             String
+  alias            String
+  numerical        Int
+  college          College           @relation(fields: [collegeId], references: [id])
+  collegeId        String
+  students         Student[]
+  semesterPrograms SemesterProgram[]
+  batches          Batch[]           @relation("SemesterToBatch")
+  @@unique([numerical, collegeId])
+}
+
+model SemesterProgram {
   id         String   @id @default(cuid())
-  student    Student  @relation(fields: [studentId], references: [id])
-  studentId  String
-  subject    Subject  @relation(fields: [subjectId], references: [id])
-  subjectId  String
-  percentage Float
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  semester   Semester @relation(fields: [semesterId], references: [id])
+  semesterId String
+  program    Program  @relation(fields: [programId], references: [id])
+  programId  String
 }
 
-// FinanceManager model to represent finance managers
+model AcademicYear {
+  id        String    @id @default(cuid())
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  status    Boolean
+  college   College   @relation(fields: [collegeId], references: [id])
+  collegeId String
+  students  Student[]
+  batches   Batch[]
+}
+
+model AdmissionYear {
+  id        String    @id @default(cuid())
+  year      DateTime
+  status    Boolean
+  college   College   @relation(fields: [collegeId], references: [id])
+  collegeId String
+  students  Student[]
+  Alumnus   Alumnus[]
+}
+
+model BatchYear {
+  id        String    @id @default(cuid())
+  year      DateTime
+  status    Boolean
+  college   College   @relation(fields: [collegeId], references: [id])
+  collegeId String
+  students  Student[]
+  Alumnus   Alumnus[]
+}
+
+model BatchType {
+  id        String  @id @default(cuid())
+  name      String
+  college   College @relation(fields: [collegeId], references: [id])
+  collegeId String
+  batches   Batch[]
+}
+
+model Batch {
+  id             String         @id @default(cuid())
+  name           String
+  term           Semester       @relation("SemesterToBatch", fields: [termId], references: [id])
+  termId         String
+  academicYear   AcademicYear   @relation(fields: [academicYearId], references: [id])
+  academicYearId String
+  program        Program        @relation(fields: [programId], references: [id])
+  programId      String
+  batchType      BatchType      @relation(fields: [batchTypeId], references: [id])
+  batchTypeId    String
+  startDate      DateTime
+  endDate        DateTime
+  status         Boolean
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  createdBy      User           @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById    String
+  updatedBy      User?          @relation("UpdatedBy", fields: [updatedById], references: [id])
+  updatedById    String?
+  studentBatches StudentBatch[]
+  batchSubjects  BatchSubject[]
+}
+
+model SubjectType {
+  id            String         @id @default(cuid())
+  college       College        @relation(fields: [collegeId], references: [id])
+  collegeId     String
+  type          String
+  batchSubjects BatchSubject[]
+}
+
+model Subject {
+  id            String         @id @default(cuid())
+  name          String
+  code          String
+  alias         String?
+  creditScore   Float
+  status        Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  createdBy     User           @relation("SubjectCreatedBy", fields: [createdById], references: [id])
+  createdById   String
+  updatedBy     User?          @relation("SubjectUpdatedBy", fields: [updatedById], references: [id])
+  updatedById   String?
+  college       College        @relation(fields: [collegeId], references: [id])
+  collegeId     String
+  // department    Department     @relation(fields: [departmentId], references: [id]) //newChange
+  // departmentId  String //newChange
+  // marks         Mark[] //newChange
+  // attendance    Attendance[] //newChange
+  // feedbacks     Feedback[] //newChange
+  batchSubjects BatchSubject[]
+}
+
+model BatchSubject {
+  id                 String                       @id @default(cuid())
+  batch              Batch                        @relation(fields: [batchId], references: [id])
+  batchId            String
+  subject            Subject                      @relation(fields: [subjectId], references: [id])
+  subjectId          String
+  subjectType        SubjectType                  @relation(fields: [subjectTypeId], references: [id])
+  subjectTypeId      String
+  classType          ClassType
+  teacherAssignments TeacherAssignedSubject[]
+  monthlyClasses     MonthlyBatchSubjectClasses[]
+  examMarks          ExamMark[]
+}
+
+model MonthlyBatchSubjectClasses {
+  id                        String                          @id @default(cuid())
+  batchSubject              BatchSubject                    @relation(fields: [batchSubjectId], references: [id])
+  batchSubjectId            String
+  month                     Month
+  totalTheoryClasses        Int
+  totalPracticalClasses     Int
+  completedTheoryClasses    Int
+  completedPracticalClasses Int
+  monthlyAttendance         MonthlyBatchSubjectAttendance[]
+
+  @@unique([batchSubjectId, month])
+}
+
+model MonthlyBatchSubjectAttendance {
+  id                           String                     @id @default(cuid())
+  monthlyBatchSubjectClasses   MonthlyBatchSubjectClasses @relation(fields: [monthlyBatchSubjectClassesId], references: [id])
+  monthlyBatchSubjectClassesId String
+  student                      Student                    @relation(fields: [studentId], references: [id])
+  studentId                    String
+  attendedTheoryClasses        Int
+  attendedPracticalClasses     Int
+
+  @@unique([monthlyBatchSubjectClassesId, studentId])
+}
+
+model StudentBatch {
+  id          String      @id @default(cuid())
+  student     Student     @relation(fields: [studentId], references: [id])
+  studentId   String
+  batch       Batch       @relation(fields: [batchId], references: [id])
+  batchId     String
+  batchStatus BatchStatus
+}
+
+model Designation {
+  id          String    @id @default(cuid())
+  name        String
+  alias       String
+  description String?
+  college     College   @relation(fields: [collegeId], references: [id])
+  collegeId   String
+  teachers    Teacher[]
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String
+  alias       String
+  description String?
+  college     College   @relation(fields: [collegeId], references: [id])
+  collegeId   String
+  teachers    Teacher[]
+}
+
+model Teacher {
+  id                 String                   @id @default(cuid())
+  userId             String                   @unique
+  user               User                     @relation(fields: [userId], references: [id])
+  name               String?
+  phoneNo            String?
+  address            String?
+  qualification      String?
+  designation        Designation?             @relation(fields: [designationId], references: [id])
+  designationId      String?
+  category           Category?                @relation(fields: [categoryId], references: [id])
+  categoryId         String?
+  experience         String?
+  hasResigned        Boolean?                 @default(false)
+  maritalStatus      MaritalStatus?
+  joiningDate        DateTime?
+  gender             String?
+  religion           String?
+  caste              Caste?
+  isLocalResident    Boolean?                 @default(false)
+  isDifferentlyAbled Boolean?                 @default(false)
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+  assignedSubjects   TeacherAssignedSubject[]
+}
+
+model TeacherAssignedSubject {
+  id             String       @id @default(cuid())
+  teacher        Teacher      @relation(fields: [teacherId], references: [id])
+  teacherId      String
+  batchSubject   BatchSubject @relation(fields: [batchSubjectId], references: [id])
+  batchSubjectId String
+  Feedback      Feedback[] //newChange
+}
+
 model FinanceManager {
   id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
   userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
   name      String
   phoneNo   String
   address   String
@@ -189,7 +495,6 @@ model FinanceManager {
   collegeId String
 }
 
-// FeePayment model to store fee payment information
 model FeePayment {
   id            String        @id @default(cuid())
   student       Student       @relation(fields: [studentId], references: [id])
@@ -201,43 +506,42 @@ model FeePayment {
   updatedAt     DateTime      @updatedAt
 }
 
-enum PaymentStatus {
-  PENDING
-  COMPLETED
-  FAILED
-}
-
 model CertificateType {
   id           String        @id @default(cuid())
   name         String
+  college      College       @relation(fields: [collegeId], references: [id])
+  collegeId    String
   certificates Certificate[]
 }
 
-// Certificate model to store information about certificates issued to students
 model Certificate {
   id                String          @id @default(cuid())
   student           Student         @relation(fields: [studentId], references: [id])
   studentId         String
-  certificateTypeId String
   certificateType   CertificateType @relation(fields: [certificateTypeId], references: [id])
+  certificateTypeId String
   issueDate         DateTime
-  paymentStatus     String
+  paymentStatus     PaymentStatus
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 }
 
-// Alumnus model to store information about alumni
 model Alumnus {
-  id              String   @id @default(cuid())
-  user            User     @relation(fields: [userId], references: [id])
-  userId          String   @unique
+  id              String        @id @default(cuid())
+  userId          String        @unique
+  user            User          @relation(fields: [userId], references: [id])
   name            String
   phoneNo         String?
   dateOfBirth     DateTime?
   address         String?
-  department      Department?    @relation(fields: [departmentId], references: [id])
-  departmentId    String?
-  batchYear       Int
+  department      Department    @relation(fields: [departmentId], references: [id])
+  departmentId    String
+  program         Program       @relation(fields: [programId], references: [id])  //newChange
+  programId       String
+  batchYear       BatchYear     @relation(fields: [batchYearId], references: [id])  //newChange
+  batchYearId     String
+  admissionYear   AdmissionYear @relation(fields: [admissionYearId], references: [id]) //newChange
+  admissionYearId String
   graduationYear  Int
   gpa             Float?
   jobStatus       String?
@@ -246,12 +550,11 @@ model Alumnus {
   industry        String?
   linkedInProfile String?
   achievements    String?
-  verified        Boolean    @default(false) 
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  verified        Boolean       @default(false)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 }
 
-// Notification model to store notifications and circulars
 model Notification {
   id           String   @id @default(cuid())
   title        String
@@ -261,13 +564,12 @@ model Notification {
   updatedAt    DateTime @updatedAt
 }
 
-// Feedback model to store student feedback
 model Feedback {
   id          String   @id @default(cuid())
   student     Student  @relation(fields: [studentId], references: [id])
   studentId   String
-  subject     Subject  @relation(fields: [subjectId], references: [id])
-  subjectId   String
+  teacherAssignedSubject TeacherAssignedSubject @relation(fields: [teacherAssignedSubjectId], references: [id]) //newChange
+  teacherAssignedSubjectId String  //newChange
   content     String
   isAnonymous Boolean  @default(true)
   createdAt   DateTime @default(now())
