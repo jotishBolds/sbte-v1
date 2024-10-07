@@ -1,199 +1,126 @@
-import { NextResponse, NextRequest } from "next/server";
-import { getServerSession } from "next-auth";
-import prisma from "@/prisma/client";
-import { authOptions } from "@/app/api/auth/[...nextauth]/auth"
+// File: app/api/subjects/[id]/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { z } from "zod";
+import { authOptions } from "../../auth/[...nextauth]/auth";
+import prisma from "@/src/lib/prisma";
 
+const subjectSchema = z.object({
+  name: z.string().min(2).max(100).optional(),
+  code: z.string().min(2).max(20).optional(),
+  semester: z.string().min(1).max(20).optional(),
+  creditScore: z.number().min(0).max(10).optional(),
+  teacherId: z.string().nullable().optional(),
+});
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }): Promise<NextResponse> {
-    try {
-        const subjectId = params.id;
-        const data = await request.json();
-        let { name, code, semester, creditScore, teacherId } = data;
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
 
-        if (!subjectId) {
-            return new NextResponse(JSON.stringify({ message: "Subject ID is required" }), { status: 400 });
-        }
-
-        const session = await getServerSession(authOptions);
-        if (!session) {
-            return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 403 });
-        }
-
-        if (session.user.role !== "HOD") {
-            return new NextResponse(JSON.stringify({ message: "Unauthorized: Only HOD can update subjects" }), { status: 403 });
-        }
-
-        const existingSubject = await prisma.subject.findUnique({
-            where: {
-                id: subjectId,
-            },
-            include: {
-                department: true,
-            },
-        });
-
-        if (!existingSubject) {
-            return new NextResponse(JSON.stringify({ message: "Subject not found" }), { status: 404 });
-        }
-
-        if (existingSubject && session.user.departmentId !== existingSubject.departmentId) {
-            return new NextResponse(JSON.stringify({ message: "Unauthorized: You are not authorized to update subjects in this department" }), { status: 403 });
-        }
-
-        if (teacherId) {
-            const existingTeacher = await prisma.teacher.findUnique({
-                where: {
-                    id: teacherId,
-
-                },
-                include: {
-                    user: {
-                        include: {
-                            college: true, // Include the department to get the collegeId
-                        },
-                    },
-                },
-            });
-            if (!existingTeacher) {
-                return new NextResponse(JSON.stringify({ message: "Teacher not found" }), { status: 404 });
-            }
-            if (existingTeacher.user.collegeId !== existingSubject.department.collegeId) {
-                return new NextResponse(
-                    JSON.stringify({ message: "Unauthorized: Teacher does not belong to the same college as the subject" }),
-                    { status: 403 }
-                );
-            }
-        }   
-
-        creditScore = creditScore !== undefined ? parseFloat(creditScore) : undefined;
-        if (creditScore !== undefined && isNaN(creditScore)) {
-            return new NextResponse(JSON.stringify({ message: "Invalid credit score value" }), { status: 400 });
-        }
-
-        const updateData: any = {
-            name,
-            code,
-            semester,
-            creditScore
-        };
-
-        if (teacherId && teacherId.trim() !== "") {
-            updateData.teacherId = teacherId; // Only add teacherId if it's not empty
-        }
-        if (teacherId == null) {
-            updateData.teacherId = teacherId; // Add teacherId to null if specified null
-        }
-
-        const updatedSubject = await prisma.subject.update({
-            where: {
-                id: subjectId,
-            },
-            data: updateData,
-        });
-
-        return NextResponse.json({ message: "Subject Updated Successfully", subject: updatedSubject }, { status: 200 });
-
-    } catch (error) {
-        console.error("Error Updating Subject:", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+    if (!session?.user || session.user.role !== "HOD") {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
+
+    const subjectId = params.id;
+    // Check if the subject exists before updating
+    const existingSubject = await prisma.subject.findUnique({
+      where: { id: subjectId },
+    });
+
+    if (!existingSubject) {
+      return NextResponse.json(
+        { message: "Subject not found" },
+        { status: 404 }
+      );
+    }
+
+    const body = await request.json();
+    const validatedData = subjectSchema.parse(body);
+
+    const subjectData: any = {};
+    // Dynamically add only the provided fields to subjectData
+    if (validatedData.name) subjectData.name = validatedData.name;
+    if (validatedData.code) subjectData.code = validatedData.code;
+    if (validatedData.semester) subjectData.semester = validatedData.semester;
+    if (validatedData.creditScore) subjectData.creditScore = validatedData.creditScore;
+
+    if (validatedData.teacherId) {
+      subjectData.teacher = {
+        connect: { id: validatedData.teacherId },
+      };
+    } else {
+      subjectData.teacher = {
+        disconnect: true,
+      };
+    }
+
+    const updatedSubject = await prisma.subject.update({
+      where: { id: subjectId },
+      data: subjectData,
+      include: {
+        department: true,
+        teacher: true,
+      },
+    });
+
+    return NextResponse.json(updatedSubject,{status:200});
+  } catch (error) {
+    console.error("Error updating subject:", error);
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { message: "Validation error", errors: error.errors },
+        { status: 400 }
+      );
+    }
+    return NextResponse.json(
+      { message: "Error updating subject", errors: error},
+      { status: 500 }
+    );
+  }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }): Promise<NextResponse> {
-    try {
-        const subjectId = params.id;
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const session = await getServerSession(authOptions);
 
-        // Fetch the session to validate the user
-        const session = await getServerSession(authOptions);
-        if (!session) {
-            return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 403 });
-        }
-
-        // Ensure that the user is an HOD
-        if (session.user.role !== "HOD") {
-            return new NextResponse(JSON.stringify({ message: "Unauthorized: Only HODs can delete subjects" }), { status: 403 });
-        }
-
-        // Fetch the subject to check department and existence
-        const subject = await prisma.subject.findUnique({
-            where: {
-                id: subjectId,
-            },
-            include: {
-                department: true,
-            },
-        });
-
-        if (!subject) {
-            return new NextResponse(JSON.stringify({ message: "Subject not found" }), { status: 404 });
-        }
-
-        // Ensure that the subject belongs to the HOD's department
-        if (subject.departmentId !== session.user.departmentId) {
-            return new NextResponse(JSON.stringify({ message: "Unauthorized: You can only delete subjects from your department" }), { status: 403 });
-        }
-
-        // Perform the deletion
-        await prisma.subject.delete({
-            where: {
-                id: subjectId,
-            },
-        });
-
-        return new NextResponse(JSON.stringify({ message: "Subject deleted successfully" }), { status: 200 });
-
-    } catch (error) {
-        console.error("Error deleting subject:", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+    // Check if the user is authenticated and has the HOD role
+    if (!session?.user || session.user.role !== "HOD") {
+      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
-}
 
+    const subjectId = params.id;
 
+    // Check if the subject exists
+    const existingSubject = await prisma.subject.findUnique({
+      where: { id: subjectId },
+    });
 
-
-export async function GET(request: NextRequest, { params }: { params: { id: string } }): Promise<NextResponse> {
-    try {
-        const subjectId = params.id;
-        // Fetch the session to validate the user
-        const session = await getServerSession(authOptions);
-        if (!session) {
-            return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 403 });
-        }
-
-        // Ensure that the user is an HOD
-        if (session.user.role !== "HOD") {
-            return new NextResponse(JSON.stringify({ message: "Unauthorized: Only HODs can delete subjects" }), { status: 403 });
-        }
-        
-        // Fetch the subject by ID
-        const subject = await prisma.subject.findUnique({
-            where: {
-                id: subjectId,
-            },
-            include: {
-                department: {
-                    include: {
-                        college: true,
-                    },
-                },
-                teacher: {
-                    include: {
-                        user: true,
-                    },
-                },
-            },
-        });
-
-        // Check if the subject exists
-        if (!subject) {
-            return new NextResponse(JSON.stringify({ message: "Subject not found" }), { status: 404 });
-        }
-
-        // Return the fetched subject
-        return NextResponse.json(subject, { status: 200 });
-
-    } catch (error) {
-        console.error("Error fetching subject:", error);
-        return new NextResponse("Internal Server Error", { status: 500 });
+    if (!existingSubject) {
+      return NextResponse.json(
+        { message: "Subject not found" },
+        { status: 404 }
+      );
     }
+
+    // Proceed to delete the subject
+    await prisma.subject.delete({
+      where: { id: subjectId },
+    });
+
+    return NextResponse.json({ message: "Subject deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting subject:", error);
+
+    // Handle specific Prisma errors if necessary
+    return NextResponse.json(
+      { message: "Error deleting subject" },
+      { status: 500 }
+    );
+  }
 }

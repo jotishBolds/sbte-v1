@@ -23,6 +23,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
+          include: { alumnus: true },
         });
 
         if (!user) {
@@ -37,12 +38,15 @@ export const authOptions: NextAuthOptions = {
         if (!isPasswordValid) {
           return null;
         }
+        if (user.role === "ALUMNUS" && user.alumnus && !user.alumnus.verified) {
+          throw new Error("Account not verified");
+        }
 
         return {
           id: user.id,
           username: user.username || "",
           collegeId: user.collegeId || "",
-departmentId: user.departmentId || "",
+          departmentId: user.departmentId || "",
           email: user.email,
           role: user.role,
         };
@@ -56,6 +60,7 @@ departmentId: user.departmentId || "",
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.id = user.id;
         token.role = user.role;
         token.username = user.username;
         token.collegeId = user.collegeId;
@@ -65,10 +70,11 @@ departmentId: user.departmentId || "",
     },
     async session({ session, token }) {
       if (session?.user) {
+        session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.username = token.username as string;
         session.user.collegeId = token.collegeId as string;
-		 session.user.departmentId = token.departmentId as string;
+        session.user.departmentId = token.departmentId as string;
       }
       return session;
     },
