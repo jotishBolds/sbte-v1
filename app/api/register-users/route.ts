@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (existingHOD) {
+          await prisma.user.delete({ where: { id: user.id } });
           return NextResponse.json(
             {
               message:
@@ -126,44 +127,29 @@ export async function POST(request: NextRequest) {
           },
         });
         break;
+
       case "TEACHER":
-        // Check if a Teacher already exists for the given userId
-        const existingTeacher = await prisma.teacher.findUnique({
-          where: { userId: user.id },
-        });
-
-        if (existingTeacher) {
-          return NextResponse.json(
-            { message: "A Teacher already exists for this user" },
-            { status: 400 }
-          );
-        }
-
         await prisma.teacher.create({
           data: {
             userId: user.id,
             name: username,
-            phoneNo: "",
-            address: "",
-            qualification: "",
-            designation: "",
-            experience: "",
+            phoneNo: null,
+            address: null,
+            qualification: null,
+            experience: null,
+            hasResigned: false,
+            maritalStatus: null,
+            joiningDate: null,
+            gender: null,
+            religion: null,
+            caste: null,
+            isLocalResident: false,
+            isDifferentlyAbled: false,
           },
         });
         break;
+
       case "FINANCE_MANAGER":
-        // Check if a Finance Manager already exists for the given userId
-        const existingFinanceManager = await prisma.financeManager.findUnique({
-          where: { userId: user.id },
-        });
-
-        if (existingFinanceManager) {
-          return NextResponse.json(
-            { message: "A Finance Manager already exists for this user" },
-            { status: 400 }
-          );
-        }
-
         await prisma.financeManager.create({
           data: {
             userId: user.id,
@@ -174,15 +160,43 @@ export async function POST(request: NextRequest) {
           },
         });
         break;
+
       case "STUDENT":
-        // Check if a Student already exists for the given userId
-        const existingStudent = await prisma.student.findUnique({
-          where: { userId: user.id },
+        // Get the latest academic year, batch year, and admission year
+        const academicYear = await prisma.academicYear.findFirst({
+          where: { collegeId: session.user.collegeId },
+          orderBy: { startDate: "desc" },
         });
 
-        if (existingStudent) {
+        const batchYear = await prisma.batchYear.findFirst({
+          where: { collegeId: session.user.collegeId },
+          orderBy: { year: "desc" },
+        });
+
+        const admissionYear = await prisma.admissionYear.findFirst({
+          where: { collegeId: session.user.collegeId },
+          orderBy: { year: "desc" },
+        });
+
+        const semester = await prisma.semester.findFirst({
+          where: { collegeId: session.user.collegeId },
+        });
+
+        // Find a program for the department
+        const program = await prisma.program.findFirst({
+          where: { departmentId: departmentId },
+        });
+
+        if (
+          !academicYear ||
+          !batchYear ||
+          !admissionYear ||
+          !semester ||
+          !program
+        ) {
+          await prisma.user.delete({ where: { id: user.id } });
           return NextResponse.json(
-            { message: "A Student already exists for this user" },
+            { message: "Required academic data not found" },
             { status: 400 }
           );
         }
@@ -190,28 +204,68 @@ export async function POST(request: NextRequest) {
         await prisma.student.create({
           data: {
             userId: user.id,
-            enrollmentNo: "", // This should be generated or provided
-            admissionYear: new Date(),
+            enrollmentNo: `ENR${Math.floor(Math.random() * 10000)}`, // Generate a random enrollment number
             name: username,
+            dob: new Date(), // This should be collected from the form
+            personalEmail: email,
             phoneNo: "",
-            address: "",
-            father_name: "",
-            mother_name: "",
-            dob: new Date(), // This should be collected separately
+            studentAvatar: null,
+            abcId: null,
+            lastCollegeAttended: null,
+            batchYearId: batchYear.id,
+            admissionYearId: admissionYear.id,
+            academicYearId: academicYear.id,
+            termId: semester.id,
+            gender: "NOT_SPECIFIED", // This should be collected from the form
+            isLocalStudent: false,
+            isDifferentlyAbled: false,
+            motherName: "",
+            fatherName: "",
+            bloodGroup: null,
+            religion: null,
+            nationality: null,
+            caste: null,
+            admissionCategory: null,
+            resident: null,
+            admissionDate: new Date(),
+            graduateDate: null,
+            permanentAddress: "",
+            permanentCountry: "",
+            permanentState: "",
+            permanentCity: "",
+            permanentPincode: "",
+            guardianName: "",
+            guardianGender: "",
+            guardianEmail: null,
+            guardianMobileNo: "",
+            guardianRelation: "",
+            programId: program.id,
             collegeId: session.user.collegeId,
             departmentId: departmentId,
           },
         });
         break;
+
       case "ALUMNUS":
-        // Check if an Alumnus already exists for the given userId
-        const existingAlumnus = await prisma.alumnus.findUnique({
-          where: { userId: user.id },
+        // Get the batch year and admission year for alumnus
+        const alumnusBatchYear = await prisma.batchYear.findFirst({
+          where: { collegeId: session.user.collegeId },
+          orderBy: { year: "desc" },
         });
 
-        if (existingAlumnus) {
+        const alumnusAdmissionYear = await prisma.admissionYear.findFirst({
+          where: { collegeId: session.user.collegeId },
+          orderBy: { year: "desc" },
+        });
+
+        const alumnusProgram = await prisma.program.findFirst({
+          where: { departmentId: departmentId },
+        });
+
+        if (!alumnusBatchYear || !alumnusAdmissionYear || !alumnusProgram) {
+          await prisma.user.delete({ where: { id: user.id } });
           return NextResponse.json(
-            { message: "An Alumnus already exists for this user" },
+            { message: "Required academic data not found for alumnus" },
             { status: 400 }
           );
         }
@@ -220,22 +274,24 @@ export async function POST(request: NextRequest) {
           data: {
             userId: user.id,
             name: username,
-            departmentId: departmentId,
-            batchYear: new Date().getFullYear(),
-            graduationYear: new Date().getFullYear(),
-            jobStatus: "",
-            phoneNo: "",
+            phoneNo: null,
             dateOfBirth: null,
-            address: "",
+            address: null,
+            departmentId: departmentId,
+            programId: alumnusProgram.id,
+            batchYearId: alumnusBatchYear.id,
+            admissionYearId: alumnusAdmissionYear.id,
+            graduationYear: new Date().getFullYear(),
             gpa: null,
+            jobStatus: null,
             currentEmployer: null,
             currentPosition: null,
             industry: null,
             linkedInProfile: null,
             achievements: null,
+            verified: false,
           },
         });
-
         break;
     }
 
