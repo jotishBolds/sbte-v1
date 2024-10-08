@@ -117,3 +117,38 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     }
 }
+
+
+
+// GET request to fetch a semester by ID
+export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+    try {
+        const session = await getServerSession(authOptions);
+
+        // Check if the user is authenticated and authorized
+        if (!session) {
+            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        } else if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        const { id } = params; // Extract semester ID from dynamic route
+
+        // Check if the semester exists
+        const semester = await prisma.semester.findUnique({ where: { id } });
+        if (!semester) {
+            return NextResponse.json({ error: "Semester not found" }, { status: 404 });
+        }
+
+        // Ensure that the semester belongs to the same college as the user
+        if (semester.collegeId !== session.user.collegeId) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+
+        // Return the found semester
+        return NextResponse.json(semester, { status: 200 });
+    } catch (error) {
+        console.error("Error fetching semester:", error);
+        return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    }
+}
