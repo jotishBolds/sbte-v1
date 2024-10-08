@@ -281,6 +281,8 @@ model SemesterProgram {
   semesterId String
   program    Program  @relation(fields: [programId], references: [id])
   programId  String
+    @@unique([programId, semesterId]) // Composite unique constraint
+
 }
 
 model AcademicYear {

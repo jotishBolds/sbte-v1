@@ -1,48 +1,9 @@
-/*
-  Warnings:
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('EDUCATION_DEPARTMENT', 'SBTE_ADMIN', 'COLLEGE_SUPER_ADMIN', 'ADM', 'HOD', 'TEACHER', 'FINANCE_MANAGER', 'STUDENT', 'ALUMNUS');
 
-  - You are about to drop the column `batchYear` on the `Alumnus` table. All the data in the column will be lost.
-  - You are about to drop the column `subjectId` on the `Feedback` table. All the data in the column will be lost.
-  - You are about to drop the column `address` on the `Student` table. All the data in the column will be lost.
-  - You are about to drop the column `admissionYear` on the `Student` table. All the data in the column will be lost.
-  - You are about to drop the column `father_name` on the `Student` table. All the data in the column will be lost.
-  - You are about to drop the column `mother_name` on the `Student` table. All the data in the column will be lost.
-  - You are about to drop the column `departmentId` on the `Subject` table. All the data in the column will be lost.
-  - You are about to drop the column `semester` on the `Subject` table. All the data in the column will be lost.
-  - You are about to drop the column `teacherId` on the `Subject` table. All the data in the column will be lost.
-  - You are about to drop the column `designation` on the `Teacher` table. All the data in the column will be lost.
-  - You are about to drop the `Attendance` table. If the table is not empty, all the data it contains will be lost.
-  - You are about to drop the `Mark` table. If the table is not empty, all the data it contains will be lost.
-  - A unique constraint covering the columns `[personalEmail]` on the table `Student` will be added. If there are existing duplicate values, this will fail.
-  - Added the required column `admissionYearId` to the `Alumnus` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `batchYearId` to the `Alumnus` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `programId` to the `Alumnus` table without a default value. This is not possible if the table is not empty.
-  - Changed the type of `paymentStatus` on the `Certificate` table. No cast exists, the column would be dropped and recreated, which cannot be done if there is data, since the column is required.
-  - Added the required column `collegeId` to the `CertificateType` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `teacherAssignedSubjectId` to the `Feedback` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `academicYearId` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `admissionDate` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `admissionYearId` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `batchYearId` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `fatherName` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `gender` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `guardianGender` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `guardianMobileNo` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `guardianName` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `guardianRelation` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `motherName` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `permanentAddress` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `permanentCity` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `permanentCountry` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `permanentPincode` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `permanentState` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `personalEmail` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `programId` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `termId` to the `Student` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `collegeId` to the `Subject` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `createdById` to the `Subject` table without a default value. This is not possible if the table is not empty.
+-- CreateEnum
+CREATE TYPE "PaymentStatus" AS ENUM ('PENDING', 'COMPLETED', 'FAILED');
 
-*/
 -- CreateEnum
 CREATE TYPE "ClassType" AS ENUM ('PRACTICAL', 'THEORY', 'BOTH');
 
@@ -58,110 +19,111 @@ CREATE TYPE "Caste" AS ENUM ('GENERAL', 'OBC', 'ST', 'SC');
 -- CreateEnum
 CREATE TYPE "Month" AS ENUM ('JANUARY', 'FEBRUARY', 'MARCH', 'APRIL', 'MAY', 'JUNE', 'JULY', 'AUGUST', 'SEPTEMBER', 'OCTOBER', 'NOVEMBER', 'DECEMBER');
 
--- DropForeignKey
-ALTER TABLE "Attendance" DROP CONSTRAINT "Attendance_studentId_fkey";
+-- CreateTable
+CREATE TABLE "User" (
+    "id" TEXT NOT NULL,
+    "username" TEXT,
+    "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "role" "Role" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "collegeId" TEXT,
+    "departmentId" TEXT,
 
--- DropForeignKey
-ALTER TABLE "Attendance" DROP CONSTRAINT "Attendance_subjectId_fkey";
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
 
--- DropForeignKey
-ALTER TABLE "Feedback" DROP CONSTRAINT "Feedback_subjectId_fkey";
+-- CreateTable
+CREATE TABLE "College" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
+    "establishedOn" TIMESTAMP(3) NOT NULL,
+    "websiteUrl" TEXT,
+    "contactEmail" TEXT,
+    "contactPhone" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
--- DropForeignKey
-ALTER TABLE "Mark" DROP CONSTRAINT "Mark_studentId_fkey";
+    CONSTRAINT "College_pkey" PRIMARY KEY ("id")
+);
 
--- DropForeignKey
-ALTER TABLE "Mark" DROP CONSTRAINT "Mark_subjectId_fkey";
+-- CreateTable
+CREATE TABLE "Department" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "collegeId" TEXT NOT NULL,
 
--- DropForeignKey
-ALTER TABLE "Subject" DROP CONSTRAINT "Subject_departmentId_fkey";
+    CONSTRAINT "Department_pkey" PRIMARY KEY ("id")
+);
 
--- DropForeignKey
-ALTER TABLE "Subject" DROP CONSTRAINT "Subject_teacherId_fkey";
+-- CreateTable
+CREATE TABLE "Student" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "enrollmentNo" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "dob" TIMESTAMP(3) NOT NULL,
+    "personalEmail" TEXT NOT NULL,
+    "phoneNo" TEXT NOT NULL,
+    "studentAvatar" TEXT,
+    "abcId" TEXT,
+    "lastCollegeAttended" TEXT,
+    "batchYearId" TEXT NOT NULL,
+    "admissionYearId" TEXT NOT NULL,
+    "academicYearId" TEXT NOT NULL,
+    "termId" TEXT NOT NULL,
+    "gender" TEXT NOT NULL,
+    "isLocalStudent" BOOLEAN NOT NULL DEFAULT false,
+    "isDifferentlyAbled" BOOLEAN NOT NULL DEFAULT false,
+    "motherName" TEXT NOT NULL,
+    "fatherName" TEXT NOT NULL,
+    "bloodGroup" TEXT,
+    "religion" TEXT,
+    "nationality" TEXT,
+    "caste" TEXT,
+    "admissionCategory" TEXT,
+    "resident" TEXT,
+    "admissionDate" TIMESTAMP(3) NOT NULL,
+    "graduateDate" TIMESTAMP(3),
+    "permanentAddress" TEXT NOT NULL,
+    "permanentCountry" TEXT NOT NULL,
+    "permanentState" TEXT NOT NULL,
+    "permanentCity" TEXT NOT NULL,
+    "permanentPincode" TEXT NOT NULL,
+    "guardianName" TEXT NOT NULL,
+    "guardianGender" TEXT NOT NULL,
+    "guardianEmail" TEXT,
+    "guardianMobileNo" TEXT NOT NULL,
+    "guardianRelation" TEXT NOT NULL,
+    "programId" TEXT NOT NULL,
+    "collegeId" TEXT NOT NULL,
+    "departmentId" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
--- AlterTable
-ALTER TABLE "Alumnus" DROP COLUMN "batchYear",
-ADD COLUMN     "admissionYearId" TEXT NOT NULL,
-ADD COLUMN     "batchYearId" TEXT NOT NULL,
-ADD COLUMN     "programId" TEXT NOT NULL;
+    CONSTRAINT "Student_pkey" PRIMARY KEY ("id")
+);
 
--- AlterTable
-ALTER TABLE "Certificate" DROP COLUMN "paymentStatus",
-ADD COLUMN     "paymentStatus" "PaymentStatus" NOT NULL;
+-- CreateTable
+CREATE TABLE "HeadOfDepartment" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "phoneNo" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
+    "qualification" TEXT NOT NULL,
+    "experience" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "departmentId" TEXT NOT NULL,
 
--- AlterTable
-ALTER TABLE "CertificateType" ADD COLUMN     "collegeId" TEXT NOT NULL;
-
--- AlterTable
-ALTER TABLE "Feedback" DROP COLUMN "subjectId",
-ADD COLUMN     "teacherAssignedSubjectId" TEXT NOT NULL;
-
--- AlterTable
-ALTER TABLE "Student" DROP COLUMN "address",
-DROP COLUMN "admissionYear",
-DROP COLUMN "father_name",
-DROP COLUMN "mother_name",
-ADD COLUMN     "abcId" TEXT,
-ADD COLUMN     "academicYearId" TEXT NOT NULL,
-ADD COLUMN     "admissionCategory" TEXT,
-ADD COLUMN     "admissionDate" TIMESTAMP(3) NOT NULL,
-ADD COLUMN     "admissionYearId" TEXT NOT NULL,
-ADD COLUMN     "batchYearId" TEXT NOT NULL,
-ADD COLUMN     "bloodGroup" TEXT,
-ADD COLUMN     "caste" TEXT,
-ADD COLUMN     "fatherName" TEXT NOT NULL,
-ADD COLUMN     "gender" TEXT NOT NULL,
-ADD COLUMN     "graduateDate" TIMESTAMP(3),
-ADD COLUMN     "guardianEmail" TEXT,
-ADD COLUMN     "guardianGender" TEXT NOT NULL,
-ADD COLUMN     "guardianMobileNo" TEXT NOT NULL,
-ADD COLUMN     "guardianName" TEXT NOT NULL,
-ADD COLUMN     "guardianRelation" TEXT NOT NULL,
-ADD COLUMN     "isDifferentlyAbled" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "isLocalStudent" BOOLEAN NOT NULL DEFAULT false,
-ADD COLUMN     "lastCollegeAttended" TEXT,
-ADD COLUMN     "motherName" TEXT NOT NULL,
-ADD COLUMN     "nationality" TEXT,
-ADD COLUMN     "permanentAddress" TEXT NOT NULL,
-ADD COLUMN     "permanentCity" TEXT NOT NULL,
-ADD COLUMN     "permanentCountry" TEXT NOT NULL,
-ADD COLUMN     "permanentPincode" TEXT NOT NULL,
-ADD COLUMN     "permanentState" TEXT NOT NULL,
-ADD COLUMN     "personalEmail" TEXT NOT NULL,
-ADD COLUMN     "programId" TEXT NOT NULL,
-ADD COLUMN     "religion" TEXT,
-ADD COLUMN     "resident" TEXT,
-ADD COLUMN     "studentAvatar" TEXT,
-ADD COLUMN     "termId" TEXT NOT NULL;
-
--- AlterTable
-ALTER TABLE "Subject" DROP COLUMN "departmentId",
-DROP COLUMN "semester",
-DROP COLUMN "teacherId",
-ADD COLUMN     "alias" TEXT,
-ADD COLUMN     "collegeId" TEXT NOT NULL,
-ADD COLUMN     "createdById" TEXT NOT NULL,
-ADD COLUMN     "status" BOOLEAN NOT NULL DEFAULT true,
-ADD COLUMN     "updatedById" TEXT;
-
--- AlterTable
-ALTER TABLE "Teacher" DROP COLUMN "designation",
-ADD COLUMN     "caste" "Caste",
-ADD COLUMN     "categoryId" TEXT,
-ADD COLUMN     "designationId" TEXT,
-ADD COLUMN     "gender" TEXT,
-ADD COLUMN     "hasResigned" BOOLEAN DEFAULT false,
-ADD COLUMN     "isDifferentlyAbled" BOOLEAN DEFAULT false,
-ADD COLUMN     "isLocalResident" BOOLEAN DEFAULT false,
-ADD COLUMN     "joiningDate" TIMESTAMP(3),
-ADD COLUMN     "maritalStatus" "MaritalStatus",
-ADD COLUMN     "religion" TEXT;
-
--- DropTable
-DROP TABLE "Attendance";
-
--- DropTable
-DROP TABLE "Mark";
+    CONSTRAINT "HeadOfDepartment_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "ExamType" (
@@ -302,6 +264,23 @@ CREATE TABLE "SubjectType" (
 );
 
 -- CreateTable
+CREATE TABLE "Subject" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
+    "alias" TEXT,
+    "creditScore" DOUBLE PRECISION NOT NULL,
+    "status" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "createdById" TEXT NOT NULL,
+    "updatedById" TEXT,
+    "collegeId" TEXT NOT NULL,
+
+    CONSTRAINT "Subject_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "BatchSubject" (
     "id" TEXT NOT NULL,
     "batchId" TEXT NOT NULL,
@@ -369,6 +348,31 @@ CREATE TABLE "Category" (
 );
 
 -- CreateTable
+CREATE TABLE "Teacher" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "name" TEXT,
+    "phoneNo" TEXT,
+    "address" TEXT,
+    "qualification" TEXT,
+    "designationId" TEXT,
+    "categoryId" TEXT,
+    "experience" TEXT,
+    "hasResigned" BOOLEAN DEFAULT false,
+    "maritalStatus" "MaritalStatus",
+    "joiningDate" TIMESTAMP(3),
+    "gender" TEXT,
+    "religion" TEXT,
+    "caste" "Caste",
+    "isLocalResident" BOOLEAN DEFAULT false,
+    "isDifferentlyAbled" BOOLEAN DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Teacher_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "TeacherAssignedSubject" (
     "id" TEXT NOT NULL,
     "teacherId" TEXT NOT NULL,
@@ -376,6 +380,125 @@ CREATE TABLE "TeacherAssignedSubject" (
 
     CONSTRAINT "TeacherAssignedSubject_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateTable
+CREATE TABLE "FinanceManager" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "phoneNo" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "collegeId" TEXT NOT NULL,
+
+    CONSTRAINT "FinanceManager_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "FeePayment" (
+    "id" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "amount" DOUBLE PRECISION NOT NULL,
+    "paymentDate" TIMESTAMP(3) NOT NULL,
+    "paymentStatus" "PaymentStatus" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "FeePayment_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "CertificateType" (
+    "id" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "collegeId" TEXT NOT NULL,
+
+    CONSTRAINT "CertificateType_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Certificate" (
+    "id" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "certificateTypeId" TEXT NOT NULL,
+    "issueDate" TIMESTAMP(3) NOT NULL,
+    "paymentStatus" "PaymentStatus" NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Certificate_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Alumnus" (
+    "id" TEXT NOT NULL,
+    "userId" TEXT NOT NULL,
+    "name" TEXT NOT NULL,
+    "phoneNo" TEXT,
+    "dateOfBirth" TIMESTAMP(3),
+    "address" TEXT,
+    "departmentId" TEXT NOT NULL,
+    "programId" TEXT NOT NULL,
+    "batchYearId" TEXT NOT NULL,
+    "admissionYearId" TEXT NOT NULL,
+    "graduationYear" INTEGER NOT NULL,
+    "gpa" DOUBLE PRECISION,
+    "jobStatus" TEXT,
+    "currentEmployer" TEXT,
+    "currentPosition" TEXT,
+    "industry" TEXT,
+    "linkedInProfile" TEXT,
+    "achievements" TEXT,
+    "verified" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Alumnus_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Notification" (
+    "id" TEXT NOT NULL,
+    "title" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "InstituteIds" JSONB NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Notification_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Feedback" (
+    "id" TEXT NOT NULL,
+    "studentId" TEXT NOT NULL,
+    "teacherAssignedSubjectId" TEXT NOT NULL,
+    "content" TEXT NOT NULL,
+    "isAnonymous" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Feedback_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Student_userId_key" ON "Student"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Student_enrollmentNo_key" ON "Student"("enrollmentNo");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Student_personalEmail_key" ON "Student"("personalEmail");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "HeadOfDepartment_userId_key" ON "HeadOfDepartment"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "HeadOfDepartment_departmentId_key" ON "HeadOfDepartment"("departmentId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ExamMark_examTypeId_studentId_batchSubjectId_key" ON "ExamMark"("examTypeId", "studentId", "batchSubjectId");
@@ -387,13 +510,34 @@ CREATE UNIQUE INDEX "Program_code_key" ON "Program"("code");
 CREATE UNIQUE INDEX "Semester_numerical_collegeId_key" ON "Semester"("numerical", "collegeId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "SemesterProgram_programId_semesterId_key" ON "SemesterProgram"("programId", "semesterId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "MonthlyBatchSubjectClasses_batchSubjectId_month_key" ON "MonthlyBatchSubjectClasses"("batchSubjectId", "month");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "MonthlyBatchSubjectAttendance_monthlyBatchSubjectClassesId__key" ON "MonthlyBatchSubjectAttendance"("monthlyBatchSubjectClassesId", "studentId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Student_personalEmail_key" ON "Student"("personalEmail");
+CREATE UNIQUE INDEX "Teacher_userId_key" ON "Teacher"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "FinanceManager_userId_key" ON "FinanceManager"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Alumnus_userId_key" ON "Alumnus"("userId");
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_collegeId_fkey" FOREIGN KEY ("collegeId") REFERENCES "College"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Department" ADD CONSTRAINT "Department_collegeId_fkey" FOREIGN KEY ("collegeId") REFERENCES "College"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Student" ADD CONSTRAINT "Student_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Student" ADD CONSTRAINT "Student_batchYearId_fkey" FOREIGN KEY ("batchYearId") REFERENCES "BatchYear"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -409,6 +553,18 @@ ALTER TABLE "Student" ADD CONSTRAINT "Student_termId_fkey" FOREIGN KEY ("termId"
 
 -- AddForeignKey
 ALTER TABLE "Student" ADD CONSTRAINT "Student_programId_fkey" FOREIGN KEY ("programId") REFERENCES "Program"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Student" ADD CONSTRAINT "Student_collegeId_fkey" FOREIGN KEY ("collegeId") REFERENCES "College"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Student" ADD CONSTRAINT "Student_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "HeadOfDepartment" ADD CONSTRAINT "HeadOfDepartment_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "HeadOfDepartment" ADD CONSTRAINT "HeadOfDepartment_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ExamType" ADD CONSTRAINT "ExamType_collegeId_fkey" FOREIGN KEY ("collegeId") REFERENCES "College"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -513,6 +669,9 @@ ALTER TABLE "Designation" ADD CONSTRAINT "Designation_collegeId_fkey" FOREIGN KE
 ALTER TABLE "Category" ADD CONSTRAINT "Category_collegeId_fkey" FOREIGN KEY ("collegeId") REFERENCES "College"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Teacher" ADD CONSTRAINT "Teacher_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Teacher" ADD CONSTRAINT "Teacher_designationId_fkey" FOREIGN KEY ("designationId") REFERENCES "Designation"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
@@ -525,7 +684,28 @@ ALTER TABLE "TeacherAssignedSubject" ADD CONSTRAINT "TeacherAssignedSubject_teac
 ALTER TABLE "TeacherAssignedSubject" ADD CONSTRAINT "TeacherAssignedSubject_batchSubjectId_fkey" FOREIGN KEY ("batchSubjectId") REFERENCES "BatchSubject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "FinanceManager" ADD CONSTRAINT "FinanceManager_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FinanceManager" ADD CONSTRAINT "FinanceManager_collegeId_fkey" FOREIGN KEY ("collegeId") REFERENCES "College"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "FeePayment" ADD CONSTRAINT "FeePayment_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "CertificateType" ADD CONSTRAINT "CertificateType_collegeId_fkey" FOREIGN KEY ("collegeId") REFERENCES "College"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Certificate" ADD CONSTRAINT "Certificate_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Certificate" ADD CONSTRAINT "Certificate_certificateTypeId_fkey" FOREIGN KEY ("certificateTypeId") REFERENCES "CertificateType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Alumnus" ADD CONSTRAINT "Alumnus_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Alumnus" ADD CONSTRAINT "Alumnus_departmentId_fkey" FOREIGN KEY ("departmentId") REFERENCES "Department"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Alumnus" ADD CONSTRAINT "Alumnus_programId_fkey" FOREIGN KEY ("programId") REFERENCES "Program"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -535,6 +715,9 @@ ALTER TABLE "Alumnus" ADD CONSTRAINT "Alumnus_batchYearId_fkey" FOREIGN KEY ("ba
 
 -- AddForeignKey
 ALTER TABLE "Alumnus" ADD CONSTRAINT "Alumnus_admissionYearId_fkey" FOREIGN KEY ("admissionYearId") REFERENCES "AdmissionYear"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Feedback" ADD CONSTRAINT "Feedback_studentId_fkey" FOREIGN KEY ("studentId") REFERENCES "Student"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Feedback" ADD CONSTRAINT "Feedback_teacherAssignedSubjectId_fkey" FOREIGN KEY ("teacherAssignedSubjectId") REFERENCES "TeacherAssignedSubject"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
