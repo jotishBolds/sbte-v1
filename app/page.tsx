@@ -170,6 +170,7 @@ export default function HomePage(): JSX.Element {
           </div>
         </section>
       </main>
+      <Footer />
     </div>
   );
 }

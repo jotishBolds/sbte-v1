@@ -152,12 +152,14 @@ export default function LoginPage() {
                 <ReCAPTCHA
                   sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
                   onChange={(value) => setCaptchaValue(value)}
+                  theme="dark"
                 />
               </div>
               <Button
                 type="submit"
                 className="w-full flex justify-center py-2 px-4"
                 disabled={isLoading}
+                size="icon"
               >
                 {isLoading ? (
                   <ClipLoader size={20} color="#ffffff" className="mr-2" />
