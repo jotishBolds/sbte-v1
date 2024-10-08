@@ -28,9 +28,14 @@ const programSchema = z.object({
     required_error: "Program Type ID is required",
   }),
   isActive: z.boolean().optional().default(true),
+  numberOfSemesters: z.number({
+    required_error: "Number of semesters is required",
+  }).min(1, "Program must have at least 1 semester"),
 });
 
 export async function POST(request: NextRequest) {
+  const prisma = new PrismaClient();
+
   try {
     const session = await getServerSession(authOptions);
 
@@ -116,30 +121,82 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newProgram = await prisma.program.create({
-      data: {
-        name: data.name,
-        code: data.code,
-        alias: data.alias,
-        department: { connect: { id: data.departmentId } },
-        programType: { connect: { id: data.programTypeId } },
-        isActive: data.isActive,
-      },
-      include: {
-        department: { select: { name: true } },
-        programType: { select: { name: true } },
-      },
+    // Transaction block
+    const result = await prisma.$transaction(async (prisma) => {
+      // Step 1: Create the new program
+      const newProgram = await prisma.program.create({
+        data: {
+          name: data.name,
+          code: data.code,
+          alias: data.alias,
+          department: { connect: { id: data.departmentId } },
+          programType: { connect: { id: data.programTypeId } },
+          isActive: data.isActive,
+        },
+        include: {
+          department: { select: { name: true } },
+          programType: { select: { name: true } },
+        },
+      });
+
+      // Step 2: Fetch relevant semesters based on the number of semesters
+      const semesters = await prisma.semester.findMany({
+        where: {
+          numerical: {
+            lte: data.numberOfSemesters, // Fetch semesters <= numberOfSemesters
+          },
+          collegeId: collegeId, // Ensure semesters belong to the same college
+        },
+      });
+
+      // Step 3: Check if enough semesters are available
+      if (semesters.length < data.numberOfSemesters) {
+        throw new Error(
+          `Not enough semesters created for the college. Expected: ${data.numberOfSemesters}, Found: ${semesters.length}`
+        );
+      }
+
+      // Step 4: Create SemesterProgram entries for each fetched semester
+      const semesterProgramEntries = semesters.map((semester) => ({
+        semesterId: semester.id,
+        programId: newProgram.id,
+      }));
+
+      await prisma.semesterProgram.createMany({
+        data: semesterProgramEntries,
+      });
+
+      return { newProgram, semesterProgramEntries };
     });
 
-    return NextResponse.json(newProgram, { status: 201 });
-  } catch (error) {
-    console.error("Error creating program:", error);
+    // If transaction succeeds
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { program: result.newProgram, semesterProgramEntries: result.semesterProgramEntries },
+      { status: 201 }
+    );
+
+  } catch (error) {
+    console.error("Error creating program with semesters:", error);
+
+    // Check if the error is an instance of Error
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 500 }
+      );
+    }
+
+    // Handle unknown error types
+    return NextResponse.json(
+      { error: "An unknown error occurred" },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
+
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -166,6 +223,17 @@ export async function GET(request: NextRequest) {
       include: {
         department: { select: { name: true } },
         programType: { select: { name: true } },
+        semesterPrograms: {
+          include: {
+            semester: {
+              select: {
+                name: true,
+                alias: true,
+                numerical: true,
+              },
+            },
+          },
+        },
       },
     });
 
