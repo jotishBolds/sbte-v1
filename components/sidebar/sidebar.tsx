@@ -32,6 +32,7 @@ import {
   Menu,
   X,
   GraduationCapIcon,
+  Table2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -111,6 +112,11 @@ export const Sidebar: React.FC = () => {
             href: "/alumni-list",
             icon: <BookOpen size={18} />,
             label: "Alumni",
+          },
+          {
+            href: "/programs/create",
+            icon: <Table2 size={18} />,
+            label: "Programs",
           },
           // {
           //   href: "/finance",
