@@ -14,6 +14,9 @@ import {
   Plus,
   ArrowLeft,
   ChevronRight,
+  Calendar,
+  PlusIcon,
+  PlusCircleIcon,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -47,6 +50,22 @@ import {
 import Link from "next/link";
 import ProgramList from "../programs-list";
 
+interface Department {
+  id: string;
+  name: string;
+}
+
+interface ProgramType {
+  id: string;
+  name: string;
+}
+
+interface Semester {
+  id: string;
+  name: string;
+  numerical: number;
+}
+
 const programSchema = z.object({
   name: z
     .string()
@@ -66,6 +85,11 @@ const programSchema = z.object({
   programTypeId: z.string({
     required_error: "Please select a program type",
   }),
+  numberOfSemesters: z
+    .number({
+      required_error: "Number of semesters is required",
+    })
+    .min(1, "Program must have at least 1 semester"),
   isActive: z.boolean().default(true),
 });
 
@@ -79,8 +103,10 @@ const formFields = [
 
 export default function ProgramForm() {
   const router = useRouter();
-  const [departments, setDepartments] = useState([]);
-  const [programTypes, setProgramTypes] = useState([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [programTypes, setProgramTypes] = useState<ProgramType[]>([]);
+  const [semesters, setSemesters] = useState<Semester[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const {
     control,
@@ -93,35 +119,48 @@ export default function ProgramForm() {
       name: "",
       code: "",
       alias: "",
+      numberOfSemesters: 1,
       isActive: true,
     },
   });
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
       try {
-        const [deptResponse, typeResponse] = await Promise.all([
+        const [deptResponse, typeResponse, semResponse] = await Promise.all([
           fetch("/api/departments"),
           fetch("/api/programs/programTypes"),
+          fetch("/api/semesters"),
         ]);
 
-        if (!deptResponse.ok || !typeResponse.ok) {
-          throw new Error("Failed to fetch data");
-        }
-
-        const [deptData, typeData] = await Promise.all([
+        const [deptData, typeData, semData] = await Promise.all([
           deptResponse.json(),
           typeResponse.json(),
+          semResponse.json(),
         ]);
 
-        setDepartments(deptData);
-        setProgramTypes(typeData);
+        setDepartments(Array.isArray(deptData) ? deptData : []);
+        setProgramTypes(Array.isArray(typeData) ? typeData : []);
+
+        if (Array.isArray(semData)) {
+          setSemesters(semData);
+        } else if (semData && typeof semData === "object" && semData.message) {
+          console.log(semData.message);
+          setSemesters([]);
+        } else {
+          setSemesters([]);
+        }
       } catch (error) {
+        console.error("Error fetching data:", error);
         toast({
           title: "Error",
           description: "Failed to fetch required data. Please try again.",
           variant: "destructive",
         });
+        setSemesters([]);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -198,10 +237,10 @@ export default function ProgramForm() {
                         onClick={() => router.push("/programs")}
                       >
                         <Plus className="w-4 h-4 mr-2" />
-                        New Program Type
+                        Create Program Type
                       </Button>
                     </TooltipTrigger>
-                    <TooltipContent>Create a new program type</TooltipContent>
+                    <TooltipContent>Return to programs list</TooltipContent>
                   </Tooltip>
                 </div>
               </CardHeader>
@@ -316,6 +355,62 @@ export default function ProgramForm() {
                         </p>
                       )}
                     </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="numberOfSemesters"
+                      className="flex items-center text-sm font-medium"
+                    >
+                      <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                      Number of Semesters
+                    </Label>
+                    {isLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Loading semesters...</span>
+                      </div>
+                    ) : semesters.length > 0 ? (
+                      <Controller
+                        name="numberOfSemesters"
+                        control={control}
+                        render={({ field }) => (
+                          <Select
+                            onValueChange={(value) =>
+                              field.onChange(parseInt(value))
+                            }
+                            defaultValue={field.value?.toString()}
+                          >
+                            <SelectTrigger
+                              className={
+                                errors.numberOfSemesters ? "border-red-500" : ""
+                              }
+                            >
+                              <SelectValue placeholder="Select number of semesters" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from(
+                                { length: semesters.length },
+                                (_, i) => i + 1
+                              ).map((num) => (
+                                <SelectItem key={num} value={num.toString()}>
+                                  {num}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    ) : (
+                      <div className="text-sm text-red-500">
+                        No semesters available. Please create semesters first.
+                      </div>
+                    )}
+                    {errors.numberOfSemesters && (
+                      <p className="text-sm text-red-500">
+                        {errors.numberOfSemesters.message}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex items-center space-x-2">
