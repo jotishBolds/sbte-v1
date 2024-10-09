@@ -114,6 +114,11 @@ export const Sidebar: React.FC = () => {
             label: "Alumni",
           },
           {
+            href: "/semester",
+            icon: <GraduationCap size={18} />,
+            label: "Semester",
+          },
+          {
             href: "/programs/create",
             icon: <Table2 size={18} />,
             label: "Programs",

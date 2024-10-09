@@ -292,7 +292,7 @@ const ProgramTypeManager: React.FC = () => {
                       <TableRow key={programType.id}>
                         <TableCell>{programType.name}</TableCell>
                         <TableCell>{programType.college.name}</TableCell>
-                        <TableCell>
+                        <TableCell className="flex">
                           <Button
                             variant="outline"
                             size="sm"

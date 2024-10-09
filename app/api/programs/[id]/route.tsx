@@ -1,3 +1,4 @@
+// api/programs/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
@@ -22,6 +23,7 @@ const programUpdateSchema = z.object({
   departmentId: z.string(),
   programTypeId: z.string(),
   isActive: z.boolean(),
+  numberOfSemesters: z.number().min(1, "Program must have at least 1 semester"),
 });
 
 export async function PUT(
@@ -60,7 +62,8 @@ export async function PUT(
       );
     }
 
-    const { departmentId, programTypeId, ...data } = validationResult.data;
+    const { departmentId, programTypeId, numberOfSemesters, ...data } =
+      validationResult.data;
 
     // Verify program exists and belongs to user's college
     const existingProgram = await prisma.program.findFirst({
@@ -69,6 +72,9 @@ export async function PUT(
         department: {
           collegeId,
         },
+      },
+      include: {
+        semesterPrograms: true,
       },
     });
 
@@ -106,17 +112,71 @@ export async function PUT(
       );
     }
 
-    const updatedProgram = await prisma.program.update({
-      where: { id: params.id },
-      data: {
-        ...data,
-        departmentId,
-        programTypeId,
-      },
-      include: {
-        department: { select: { name: true } },
-        programType: { select: { name: true } },
-      },
+    // Fetch all semesters for the college
+    const semesters = await prisma.semester.findMany({
+      where: { collegeId },
+      orderBy: { numerical: "asc" },
+    });
+
+    if (semesters.length < numberOfSemesters) {
+      return NextResponse.json(
+        {
+          error:
+            "Not enough semesters available for the specified number of semesters",
+        },
+        { status: 400 }
+      );
+    }
+
+    // Update program and semester associations in a transaction
+    const updatedProgram = await prisma.$transaction(async (prisma) => {
+      // Update program details
+      const updated = await prisma.program.update({
+        where: { id: params.id },
+        data: {
+          ...data,
+          departmentId,
+          programTypeId,
+        },
+        include: {
+          department: { select: { name: true } },
+          programType: { select: { name: true } },
+          semesterPrograms: true,
+        },
+      });
+
+      // Remove existing semester associations
+      await prisma.semesterProgram.deleteMany({
+        where: { programId: params.id },
+      });
+
+      // Create new semester associations
+      const semesterProgramData = semesters
+        .slice(0, numberOfSemesters)
+        .map((semester) => ({
+          semesterId: semester.id,
+          programId: params.id,
+        }));
+
+      await prisma.semesterProgram.createMany({
+        data: semesterProgramData,
+      });
+
+      // Fetch updated program with new semester associations
+      return prisma.program.findUnique({
+        where: { id: params.id },
+        include: {
+          department: { select: { name: true } },
+          programType: { select: { name: true } },
+          semesterPrograms: {
+            include: {
+              semester: {
+                select: { name: true, alias: true, numerical: true },
+              },
+            },
+          },
+        },
+      });
     });
 
     return NextResponse.json(updatedProgram);
@@ -166,8 +226,17 @@ export async function DELETE(
       return NextResponse.json({ error: "Program not found" }, { status: 404 });
     }
 
-    await prisma.program.delete({
-      where: { id: params.id },
+    // Delete program and related data in a transaction
+    await prisma.$transaction(async (prisma) => {
+      // Delete related SemesterProgram entries
+      await prisma.semesterProgram.deleteMany({
+        where: { programId: params.id },
+      });
+
+      // Delete the program
+      await prisma.program.delete({
+        where: { id: params.id },
+      });
     });
 
     return NextResponse.json({ message: "Program deleted successfully" });

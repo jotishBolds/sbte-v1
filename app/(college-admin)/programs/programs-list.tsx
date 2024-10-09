@@ -67,6 +67,7 @@ import {
   Trash2,
   Loader2,
   RefreshCw,
+  Calendar,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +83,16 @@ interface Program {
   isActive: boolean;
   departmentId: string;
   programTypeId: string;
+  semesterPrograms: Array<{
+    id: string;
+    semesterId: string;
+    programId: string;
+    semester: {
+      id: string;
+      name: string;
+      numerical: number;
+    };
+  }>;
   department: {
     name: string;
   };
@@ -100,10 +111,17 @@ interface ProgramType {
   name: string;
 }
 
+interface Semester {
+  id: string;
+  name: string;
+  numerical: number;
+}
+
 const formSchema = z.object({
   name: z.string().min(3).max(100),
   code: z.string().min(2).max(20),
   alias: z.string().min(2).max(50),
+  numberOfSemesters: z.number().min(1, "Must have at least 1 semester"),
   departmentId: z.string(),
   programTypeId: z.string(),
   isActive: z.boolean(),
@@ -114,20 +132,24 @@ export default function ProgramList() {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [programTypes, setProgramTypes] = useState<ProgramType[]>([]);
+  const [semesters, setSemesters] = useState<Semester[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [programToDelete, setProgramToDelete] = useState<string | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
-
+  const [isLoading, setIsLoading] = useState(true);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
   });
 
   useEffect(() => {
-    fetchPrograms();
-    fetchDepartments();
-    fetchProgramTypes();
+    Promise.all([
+      fetchPrograms(),
+      fetchDepartments(),
+      fetchProgramTypes(),
+      fetchSemesters(),
+    ]).finally(() => setIsLoading(false));
   }, []);
 
   useEffect(() => {
@@ -138,6 +160,7 @@ export default function ProgramList() {
         alias: editingProgram.alias,
         departmentId: editingProgram.departmentId,
         programTypeId: editingProgram.programTypeId,
+        numberOfSemesters: editingProgram.semesterPrograms.length,
         isActive: editingProgram.isActive,
       });
     }
@@ -161,6 +184,7 @@ export default function ProgramList() {
       const response = await fetch("/api/programs");
       if (!response.ok) throw new Error("Failed to fetch programs");
       const data = await response.json();
+      console.log("this is program data", data);
       setPrograms(data);
     } catch (error) {
       toast({
@@ -170,6 +194,30 @@ export default function ProgramList() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchSemesters = async () => {
+    try {
+      const response = await fetch("/api/semesters");
+      if (!response.ok) throw new Error("Failed to fetch semesters");
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        console.log("Fetched programs:", data);
+        setSemesters(data);
+      } else if (data && typeof data === "object" && data.message) {
+        console.log(data.message);
+        setSemesters([]);
+      } else {
+        setSemesters([]);
+      }
+    } catch (error) {
+      console.error("Error fetching semesters:", error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch semesters",
+        variant: "destructive",
+      });
     }
   };
 
@@ -299,6 +347,7 @@ export default function ProgramList() {
                   <TableHead>Alias</TableHead>
                   <TableHead>Department</TableHead>
                   <TableHead>Type</TableHead>
+                  <TableHead>Semesters</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -311,6 +360,7 @@ export default function ProgramList() {
                     <TableCell>{program.alias}</TableCell>
                     <TableCell>{program.department.name}</TableCell>
                     <TableCell>{program.programType.name}</TableCell>
+                    <TableCell>{program.semesterPrograms.length}</TableCell>
                     <TableCell>
                       <Badge
                         variant={program.isActive ? "default" : "secondary"}
@@ -330,6 +380,16 @@ export default function ProgramList() {
                           <DropdownMenuItem
                             onClick={() => {
                               setEditingProgram(program);
+                              form.reset({
+                                name: program.name,
+                                code: program.code,
+                                alias: program.alias,
+                                departmentId: program.departmentId,
+                                programTypeId: program.programTypeId,
+                                numberOfSemesters:
+                                  program.semesterPrograms.length,
+                                isActive: program.isActive,
+                              });
                               setEditDialogOpen(true);
                             }}
                           >
@@ -466,6 +526,51 @@ export default function ProgramList() {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="numberOfSemesters"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center">
+                      <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+                      Number of Semesters
+                    </FormLabel>
+                    {isLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <span>Loading semesters...</span>
+                      </div>
+                    ) : semesters.length > 0 ? (
+                      <Select
+                        onValueChange={(value) =>
+                          field.onChange(parseInt(value))
+                        }
+                        defaultValue={field.value?.toString()}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select number of semesters" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from(
+                            { length: semesters.length },
+                            (_, i) => i + 1
+                          ).map((num) => (
+                            <SelectItem key={num} value={num.toString()}>
+                              {num}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="text-sm text-red-500">
+                        No semesters available. Please create semesters first.
+                      </div>
+                    )}
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="isActive"
