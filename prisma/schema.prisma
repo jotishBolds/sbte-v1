@@ -281,7 +281,7 @@ model SemesterProgram {
   semesterId String
   program    Program  @relation(fields: [programId], references: [id])
   programId  String
-    @@unique([programId, semesterId]) // Composite unique constraint
+  @@unique([programId, semesterId]) // Composite unique constraint
 
 }
 
@@ -293,13 +293,13 @@ model AcademicYear {
   status    Boolean
   college   College   @relation(fields: [collegeId], references: [id])
   collegeId String
-  students  Student[]
+  students  Student[] 
   batches   Batch[]
 }
 
 model AdmissionYear {
   id        String    @id @default(cuid())
-  year      DateTime
+  year      Int
   status    Boolean
   college   College   @relation(fields: [collegeId], references: [id])
   collegeId String
@@ -309,13 +309,14 @@ model AdmissionYear {
 
 model BatchYear {
   id        String    @id @default(cuid())
-  year      DateTime
+  year      Int
   status    Boolean
   college   College   @relation(fields: [collegeId], references: [id])
   collegeId String
   students  Student[]
   Alumnus   Alumnus[]
 }
+
 
 model BatchType {
   id        String  @id @default(cuid())
