@@ -34,6 +34,7 @@ import {
   GraduationCapIcon,
   Table2,
   TableCellsMerge,
+  TableCellsSplit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -128,6 +129,11 @@ export const Sidebar: React.FC = () => {
             href: "/academic-year",
             icon: <TableCellsMerge size={18} />,
             label: "Academic Year",
+          },
+          {
+            href: "/admission-year",
+            icon: <TableCellsSplit size={18} />,
+            label: "Admission Year",
           },
         ];
       case "ADM":
