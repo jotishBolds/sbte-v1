@@ -33,6 +33,7 @@ import {
   X,
   GraduationCapIcon,
   Table2,
+  TableCellsMerge,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -123,11 +124,11 @@ export const Sidebar: React.FC = () => {
             icon: <Table2 size={18} />,
             label: "Programs",
           },
-          // {
-          //   href: "/finance",
-          //   icon: <DollarSign size={18} />,
-          //   label: "Finance",
-          // },
+          {
+            href: "/academic-year",
+            icon: <TableCellsMerge size={18} />,
+            label: "Academic Year",
+          },
         ];
       case "ADM":
         return [
