@@ -6,18 +6,17 @@ import * as z from "zod";
 
 const prisma = new PrismaClient();
 
-
-const admissionYearSchema = z.object({
+const batchYearSchema = z.object({
     year: z
-      .number({
-        required_error: "Year is required",
-      })
-      .int()
-      .min(1900, "Year must be a valid year")
-      .max(2100, "Year must be a valid year")
-      .optional(), // Make year optional
-    status: z.boolean().optional().default(true), // Status remains optional
-  });
+        .number({
+            required_error: "Year is required",
+        })
+        .int()
+        .min(1900, "Year must be a valid year")
+        .max(2100, "Year must be a valid year")
+        .optional(), // Make year optional
+    status: z.boolean().optional().default(true),
+});
 
 export async function PUT(
     request: NextRequest,
@@ -29,9 +28,10 @@ export async function PUT(
       if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
-      if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
+ if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
+
   
       const collegeId = session.user.collegeId;
       if (!collegeId) {
@@ -39,7 +39,7 @@ export async function PUT(
       }
   
       const body = await request.json();
-      const validationResult = admissionYearSchema.partial().safeParse(body);
+      const validationResult = batchYearSchema.partial().safeParse(body);
   
       if (!validationResult.success) {
         return NextResponse.json(
@@ -50,21 +50,21 @@ export async function PUT(
   
       const data = validationResult.data;
   
-      // Fetch existing admission year to ensure it belongs to the user's college
-      const existingAdmissionYear = await prisma.admissionYear.findFirst({
+      // Fetch existing batch year to ensure it belongs to the user's college
+      const existingBatchYear = await prisma.batchYear.findFirst({
         where: {
           id: params.id,
           collegeId,
         },
       });
   
-      if (!existingAdmissionYear) {
-        return NextResponse.json({ error: "Admission year not found" }, { status: 404 });
+      if (!existingBatchYear) {
+        return NextResponse.json({ error: "Batch year not found" }, { status: 404 });
       }
   
       // If updating the year, ensure it's unique within the college
       if (data.year) {
-        const duplicateYear = await prisma.admissionYear.findFirst({
+        const duplicateYear = await prisma.batchYear.findFirst({
           where: {
             year: data.year,
             collegeId,
@@ -75,27 +75,27 @@ export async function PUT(
         });
   
         if (duplicateYear) {
-          return NextResponse.json({ error: "Admission year already exists for this college" }, { status: 409 });
+          return NextResponse.json({ error: "Batch year already exists for this college" }, { status: 409 });
         }
       }
   
-      const updatedAdmissionYear = await prisma.admissionYear.update({
+      const updatedBatchYear = await prisma.batchYear.update({
         where: { id: params.id },
         data: {
+        //   ...existingBatchYear,
           ...data,
         },
       });
   
-      return NextResponse.json(updatedAdmissionYear, { status: 200 });
+      return NextResponse.json(updatedBatchYear, { status: 200 });
     } catch (error) {
-      console.error("Error updating admission year:", error);
+      console.error("Error updating batch year:", error);
       return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
     } finally {
       await prisma.$disconnect();
     }
   }
   
-
 
   export async function DELETE(
     request: NextRequest,
@@ -110,32 +110,34 @@ export async function PUT(
       if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-  
+
       const collegeId = session.user.collegeId;
       if (!collegeId) {
         return NextResponse.json({ error: "User is not associated with a college" }, { status: 400 });
       }
   
-      const existingAdmissionYear = await prisma.admissionYear.findUnique({
-        where: { id: params.id
-         },
+      // Verify batch year exists and belongs to user's college
+      const existingBatchYear = await prisma.batchYear.findFirst({
+        where: {
+          id: params.id,
+          collegeId, // Ensures the batch year belongs to the same college
+        },
       });
   
-      if (!existingAdmissionYear || existingAdmissionYear.collegeId !== collegeId) {
-        return NextResponse.json({ error: "Admission year not found or does not belong to your college" }, { status: 404 });
+      if (!existingBatchYear) {
+        return NextResponse.json({ error: "Batch year not found or does not belong to your college" }, { status: 404 });
       }
   
-      await prisma.admissionYear.delete({
+      await prisma.batchYear.delete({
         where: { id: params.id },
       });
   
-      return NextResponse.json({ message: "Admission year deleted successfully" }, { status: 200 });
+      return NextResponse.json({ message: "Batch year deleted successfully" }, { status: 200 });
     } catch (error) {
-      console.error("Error deleting admission year:", error);
-      return NextResponse.json(
-        { error: "Internal Server Error" },
-        { status: 500 }
-      );
+      console.error("Error deleting batch year:", error);
+      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    } finally {
+      await prisma.$disconnect();
     }
   }
   
