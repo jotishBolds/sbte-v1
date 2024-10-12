@@ -101,6 +101,10 @@ export async function GET(request: NextRequest) {
             year: 'desc', // Sort by year in descending order
           },
       });
+
+      if (!admissionYears) {
+        return NextResponse.json({ error: "Batch year not found" }, { status: 200 });
+      }
   
       return NextResponse.json(admissionYears, { status: 200 });
     } catch (error) {
