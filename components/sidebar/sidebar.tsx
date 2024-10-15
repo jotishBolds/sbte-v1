@@ -36,6 +36,7 @@ import {
   TableCellsMerge,
   TableCellsSplit,
   TableOfContents,
+  TableOfContentsIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -135,6 +136,11 @@ export const Sidebar: React.FC = () => {
             href: "/admission-year",
             icon: <TableCellsSplit size={18} />,
             label: "Admission Year",
+          },
+          {
+            href: "/batch",
+            icon: <TableOfContentsIcon size={18} />,
+            label: "Batches",
           },
           {
             href: "/batch-year",
