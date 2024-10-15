@@ -354,7 +354,8 @@ model SubjectType {
   id            String         @id @default(cuid())
   college       College        @relation(fields: [collegeId], references: [id])
   collegeId     String
-  type          String
+  name          String
+  alias         String
   batchSubjects BatchSubject[]
 }
 
@@ -362,7 +363,7 @@ model Subject {
   id            String         @id @default(cuid())
   name          String
   code          String
-  alias         String?
+  alias         String? 
   creditScore   Float
   status        Boolean        @default(true)
   createdAt     DateTime       @default(now())
