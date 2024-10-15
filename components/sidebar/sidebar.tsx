@@ -37,6 +37,7 @@ import {
   TableCellsSplit,
   TableOfContents,
   TableOfContentsIcon,
+  BookCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -111,6 +112,11 @@ export const Sidebar: React.FC = () => {
             href: "/create-user/users-list",
             icon: <Users size={18} />,
             label: "Users",
+          },
+          {
+            href: "/student-subjects",
+            icon: <BookCheck size={18} />,
+            label: "Subjects",
           },
           {
             href: "/alumni-list",
