@@ -25,7 +25,7 @@ export async function GET(
 ) {
   const session = await getServerSession(authOptions);
   if (
-    !session ||
+    !session || 
     (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ADM")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -57,11 +57,63 @@ export async function GET(
 }
 
 // PUT request handler
+// export async function PUT(
+//   request: NextRequest,
+//   { params }: { params: { id: string } }
+// ) {
+//   const session = await getServerSession(authOptions);
+//   if (
+//     !session ||
+//     !session.user ||
+//     (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ADM")
+//   ) {
+//     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+//   }
+
+//   if (!session.user.collegeId) {
+//     return NextResponse.json(
+//       { message: "College not associated with admin" },
+//       { status: 400 }
+//     );
+//   }
+
+//   try {
+//     const body = await request.json();
+//     const { username, email, role } = body;
+
+//     const updatedUser = await prisma.user.updateMany({
+//       where: {
+//         id: params.id,
+//         collegeId: session.user.collegeId,
+//       },
+//       data: { username, email, role },
+//     });
+
+//     if (updatedUser.count === 0) {
+//       return NextResponse.json(
+//         { message: "User not found or not in your college" },
+//         { status: 404 }
+//       );
+//     }
+
+//     return NextResponse.json({ message: "User updated successfully" });
+//   } catch (error) {
+//     console.error("Error updating user:", error);
+//     return NextResponse.json(
+//       { message: "Error updating user", error: (error as Error).message },
+//       { status: 500 }
+//     );
+//   }
+// }
+
+// PUT request handler
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
+  
+  // Authorization check
   if (
     !session ||
     !session.user ||
@@ -79,32 +131,108 @@ export async function PUT(
 
   try {
     const body = await request.json();
-    const { username, email, role } = body;
 
-    const updatedUser = await prisma.user.updateMany({
+    // Extract teacher attributes and user attributes
+    const {
+      name,
+      phoneNo,
+      address,
+      qualification,
+      designationId,
+      categoryId,
+      experience,
+      hasResigned,
+      maritalStatus,
+      joiningDate,
+      gender,
+      religion,
+      caste,
+      isLocalResident,
+      isDifferentlyAbled,
+      username, // From User model
+      email,    // From User model
+      role,     // From User model
+    } = body;
+
+    // Fetch the teacher to ensure they belong to the admin's college
+    const teacher = await prisma.teacher.findFirst({
       where: {
         id: params.id,
-        collegeId: session.user.collegeId,
+        category: {
+          collegeId: session.user.collegeId, // Ensure the teacher belongs to the same college
+        },
       },
-      data: { username, email, role },
+      include: { user: true }, // Include the related User data
     });
 
-    if (updatedUser.count === 0) {
+    if (!teacher) {
       return NextResponse.json(
-        { message: "User not found or not in your college" },
+        { message: "Teacher not found or not in your college" },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({ message: "User updated successfully" });
+    // Prepare the data to update both Teacher and User
+    const teacherUpdateData = {
+      name,
+      phoneNo,
+      address,
+      qualification,
+      designationId,
+      categoryId,
+      experience,
+      hasResigned,
+      maritalStatus,
+      joiningDate: joiningDate ? new Date(joiningDate) : undefined, // Ensure date is formatted correctly
+      gender,
+      religion,
+      caste,
+      isLocalResident,
+      isDifferentlyAbled,
+    };
+
+    const userUpdateData = {
+      username,
+      email,
+      role,
+    };
+
+    // Update both the Teacher and the related User within a transaction
+    const updatedData = await prisma.$transaction([
+      prisma.teacher.update({
+        where: { id: params.id },
+        data: {
+          ...teacherUpdateData,
+        },
+      }),
+      prisma.user.update({
+        where: { id: teacher.userId }, // Update the User associated with the Teacher
+        data: {
+          ...userUpdateData,
+        },
+      }),
+    ]);
+
+    return NextResponse.json({
+      message: "Teacher and User updated successfully",
+      updatedTeacher: updatedData[0],
+      updatedUser: updatedData[1],
+    });
   } catch (error) {
-    console.error("Error updating user:", error);
+    console.error("Error updating teacher and user:", error);
     return NextResponse.json(
-      { message: "Error updating user", error: (error as Error).message },
+      { message: "Error updating teacher and user", error: (error as Error).message },
       { status: 500 }
     );
+  } finally {
+    await prisma.$disconnect();
   }
 }
+
+
+
+
+
 
 // DELETE request handler
 export async function DELETE(
