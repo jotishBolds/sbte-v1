@@ -190,40 +190,30 @@ export async function PUT(
           break;
 
         case "TEACHER":
-          const teacherData: any = {
-            name: additionalData?.name || undefined,
-            phoneNo: additionalData?.phoneNo || undefined,
-            address: additionalData?.address || undefined,
-            qualification: additionalData?.qualification || undefined,
-            experience: additionalData?.experience || undefined,
-            designationId: additionalData?.designationId || undefined,
-            categoryId: additionalData?.categoryId || undefined,
-            joiningDate:
-              additionalData?.joiningDate
-                ? new Date(additionalData.joiningDate) // Convert to Date object
-                : undefined,
-            gender: additionalData?.gender || undefined,
-            religion: additionalData?.religion || undefined,
-            caste: additionalData?.caste || undefined,
+          const teacherData = {
+            name: additionalData.name || undefined,
+            phoneNo: additionalData.phoneNo || undefined,
+            address: additionalData.address || undefined,
+            qualification: additionalData.qualification || undefined,
+            experience: additionalData.experience || undefined,
+            designationId: additionalData.designationId || undefined,
+            categoryId: additionalData.categoryId || undefined,
+            joiningDate: additionalData.joiningDate
+              ? new Date(additionalData.joiningDate)
+              : undefined,
+            gender: additionalData.gender || undefined,
+            religion: additionalData.religion || undefined,
+            caste: additionalData.caste || undefined,
+            hasResigned: additionalData.hasResigned,
+            maritalStatus: additionalData.maritalStatus || undefined,
+            isLocalResident: additionalData.isLocalResident,
+            isDifferentlyAbled: additionalData.isDifferentlyAbled,
           };
 
-          // Conditionally set boolean fields only if they are provided
-          if (additionalData.hasResigned !== undefined) {
-            teacherData.hasResigned = additionalData.hasResigned;
-          }
-          if (additionalData.maritalStatus !== undefined) {
-            teacherData.maritalStatus = additionalData.maritalStatus;
-          }
-          if (additionalData.isLocalResident !== undefined) {
-            teacherData.isLocalResident = additionalData.isLocalResident;
-          }
-          if (additionalData.isDifferentlyAbled !== undefined) {
-            teacherData.isDifferentlyAbled = additionalData.isDifferentlyAbled;
-          }
-
-          roleSpecificUpdate = await prisma.teacher.update({
+          roleSpecificUpdate = await prisma.teacher.upsert({
             where: { userId: params.id },
-            data: teacherData,
+            update: teacherData,
+            create: { ...teacherData, userId: params.id },
           });
           break;
 
@@ -311,14 +301,6 @@ export async function PUT(
     );
   }
 }
-
-
-
-
-
-
-
-
 
 // DELETE request handler
 export async function DELETE(
