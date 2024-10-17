@@ -25,7 +25,7 @@ export async function GET(
 ) {
   const session = await getServerSession(authOptions);
   if (
-    !session || 
+    !session ||
     (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ADM")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
@@ -105,15 +105,13 @@ export async function GET(
 //     );
 //   }
 // }
-
-// PUT request handler
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   const session = await getServerSession(authOptions);
-  
-  // Authorization check
+
+  // Check if session is valid and user has permission
   if (
     !session ||
     !session.user ||
@@ -122,6 +120,7 @@ export async function PUT(
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
+  // Ensure collegeId is present in session
   if (!session.user.collegeId) {
     return NextResponse.json(
       { message: "College not associated with admin" },
@@ -131,103 +130,190 @@ export async function PUT(
 
   try {
     const body = await request.json();
+    const { username, email, role, ...additionalData } = body;
 
-    // Extract teacher attributes and user attributes
-    const {
-      name,
-      phoneNo,
-      address,
-      qualification,
-      designationId,
-      categoryId,
-      experience,
-      hasResigned,
-      maritalStatus,
-      joiningDate,
-      gender,
-      religion,
-      caste,
-      isLocalResident,
-      isDifferentlyAbled,
-      username, // From User model
-      email,    // From User model
-      role,     // From User model
-    } = body;
-
-    // Fetch the teacher to ensure they belong to the admin's college
-    const teacher = await prisma.teacher.findFirst({
+    // Check if user exists by ID and belongs to the same college
+    const existingUser = await prisma.user.findFirst({
       where: {
         id: params.id,
-        category: {
-          collegeId: session.user.collegeId, // Ensure the teacher belongs to the same college
-        },
+        collegeId: session.user.collegeId, // Ensure the user is from the same college
       },
-      include: { user: true }, // Include the related User data
     });
 
-    if (!teacher) {
+    // If no user is found, return a 404 error
+    if (!existingUser) {
       return NextResponse.json(
-        { message: "Teacher not found or not in your college" },
+        { message: "User not found or not in your college" },
         { status: 404 }
       );
     }
 
-    // Prepare the data to update both Teacher and User
-    const teacherUpdateData = {
-      name,
-      phoneNo,
-      address,
-      qualification,
-      designationId,
-      categoryId,
-      experience,
-      hasResigned,
-      maritalStatus,
-      joiningDate: joiningDate ? new Date(joiningDate) : undefined, // Ensure date is formatted correctly
-      gender,
-      religion,
-      caste,
-      isLocalResident,
-      isDifferentlyAbled,
-    };
+    // Start a transaction to ensure both updates happen together
+    const updatedData = await prisma.$transaction(async (prisma) => {
+      let updatedUser;
+      // Update user details only if username or email is provided
+      if (username || email) {
+        const updateData: any = {};
 
-    const userUpdateData = {
-      username,
-      email,
-      role,
-    };
+        if (username) {
+          updateData.username = username;
+        }
+        if (email) {
+          updateData.email = email;
+        }
 
-    // Update both the Teacher and the related User within a transaction
-    const updatedData = await prisma.$transaction([
-      prisma.teacher.update({
-        where: { id: params.id },
-        data: {
-          ...teacherUpdateData,
-        },
-      }),
-      prisma.user.update({
-        where: { id: teacher.userId }, // Update the User associated with the Teacher
-        data: {
-          ...userUpdateData,
-        },
-      }),
-    ]);
+        // Update user data in the User table using params.id and session.user.collegeId
+        updatedUser = await prisma.user.update({
+          where: {
+            id: params.id,
+          },
+          data: updateData,
+        });
+      } else {
+        updatedUser = existingUser; // If no username/email is provided, keep the existing user data
+      }
 
+      let roleSpecificUpdate;
+      // Handle role-specific updates based on the role
+      switch (role) {
+        case "HOD":
+          roleSpecificUpdate = await prisma.headOfDepartment.update({
+            where: { userId: params.id },
+            data: {
+              name: additionalData?.name || undefined,
+              phoneNo: additionalData?.phoneNo || undefined,
+              address: additionalData?.address || undefined,
+              qualification: additionalData?.qualification || undefined,
+              experience: additionalData?.experience || undefined,
+            },
+          });
+          break;
+
+        case "TEACHER":
+          const teacherData: any = {
+            name: additionalData?.name || undefined,
+            phoneNo: additionalData?.phoneNo || undefined,
+            address: additionalData?.address || undefined,
+            qualification: additionalData?.qualification || undefined,
+            experience: additionalData?.experience || undefined,
+            designationId: additionalData?.designationId || undefined,
+            categoryId: additionalData?.categoryId || undefined,
+            joiningDate:
+              additionalData?.joiningDate
+                ? new Date(additionalData.joiningDate) // Convert to Date object
+                : undefined,
+            gender: additionalData?.gender || undefined,
+            religion: additionalData?.religion || undefined,
+            caste: additionalData?.caste || undefined,
+          };
+
+          // Conditionally set boolean fields only if they are provided
+          if (additionalData.hasResigned !== undefined) {
+            teacherData.hasResigned = additionalData.hasResigned;
+          }
+          if (additionalData.maritalStatus !== undefined) {
+            teacherData.maritalStatus = additionalData.maritalStatus;
+          }
+          if (additionalData.isLocalResident !== undefined) {
+            teacherData.isLocalResident = additionalData.isLocalResident;
+          }
+          if (additionalData.isDifferentlyAbled !== undefined) {
+            teacherData.isDifferentlyAbled = additionalData.isDifferentlyAbled;
+          }
+
+          roleSpecificUpdate = await prisma.teacher.update({
+            where: { userId: params.id },
+            data: teacherData,
+          });
+          break;
+
+        case "FINANCE_MANAGER":
+          const financeData: any = {
+            name: additionalData?.name || undefined,
+            phoneNo: additionalData?.phoneNo || undefined,
+            address: additionalData?.address || undefined,
+          };
+
+          roleSpecificUpdate = await prisma.financeManager.update({
+            where: { userId: params.id },
+            data: financeData,
+          });
+          break;
+
+        case "STUDENT":
+          const studentData: any = {
+            name: additionalData?.name || undefined,
+            phoneNo: additionalData?.phoneNo || undefined,
+            permanentAddress: additionalData?.permanentAddress || undefined,
+            dob: additionalData?.dob || undefined,
+            programId: additionalData?.programId || undefined,
+            departmentId: additionalData?.departmentId || undefined,
+            gender: additionalData?.gender || undefined,
+          };
+
+          // Conditionally set boolean fields only if they are provided
+          if (additionalData.isLocalStudent !== undefined) {
+            studentData.isLocalStudent = additionalData.isLocalStudent;
+          }
+          if (additionalData.isDifferentlyAbled !== undefined) {
+            studentData.isDifferentlyAbled = additionalData.isDifferentlyAbled;
+          }
+
+          roleSpecificUpdate = await prisma.student.update({
+            where: { userId: params.id },
+            data: studentData,
+          });
+          break;
+
+        case "ALUMNUS":
+          const alumnusData: any = {
+            name: additionalData?.name || undefined,
+            phoneNo: additionalData?.phoneNo || undefined,
+            dateOfBirth: additionalData?.dateOfBirth || undefined,
+            address: additionalData?.address || undefined,
+            departmentId: additionalData?.departmentId || undefined,
+            programId: additionalData?.programId || undefined,
+            graduationYear: additionalData?.graduationYear || undefined,
+            jobStatus: additionalData?.jobStatus || undefined,
+            currentEmployer: additionalData?.currentEmployer || undefined,
+            currentPosition: additionalData?.currentPosition || undefined,
+            industry: additionalData?.industry || undefined,
+            linkedInProfile: additionalData?.linkedInProfile || undefined,
+            achievements: additionalData?.achievements || undefined,
+            verified: additionalData?.verified || false,
+          };
+
+          roleSpecificUpdate = await prisma.alumnus.update({
+            where: { userId: params.id },
+            data: alumnusData,
+          });
+          break;
+
+        default:
+          throw new Error("Invalid role");
+      }
+
+      // Return both the user update and the role-specific update
+      return { updatedUser, roleSpecificUpdate };
+    });
+
+    // Return the updated data
     return NextResponse.json({
-      message: "Teacher and User updated successfully",
-      updatedTeacher: updatedData[0],
-      updatedUser: updatedData[1],
+      message: "User updated successfully",
+      user: updatedData.updatedUser,
+      roleData: updatedData.roleSpecificUpdate,
     });
   } catch (error) {
-    console.error("Error updating teacher and user:", error);
+    console.error("Error updating user:", error);
     return NextResponse.json(
-      { message: "Error updating teacher and user", error: (error as Error).message },
+      { message: "Error updating user", error: (error as Error).message },
       { status: 500 }
     );
-  } finally {
-    await prisma.$disconnect();
   }
 }
+
+
+
 
 
 
