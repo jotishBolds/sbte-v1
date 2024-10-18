@@ -62,6 +62,7 @@ import Link from "next/link";
 import SideBarLayout from "@/components/sidebar/layout";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const roleSchema = z.enum([
   "HOD",
@@ -157,8 +158,9 @@ const userSchema = z
   })
   .and(
     z.union([
-      hodFieldsSchema,
       teacherFieldsSchema,
+      hodFieldsSchema,
+
       financeManagerFieldsSchema,
       studentFieldsSchema,
       alumnusFieldsSchema,
@@ -185,6 +187,11 @@ const UserManagement: React.FC = () => {
     formState: { errors, isSubmitting },
   } = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
+    defaultValues: {
+      hasResigned: false,
+      isLocalResident: false,
+      isDifferentlyAbled: false,
+    },
   });
 
   const currentRole = watch("role");
@@ -251,7 +258,11 @@ const UserManagement: React.FC = () => {
       username: user.username,
       email: user.email,
       role: user.role,
+
+      ...(user as any),
     });
+
+    console.log("hadnleedit", user);
     setIsEditModalOpen(true);
   };
 
@@ -288,6 +299,8 @@ const UserManagement: React.FC = () => {
         body: JSON.stringify(data),
       });
 
+      console.log("Data being sent:", data);
+
       if (!response.ok) throw new Error("Failed to update user");
 
       await fetchUsers();
@@ -312,7 +325,7 @@ const UserManagement: React.FC = () => {
       case "TEACHER":
         return (
           <>
-            <div className="w-full">
+            <ScrollArea className="h-80 w-full rounded-md border">
               <div className="space-y-6">
                 {/* Personal Information Section */}
                 <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
@@ -654,8 +667,102 @@ const UserManagement: React.FC = () => {
                   </div>
                 </div>
               </div>
-            </div>
+            </ScrollArea>
           </>
+        );
+      case "HOD":
+        return (
+          <ScrollArea className="h-80 w-full rounded-md border">
+            <div className="space-y-6">
+              {/* Personal Information Section */}
+              <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold mb-4 text-slate-800">
+                  Personal Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="name"
+                      className="flex items-center text-slate-700"
+                    >
+                      <FaUser className="mr-2 text-slate-500" /> Full Name
+                    </Label>
+                    <Input
+                      {...register("name")}
+                      className="border-slate-200"
+                      placeholder="Enter full name"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="phoneNo"
+                      className="flex items-center text-slate-700"
+                    >
+                      <FaPhone className="mr-2 text-slate-500" /> Phone Number
+                    </Label>
+                    <Input
+                      {...register("phoneNo")}
+                      className="border-slate-200"
+                      placeholder="Enter phone number"
+                    />
+                  </div>
+
+                  <div className="col-span-full">
+                    <Label
+                      htmlFor="address"
+                      className="flex items-center text-slate-700"
+                    >
+                      <FaMapMarkerAlt className="mr-2 text-slate-500" /> Address
+                    </Label>
+                    <Textarea
+                      {...register("address")}
+                      className="border-slate-200"
+                      placeholder="Enter complete address"
+                      rows={3}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Professional Information Section */}
+              <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold mb-4 text-slate-800">
+                  Professional Information
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="qualification"
+                      className="flex items-center text-slate-700"
+                    >
+                      <FaGraduationCap className="mr-2 text-slate-500" />{" "}
+                      Qualification
+                    </Label>
+                    <Input
+                      {...register("qualification")}
+                      className="border-slate-200"
+                      placeholder="Enter qualification"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label
+                      htmlFor="experience"
+                      className="flex items-center text-slate-700"
+                    >
+                      <FaBriefcase className="mr-2 text-slate-500" /> Experience
+                    </Label>
+                    <Input
+                      {...register("experience")}
+                      className="border-slate-200"
+                      placeholder="Years of experience"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ScrollArea>
         );
       case "STUDENT":
         return (

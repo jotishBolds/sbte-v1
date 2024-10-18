@@ -132,6 +132,8 @@ export async function PUT(
     const body = await request.json();
     const { username, email, role, ...additionalData } = body;
 
+    console.log("this is body", body);
+
     // Check if user exists by ID and belongs to the same college
     const existingUser = await prisma.user.findFirst({
       where: {
@@ -177,16 +179,49 @@ export async function PUT(
       // Handle role-specific updates based on the role
       switch (role) {
         case "HOD":
-          roleSpecificUpdate = await prisma.headOfDepartment.update({
+          // First check if HOD record exists
+          const existingHOD = await prisma.headOfDepartment.findUnique({
             where: { userId: params.id },
-            data: {
-              name: additionalData?.name || undefined,
-              phoneNo: additionalData?.phoneNo || undefined,
-              address: additionalData?.address || undefined,
-              qualification: additionalData?.qualification || undefined,
-              experience: additionalData?.experience || undefined,
-            },
+            include: { department: true },
           });
+
+          const hodData = {
+            name: additionalData.name || undefined,
+            phoneNo: additionalData.phoneNo || undefined,
+            address: additionalData.address || undefined,
+            qualification: additionalData.qualification || undefined,
+            experience: additionalData.experience || undefined,
+          };
+
+          if (existingHOD) {
+            // If HOD exists, just update the fields
+            roleSpecificUpdate = await prisma.headOfDepartment.update({
+              where: { userId: params.id },
+              data: hodData,
+            });
+          } else {
+            // If creating new HOD record, first get their department
+            const userDepartment = await prisma.department.findFirst({
+              where: { collegeId: session.user.collegeId },
+            });
+
+            if (!userDepartment) {
+              throw new Error("No department found for this college");
+            }
+
+            // Create new HOD record with department connection
+            roleSpecificUpdate = await prisma.headOfDepartment.create({
+              data: {
+                ...hodData,
+                user: {
+                  connect: { id: params.id },
+                },
+                department: {
+                  connect: { id: userDepartment.id },
+                },
+              },
+            });
+          }
           break;
 
         case "TEACHER":
