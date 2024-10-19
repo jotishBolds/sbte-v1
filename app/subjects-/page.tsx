@@ -1,7 +1,7 @@
-'use client'
+"use client";
 
-import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
-import { getSession } from 'next-auth/react';
+import { useState, useEffect, ChangeEvent, FormEvent } from "react";
+import { getSession } from "next-auth/react";
 
 // Define the College type
 type College = {
@@ -22,7 +22,7 @@ type User = {
   username: string | null;
   email: string;
   password: string;
-  role: "TEACHER" | "OTHER_ROLE";  // Extend roles if needed
+  role: "TEACHER" | "OTHER_ROLE"; // Extend roles if needed
   createdAt: string;
   updatedAt: string;
   collegeId: string;
@@ -63,12 +63,12 @@ type FormData = {
 
 const Subjects = () => {
   const [formData, setFormData] = useState<FormData>({
-    name: '',
-    code: '',
-    semester: '',
-    creditScore: '',
-    departmentId: '',
-    teacherId: ''
+    name: "",
+    code: "",
+    semester: "",
+    creditScore: "",
+    departmentId: "",
+    teacherId: "",
   });
   const [teachers, setTeachers] = useState<TeacherList>([]);
   const [loading, setLoading] = useState(true);
@@ -81,8 +81,10 @@ const Subjects = () => {
         const session = await getSession();
         if (session && session.user.collegeId) {
           const collegeId = session.user.collegeId;
-          const response = await fetch(`http://localhost:3000/api/teacher/college/${collegeId}`);
-          
+          const response = await fetch(
+            `http://localhost:3000/api/teacher/college/${collegeId}`
+          );
+
           if (response.ok) {
             const data = await response.json();
             setTeachers(data);
@@ -102,10 +104,12 @@ const Subjects = () => {
     fetchTeachers();
   }, []);
 
-  const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -117,26 +121,26 @@ const Subjects = () => {
       semester: formData.semester,
       creditScore: parseFloat(formData.creditScore),
       departmentId: formData.departmentId,
-      teacherId: formData.teacherId || null // Optional field
+      teacherId: formData.teacherId || null, // Optional field
     };
 
     try {
-      const response = await fetch('/api/subjects', {
-        method: 'POST', // Change to 'PUT' if updating
+      const response = await fetch("/api/subjects", {
+        method: "POST", // Change to 'PUT' if updating
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(payload),
       });
 
       if (response.ok) {
         // Handle success (e.g., show success message, clear form, etc.)
-        alert('Subject created successfully');
+        alert("Subject created successfully");
       } else {
-        alert('Failed to create subject');
+        alert("Failed to create subject");
       }
     } catch (error) {
-      console.error('Error:', error);
+      console.error("Error:", error);
     }
   };
 
@@ -154,7 +158,7 @@ const Subjects = () => {
             required
           />
         </div>
-        
+
         <div>
           <label htmlFor="code">Subject Code</label>
           <input
@@ -166,7 +170,7 @@ const Subjects = () => {
             required
           />
         </div>
-        
+
         <div>
           <label htmlFor="semester">Semester</label>
           <input
@@ -178,7 +182,7 @@ const Subjects = () => {
             required
           />
         </div>
-        
+
         <div>
           <label htmlFor="creditScore">Credit Score</label>
           <input
@@ -190,7 +194,7 @@ const Subjects = () => {
             required
           />
         </div>
-        
+
         <div>
           <label htmlFor="departmentId">Department ID</label>
           <input
@@ -202,7 +206,7 @@ const Subjects = () => {
             required
           />
         </div>
-        
+
         <div>
           <label htmlFor="teacherId">Teacher (Optional)</label>
           {loading ? (
@@ -223,7 +227,7 @@ const Subjects = () => {
             </select>
           )}
         </div>
-        
+
         <button type="submit" className="bg-blue-500 text-white px-4 py-2">
           Submit
         </button>

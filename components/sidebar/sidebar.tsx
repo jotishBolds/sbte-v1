@@ -1,5 +1,11 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
@@ -38,50 +44,45 @@ import {
   TableOfContents,
   TableOfContentsIcon,
   BookCheck,
+  Search,
+  ChevronDown,
+  FileX,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 
 type NavLinkType = {
   href: string;
   icon: React.ReactNode;
   label: string;
+  subItems?: NavLinkType[];
 };
 
 export const Sidebar: React.FC = () => {
   const { data: session, status } = useSession();
-  console.log(session);
   const router = useRouter();
   const pathname = usePathname();
   const [isMobile, setIsMobile] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [expandedItems, setExpandedItems] = useState<string[]>([]);
 
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
-  }, []);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  if (status === "loading") {
-    return <p>Loading...</p>;
-  }
-
-  if (!session || !session.user.role) {
-    return null;
-  }
-
-  const isActive = (path: string) => pathname === path;
-
-  const roleBasedLinks = (): NavLinkType[] => {
-    switch (session.user.role) {
+  // Memoize role-based links to prevent unnecessary re-renders
+  const roleBasedLinks = useMemo((): NavLinkType[] => {
+    switch (session?.user.role) {
       case "EDUCATION_DEPARTMENT":
       case "SBTE_ADMIN":
         return [
+          {
+            href: "/dashboard",
+            icon: <Home size={18} />,
+            label: "Dashboard",
+          },
           {
             href: "/colleges",
             icon: <Building size={18} />,
@@ -99,12 +100,17 @@ export const Sidebar: React.FC = () => {
       case "COLLEGE_SUPER_ADMIN":
         return [
           {
+            href: "/dashboard",
+            icon: <Home size={18} />,
+            label: "Dashboard",
+          },
+          {
             href: "/csa-dashboard",
             icon: <Building size={18} />,
             label: "College Details",
           },
           {
-            href: `/departments/${session.user.collegeId}`,
+            href: `/departments/${session?.user.collegeId}`,
             icon: <BookOpen size={18} />,
             label: "Departments",
           },
@@ -129,9 +135,16 @@ export const Sidebar: React.FC = () => {
             label: "Semester",
           },
           {
-            href: "/programs/create",
+            href: "/programs",
             icon: <Table2 size={18} />,
             label: "Programs",
+            subItems: [
+              {
+                href: "/programs/create",
+                icon: <Table2 size={18} />,
+                label: "Create Program",
+              },
+            ],
           },
           {
             href: "/academic-year",
@@ -147,15 +160,22 @@ export const Sidebar: React.FC = () => {
             href: "/batch",
             icon: <TableOfContentsIcon size={18} />,
             label: "Batches",
-          },
-          {
-            href: "/batch-year",
-            icon: <TableOfContents size={18} />,
-            label: "Batch Year",
+            subItems: [
+              {
+                href: "/batch-year",
+                icon: <TableOfContents size={18} />,
+                label: "Batch Year",
+              },
+            ],
           },
         ];
       case "ADM":
         return [
+          {
+            href: "/dashboard",
+            icon: <Home size={18} />,
+            label: "Dashboard",
+          },
           {
             href: "/create-user/users-list",
             icon: <Users size={18} />,
@@ -165,6 +185,11 @@ export const Sidebar: React.FC = () => {
         ];
       case "HOD":
         return [
+          {
+            href: "/dashboard",
+            icon: <Home size={18} />,
+            label: "Dashboard",
+          },
           { href: "/teachers", icon: <Users size={18} />, label: "Teachers" },
           {
             href: "/students",
@@ -180,6 +205,11 @@ export const Sidebar: React.FC = () => {
         ];
       case "TEACHER":
         return [
+          {
+            href: "/dashboard",
+            icon: <Home size={18} />,
+            label: "Dashboard",
+          },
           { href: "/subjects", icon: <Book size={18} />, label: "Subjects" },
           {
             href: "/attendance",
@@ -190,6 +220,11 @@ export const Sidebar: React.FC = () => {
         ];
       case "FINANCE_MANAGER":
         return [
+          {
+            href: "/dashboard",
+            icon: <Home size={18} />,
+            label: "Dashboard",
+          },
           {
             href: "/fee",
             icon: <DollarSign size={18} />,
@@ -203,6 +238,11 @@ export const Sidebar: React.FC = () => {
         ];
       case "STUDENT":
         return [
+          {
+            href: "/dashboard",
+            icon: <Home size={18} />,
+            label: "Dashboard",
+          },
           {
             href: "/attendance",
             icon: <Calendar size={18} />,
@@ -224,6 +264,11 @@ export const Sidebar: React.FC = () => {
       case "ALUMNUS":
         return [
           {
+            href: "/dashboard",
+            icon: <Home size={18} />,
+            label: "Dashboard",
+          },
+          {
             href: "/profile",
             icon: <UserCheck size={18} />,
             label: "Alumni Profile",
@@ -237,22 +282,90 @@ export const Sidebar: React.FC = () => {
       default:
         return [];
     }
-  };
+  }, [session?.user?.role]);
 
-  const NavItem = ({ href, icon, label }: NavLinkType) => (
-    <Link
-      href={href}
-      className={cn(
-        "flex items-center py-2 px-4 text-sm font-medium rounded-md transition-colors",
-        isActive(href)
-          ? "bg-primary text-primary-foreground"
-          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-      )}
-    >
-      {icon}
-      <span className="ml-3">{label}</span>
-    </Link>
+  const handleSearchChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setSearchTerm(e.target.value);
+    },
+    []
   );
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  // Ensure input refocus on re-render if needed
+  useEffect(() => {
+    if (searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [searchTerm]);
+
+  if (status === "loading") {
+    return <p>Loading...</p>;
+  }
+
+  if (!session || !session.user.role) {
+    return null;
+  }
+
+  const isActive = (path: string) => pathname === path;
+
+  const filteredLinks = roleBasedLinks.filter(
+    (link) =>
+      link.href.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      link.label.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const NavItem = ({ href, icon, label, subItems }: NavLinkType) => {
+    const hasSubItems = subItems && subItems.length > 0;
+    const isExpanded = expandedItems.includes(href);
+
+    const toggleExpand = () => {
+      setExpandedItems((prev) =>
+        isExpanded ? prev.filter((item) => item !== href) : [...prev, href]
+      );
+    };
+
+    return (
+      <>
+        <div
+          className={cn(
+            "flex items-center py-2 px-4 text-sm font-medium rounded-md transition-colors cursor-pointer",
+            isActive(href)
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          )}
+          onClick={hasSubItems ? toggleExpand : () => router.push(href)}
+        >
+          {icon}
+          <span className="ml-3 flex-grow">{label}</span>
+          {hasSubItems && (
+            <ChevronDown
+              size={18}
+              className={cn(
+                "transition-transform",
+                isExpanded && "transform rotate-180"
+              )}
+            />
+          )}
+        </div>
+        {hasSubItems && isExpanded && (
+          <div className="ml-6 mt-1 space-y-1">
+            {subItems.map((subItem, index) => (
+              <NavItem key={index} {...subItem} />
+            ))}
+          </div>
+        )}
+      </>
+    );
+  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -264,22 +377,37 @@ export const Sidebar: React.FC = () => {
           </Badge>
         </div>
       </div>
+      <div className="p-4">
+        <div className="relative">
+          <Input
+            type="text"
+            placeholder="Search..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            className="w-full pl-10"
+            ref={searchInputRef}
+          />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+        </div>
+      </div>
       <ScrollArea className="flex-grow">
         <div className="p-4 space-y-2">
-          <NavItem
-            href="/dashboard"
-            icon={<Home size={18} />}
-            label="Dashboard"
-          />
-          {roleBasedLinks().map((link, index) => (
-            <NavItem
-              key={index}
-              href={link.href}
-              icon={link.icon}
-              label={link.label}
-            />
+          {filteredLinks.map((link, index) => (
+            <NavItem key={index} {...link} />
           ))}
         </div>
+        {filteredLinks.length === 0 && (
+          <div className="text-center p-4">
+            <FileX className="mx-auto h-12 w-12 text-gray-400" />
+            <h3 className="mt-2 text-sm font-medium text-gray-900">
+              No results found
+            </h3>
+            <p className="mt-1 text-sm text-gray-500">
+              We couldn't find any menu items matching your search. Try
+              adjusting your search terms.
+            </p>
+          </div>
+        )}
         <Separator className="my-4" />
         <div className="p-4 space-y-2">
           <NavItem

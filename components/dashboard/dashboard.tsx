@@ -325,9 +325,9 @@ const Dashboard: React.FC = () => {
       </div>
 
       <Card className="mb-8 hover:shadow-md transition-shadow duration-300">
-        <CardContent className="p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        <CardContent className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between">
+            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
               <Avatar className="h-16 w-16">
                 <AvatarImage
                   src={session?.user?.image || ""}
@@ -337,7 +337,7 @@ const Dashboard: React.FC = () => {
                   {session?.user?.email?.[0].toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
-              <div>
+              <div className="text-center sm:text-left">
                 <p className="text-xl font-medium text-gray-800">
                   {session?.user?.name || session?.user?.email || "User"}
                 </p>
@@ -346,7 +346,10 @@ const Dashboard: React.FC = () => {
                 </Badge>
               </div>
             </div>
-            <Button onClick={() => router.push("/profile")}>
+            <Button
+              className="mt-4 sm:mt-0 w-full sm:w-auto"
+              onClick={() => router.push("/profile")}
+            >
               View Profile
             </Button>
           </div>
