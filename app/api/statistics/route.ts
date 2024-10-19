@@ -1,5 +1,6 @@
+//api/statistics/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { Prisma, PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/auth";
 
@@ -49,6 +50,7 @@ export async function GET(request: NextRequest) {
           { status: 400 }
         );
     }
+
     console.log("Fetched statistics:", statistics);
     return NextResponse.json(statistics);
   } catch (error) {
@@ -68,14 +70,23 @@ async function getSBTEAdminStatistics() {
 
   return { totalColleges, totalStudents, totalTeachers, totalDepartments };
 }
+
 async function getTeacherStatistics(userId: string) {
   const teacher = await prisma.teacher.findUnique({
     where: { userId },
     include: {
-      subjects: {
+      assignedSubjects: {
         include: {
-          _count: {
-            select: { marks: true },
+          batchSubject: {
+            include: {
+              subject: true,
+              examMarks: true,
+              batch: {
+                include: {
+                  term: true,
+                },
+              },
+            },
           },
         },
       },
@@ -86,30 +97,44 @@ async function getTeacherStatistics(userId: string) {
     throw new Error("Teacher not found");
   }
 
-  const totalSubjects = teacher.subjects.length;
-  const totalStudents = teacher.subjects.reduce(
-    (sum, subject) => sum + subject._count.marks,
-    0
-  );
+  const totalSubjects = teacher.assignedSubjects.length;
+  const totalStudents = await prisma.studentBatch.count({
+    where: {
+      batch: {
+        batchSubjects: {
+          some: {
+            teacherAssignments: {
+              some: {
+                teacherId: teacher.id,
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
   const totalFeedbacks = await prisma.feedback.count({
     where: {
-      subject: {
+      teacherAssignedSubject: {
         teacherId: teacher.id,
       },
     },
   });
 
+  const subjects = teacher.assignedSubjects.map((assignment) => ({
+    id: assignment.batchSubject.subject.id,
+    name: assignment.batchSubject.subject.name,
+    code: assignment.batchSubject.subject.code,
+    semester: assignment.batchSubject.batch.term.name,
+    studentCount: assignment.batchSubject.examMarks.length,
+  }));
+
   return {
     totalSubjects,
     totalStudents,
     totalFeedbacks,
-    subjects: teacher.subjects.map((subject) => ({
-      id: subject.id,
-      name: subject.name,
-      code: subject.code,
-      semester: subject.semester,
-      studentCount: subject._count.marks,
-    })),
+    subjects,
   };
 }
 
@@ -122,7 +147,7 @@ async function getCollegeSuperAdminStatistics(collegeId: string) {
     where: { user: { collegeId } },
   });
   const totalSubjects = await prisma.subject.count({
-    where: { department: { collegeId } },
+    where: { collegeId },
   });
 
   return { totalDepartments, totalStudents, totalTeachers, totalSubjects };
@@ -131,31 +156,87 @@ async function getCollegeSuperAdminStatistics(collegeId: string) {
 async function getHODStatistics(departmentId: string) {
   const totalStudents = await prisma.student.count({ where: { departmentId } });
   const totalTeachers = await prisma.teacher.count({
-    where: { subjects: { some: { departmentId } } },
+    where: {
+      assignedSubjects: {
+        some: {
+          batchSubject: {
+            batch: {
+              program: {
+                departmentId,
+              },
+            },
+          },
+        },
+      },
+    },
   });
-  const totalSubjects = await prisma.subject.count({ where: { departmentId } });
+  const totalSubjects = await prisma.subject.count({
+    where: {
+      batchSubjects: {
+        some: {
+          batch: {
+            program: {
+              departmentId,
+            },
+          },
+        },
+      },
+    },
+  });
   const totalAlumni = await prisma.alumnus.count({ where: { departmentId } });
 
   return { totalStudents, totalTeachers, totalSubjects, totalAlumni };
 }
 
-async function getStudentStatistics(studentId: string) {
-  const totalSubjects = await prisma.subject.count({
-    where: { department: { students: { some: { id: studentId } } } },
+async function getStudentStatistics(userId: string) {
+  const student = await prisma.student.findUnique({
+    where: { userId },
+    include: {
+      studentBatches: {
+        include: {
+          batch: {
+            include: {
+              batchSubjects: true,
+            },
+          },
+        },
+      },
+      monthlyAttendance: {
+        include: {
+          monthlyBatchSubjectClasses: true,
+        },
+      },
+      examMarks: true,
+    },
   });
-  const totalAttendance = await prisma.attendance.findMany({
-    where: { studentId },
-  });
+
+  if (!student) {
+    throw new Error("Student not found");
+  }
+
+  const totalSubjects = student.studentBatches.reduce(
+    (sum, sb) => sum + sb.batch.batchSubjects.length,
+    0
+  );
+
   const averageAttendance =
-    totalAttendance.length > 0
-      ? totalAttendance.reduce((sum, att) => sum + att.percentage, 0) /
-        totalAttendance.length
+    student.monthlyAttendance.length > 0
+      ? student.monthlyAttendance.reduce(
+          (sum, att) =>
+            sum +
+            (att.attendedTheoryClasses + att.attendedPracticalClasses) /
+              (att.monthlyBatchSubjectClasses.totalTheoryClasses +
+                att.monthlyBatchSubjectClasses.totalPracticalClasses),
+          0
+        ) / student.monthlyAttendance.length
       : 0;
-  const totalMarks = await prisma.mark.findMany({ where: { studentId } });
+
   const averageScore =
-    totalMarks.length > 0
-      ? totalMarks.reduce((sum, mark) => sum + mark.score, 0) /
-        totalMarks.length
+    student.examMarks.length > 0
+      ? student.examMarks.reduce(
+          (sum, mark) => sum + Number(mark.achievedMarks),
+          0
+        ) / student.examMarks.length
       : 0;
 
   return {
