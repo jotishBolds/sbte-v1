@@ -199,11 +199,11 @@ model HeadOfDepartment {
   id            String     @id @default(cuid())
   user          User       @relation(fields: [userId], references: [id])
   userId        String     @unique
-  name          String
-  phoneNo       String
-  address       String
-  qualification String
-  experience    String
+  name          String?
+  phoneNo       String?
+  address       String?
+  qualification String?
+  experience    String?
   createdAt     DateTime   @default(now())
   updatedAt     DateTime   @updatedAt
   department    Department @relation(fields: [departmentId], references: [id])
