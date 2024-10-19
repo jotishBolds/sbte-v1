@@ -120,7 +120,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if the user has the role "COLLEGE_SUPER_ADMIN"
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
+    if (
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user?.role !== "TEACHER"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

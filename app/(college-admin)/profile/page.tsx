@@ -1,7 +1,4 @@
-// File: app/profile/page.tsx
-
 "use client";
-
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
@@ -17,7 +14,15 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import SideBarLayout from "@/components/sidebar/layout";
+import { Switch } from "@/components/ui/switch";
 
 interface ProfileData {
   username: string;
@@ -25,16 +30,45 @@ interface ProfileData {
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
+  teacher?: {
+    name?: string;
+    phoneNo?: string;
+    address?: string;
+    qualification?: string;
+    designationId?: string;
+    categoryId?: string;
+    experience?: string;
+    maritalStatus?: "SINGLE" | "MARRIED" | "DIVORCED" | "WIDOWED";
+    joiningDate?: string;
+    gender?: string;
+    religion?: string;
+    caste?: "GENERAL" | "OBC" | "SC" | "ST";
+    isLocalResident?: boolean;
+    isDifferentlyAbled?: boolean;
+    hasResigned?: boolean;
+  };
   headOfDepartment?: {
     name?: string;
     phoneNo?: string;
     address?: string;
     qualification?: string;
     experience?: string;
-    departmentId?: string;
   };
 }
 
+type EmployeeCategory = {
+  id: string;
+  name: string;
+  alias: string;
+  description?: string;
+};
+
+type TeacherDesignation = {
+  id: string;
+  name: string;
+  alias: string;
+  description?: string;
+};
 export default function ProfilePage() {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<ProfileData>({
@@ -45,28 +79,41 @@ export default function ProfilePage() {
     confirmPassword: "",
   });
   const [message, setMessage] = useState("");
-
+  const [designations, setDesignations] = useState<TeacherDesignation[]>([]);
+  const [categories, setCategories] = useState<EmployeeCategory[]>([]);
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndOptions = async () => {
       if (session?.user) {
         try {
-          const response = await fetch("/api/profile");
-          const data = await response.json();
+          const [profileResponse, designationsResponse, categoriesResponse] =
+            await Promise.all([
+              fetch("/api/profile"),
+              fetch("/api/teacherDesignation"),
+              fetch("/api/employeeCategory"),
+            ]);
+
+          const profileData = await profileResponse.json();
+          const designationsData = await designationsResponse.json();
+          const categoriesData = await categoriesResponse.json();
+
           setProfile((prevProfile) => ({
             ...prevProfile,
-            ...data,
-            username: data.username || "",
-            email: data.email || "",
-            headOfDepartment: data.headOfDepartment || {},
+            username: profileData.user.username || "",
+            email: profileData.user.email || "",
+            teacher: profileData.user.teacher || {},
+            headOfDepartment: profileData.user.headOfDepartment || {},
           }));
+
+          setDesignations(designationsData);
+          setCategories(categoriesData);
         } catch (error) {
-          console.error("Error fetching profile:", error);
+          console.error("Error fetching data:", error);
           setMessage("Failed to load profile data.");
         }
       }
     };
 
-    fetchProfile();
+    fetchProfileAndOptions();
   }, [session]);
 
   const handleChange = (
@@ -76,6 +123,39 @@ export default function ProfilePage() {
     setProfile((prevProfile) => ({
       ...prevProfile,
       [name]: value,
+    }));
+  };
+
+  const handleTeacherChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setProfile((prevProfile) => ({
+      ...prevProfile,
+      teacher: {
+        ...prevProfile.teacher,
+        [name]: value,
+      },
+    }));
+  };
+
+  const handleTeacherSelectChange = (name: string, value: string) => {
+    setProfile((prevProfile) => ({
+      ...prevProfile,
+      teacher: {
+        ...prevProfile.teacher,
+        [name]: value,
+      },
+    }));
+  };
+
+  const handleTeacherCheckboxChange = (name: string, checked: boolean) => {
+    setProfile((prevProfile) => ({
+      ...prevProfile,
+      teacher: {
+        ...prevProfile.teacher,
+        [name]: checked,
+      },
     }));
   };
 
@@ -100,16 +180,19 @@ export default function ProfilePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(profile),
       });
+
+      console.log("this is profile", profile);
       const data = await response.json();
       setMessage(data.message);
 
-      // Clear password fields after successful update
-      setProfile((prevProfile) => ({
-        ...prevProfile,
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      }));
+      if (response.ok) {
+        setProfile((prevProfile) => ({
+          ...prevProfile,
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        }));
+      }
     } catch (error) {
       setMessage("An error occurred while updating the profile.");
     }
@@ -122,10 +205,15 @@ export default function ProfilePage() {
         <Tabs defaultValue="account" className="space-y-4">
           <TabsList>
             <TabsTrigger value="account">Account Information</TabsTrigger>
+            {session?.user?.role === "TEACHER" && (
+              <TabsTrigger value="teacher">Teacher Information</TabsTrigger>
+            )}
             {session?.user?.role === "HOD" && (
               <TabsTrigger value="hod">HOD Information</TabsTrigger>
             )}
           </TabsList>
+
+          {/* Account Information Tab */}
           <TabsContent value="account">
             <Card>
               <CardHeader>
@@ -198,6 +286,238 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Teacher Information Tab */}
+          {session?.user?.role === "TEACHER" && (
+            <TabsContent value="teacher">
+              <Card>
+                <CardHeader>
+                  <h2 className="text-2xl font-semibold">
+                    Teacher Information
+                  </h2>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <Input
+                        id="name"
+                        name="name"
+                        value={profile.teacher?.name || ""}
+                        onChange={handleTeacherChange}
+                        placeholder="Enter your full name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="phoneNo">Phone Number</Label>
+                      <Input
+                        id="phoneNo"
+                        name="phoneNo"
+                        value={profile.teacher?.phoneNo || ""}
+                        onChange={handleTeacherChange}
+                        placeholder="Enter your phone number"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="address">Address</Label>
+                      <Textarea
+                        id="address"
+                        name="address"
+                        value={profile.teacher?.address || ""}
+                        onChange={handleTeacherChange}
+                        placeholder="Enter your address"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="qualification">Qualification</Label>
+                      <Input
+                        id="qualification"
+                        name="qualification"
+                        value={profile.teacher?.qualification || ""}
+                        onChange={handleTeacherChange}
+                        placeholder="Enter your qualification"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="designationId">Designation</Label>
+                      <Select
+                        value={profile.teacher?.designationId || ""}
+                        onValueChange={(value) =>
+                          handleTeacherSelectChange("designationId", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select designation" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {designations &&
+                            designations.map((designation) => (
+                              <SelectItem
+                                key={designation.id}
+                                value={designation.id}
+                              >
+                                {designation.name}
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="categoryId">Category</Label>
+                      <Select
+                        value={profile.teacher?.categoryId || ""}
+                        onValueChange={(value) =>
+                          handleTeacherSelectChange("categoryId", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="experience">Experience</Label>
+                      <Input
+                        id="experience"
+                        name="experience"
+                        value={profile.teacher?.experience || ""}
+                        onChange={handleTeacherChange}
+                        placeholder="Enter your experience"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="maritalStatus">Marital Status</Label>
+                      <Select
+                        value={profile.teacher?.maritalStatus}
+                        onValueChange={(value) =>
+                          handleTeacherSelectChange("maritalStatus", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select marital status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="SINGLE">Single</SelectItem>
+                          <SelectItem value="MARRIED">Married</SelectItem>
+                          <SelectItem value="DIVORCED">Divorced</SelectItem>
+                          <SelectItem value="WIDOWED">Widowed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="joiningDate">Joining Date</Label>
+                      <Input
+                        id="joiningDate"
+                        name="joiningDate"
+                        type="date"
+                        value={
+                          profile.teacher?.joiningDate?.split("T")[0] || ""
+                        }
+                        onChange={handleTeacherChange}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="gender">Gender</Label>
+                      <Select
+                        value={profile.teacher?.gender}
+                        onValueChange={(value) =>
+                          handleTeacherSelectChange("gender", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select gender" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="MALE">Male</SelectItem>
+                          <SelectItem value="FEMALE">Female</SelectItem>
+                          <SelectItem value="OTHER">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="religion">Religion</Label>
+                      <Input
+                        id="religion"
+                        name="religion"
+                        value={profile.teacher?.religion || ""}
+                        onChange={handleTeacherChange}
+                        placeholder="Enter your religion"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="caste">Caste</Label>
+                      <Select
+                        value={profile.teacher?.caste}
+                        onValueChange={(value) =>
+                          handleTeacherSelectChange("caste", value)
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select caste" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="GENERAL">General</SelectItem>
+                          <SelectItem value="OBC">OBC</SelectItem>
+                          <SelectItem value="SC">SC</SelectItem>
+                          <SelectItem value="ST">ST</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="isLocalResident"
+                        checked={profile.teacher?.isLocalResident || false}
+                        onCheckedChange={(checked) =>
+                          handleTeacherCheckboxChange(
+                            "isLocalResident",
+                            checked
+                          )
+                        }
+                      />
+                      <Label htmlFor="isLocalResident">Local Resident</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="isDifferentlyAbled"
+                        checked={profile.teacher?.isDifferentlyAbled || false}
+                        onCheckedChange={(checked) =>
+                          handleTeacherCheckboxChange(
+                            "isDifferentlyAbled",
+                            checked
+                          )
+                        }
+                      />
+                      <Label htmlFor="isDifferentlyAbled">
+                        Differently Abled
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Switch
+                        id="hasResigned"
+                        checked={profile.teacher?.hasResigned || false}
+                        onCheckedChange={(checked) =>
+                          handleTeacherCheckboxChange("hasResigned", checked)
+                        }
+                      />
+                      <Label htmlFor="hasResigned">Has Resigned</Label>
+                    </div>
+                    <CardFooter className="flex justify-end pt-4">
+                      <Button type="submit">Update Teacher Information</Button>
+                    </CardFooter>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* HOD Information Tab */}
           {session?.user?.role === "HOD" && (
             <TabsContent value="hod">
               <Card>

@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "HeadOfDepartment" ALTER COLUMN "name" DROP NOT NULL,
+ALTER COLUMN "phoneNo" DROP NOT NULL,
+ALTER COLUMN "address" DROP NOT NULL,
+ALTER COLUMN "qualification" DROP NOT NULL,
+ALTER COLUMN "experience" DROP NOT NULL;
