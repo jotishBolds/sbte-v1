@@ -272,6 +272,7 @@ model Semester {
   students         Student[]
   semesterPrograms SemesterProgram[]
   batches          Batch[]           @relation("SemesterToBatch")
+
   @@unique([numerical, collegeId])
 }
 
@@ -281,8 +282,8 @@ model SemesterProgram {
   semesterId String
   program    Program  @relation(fields: [programId], references: [id])
   programId  String
-  @@unique([programId, semesterId]) // Composite unique constraint
 
+  @@unique([programId, semesterId]) // Composite unique constraint
 }
 
 model AcademicYear {
@@ -293,7 +294,7 @@ model AcademicYear {
   status    Boolean
   college   College   @relation(fields: [collegeId], references: [id])
   collegeId String
-  students  Student[] 
+  students  Student[]
   batches   Batch[]
 }
 
@@ -316,7 +317,6 @@ model BatchYear {
   students  Student[]
   Alumnus   Alumnus[]
 }
-
 
 model BatchType {
   id        String  @id @default(cuid())
@@ -363,7 +363,7 @@ model Subject {
   id            String         @id @default(cuid())
   name          String
   code          String
-  alias         String? 
+  alias         String?
   creditScore   Float
   status        Boolean        @default(true)
   createdAt     DateTime       @default(now())
@@ -390,6 +390,7 @@ model BatchSubject {
   subjectId          String
   subjectType        SubjectType                  @relation(fields: [subjectTypeId], references: [id])
   subjectTypeId      String
+  creditScore        Float
   classType          ClassType
   teacherAssignments TeacherAssignedSubject[]
   monthlyClasses     MonthlyBatchSubjectClasses[]
@@ -483,7 +484,7 @@ model TeacherAssignedSubject {
   teacherId      String
   batchSubject   BatchSubject @relation(fields: [batchSubjectId], references: [id])
   batchSubjectId String
-  Feedback      Feedback[] //newChange
+  Feedback       Feedback[] //newChange
 }
 
 model FinanceManager {
@@ -540,9 +541,9 @@ model Alumnus {
   address         String?
   department      Department    @relation(fields: [departmentId], references: [id])
   departmentId    String
-  program         Program       @relation(fields: [programId], references: [id])  //newChange
+  program         Program       @relation(fields: [programId], references: [id]) //newChange
   programId       String
-  batchYear       BatchYear     @relation(fields: [batchYearId], references: [id])  //newChange
+  batchYear       BatchYear     @relation(fields: [batchYearId], references: [id]) //newChange
   batchYearId     String
   admissionYear   AdmissionYear @relation(fields: [admissionYearId], references: [id]) //newChange
   admissionYearId String
@@ -569,13 +570,13 @@ model Notification {
 }
 
 model Feedback {
-  id          String   @id @default(cuid())
-  student     Student  @relation(fields: [studentId], references: [id])
-  studentId   String
-  teacherAssignedSubject TeacherAssignedSubject @relation(fields: [teacherAssignedSubjectId], references: [id]) //newChange
-  teacherAssignedSubjectId String  //newChange
-  content     String
-  isAnonymous Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id                       String                 @id @default(cuid())
+  student                  Student                @relation(fields: [studentId], references: [id])
+  studentId                String
+  teacherAssignedSubject   TeacherAssignedSubject @relation(fields: [teacherAssignedSubjectId], references: [id]) //newChange
+  teacherAssignedSubjectId String //newChange
+  content                  String
+  isAnonymous              Boolean                @default(true)
+  createdAt                DateTime               @default(now())
+  updatedAt                DateTime               @updatedAt
 }
