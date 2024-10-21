@@ -109,7 +109,16 @@ export default function AlumniRegistrationForm() {
           throw new Error("Failed to fetch departments");
         }
         const data = await response.json();
-        setDepartments(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setDepartments(data);
+        } else {
+          console.error("Received empty or invalid departments data:", data);
+          toast({
+            title: "Error",
+            description: "Failed to load departments. Please try again later.",
+            variant: "destructive",
+          });
+        }
       } catch (error) {
         console.error("Error fetching departments:", error);
         toast({
@@ -205,7 +214,6 @@ export default function AlumniRegistrationForm() {
       setIsLoading(false);
     }
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-100 to-white py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
