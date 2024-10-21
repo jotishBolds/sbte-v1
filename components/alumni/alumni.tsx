@@ -25,6 +25,7 @@ import {
 import { toast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdmissionYear, BatchYear, Program } from "@prisma/client";
 
 interface Department {
   id: string;
@@ -43,6 +44,9 @@ const formSchema = z.object({
   dateOfBirth: z.string(),
   address: z.string().min(5).max(255),
   departmentId: z.string(),
+  programId: z.string(),
+  batchYearId: z.string(),
+  admissionYearId: z.string(),
   batchYear: z.number().int().min(1900).max(new Date().getFullYear()),
   graduationYear: z
     .number()
@@ -60,9 +64,15 @@ const formSchema = z.object({
 
 export default function AlumniRegistrationForm() {
   const router = useRouter();
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [batchYears, setBatchYears] = useState<BatchYear[]>([]);
+  const [admissionYears, setAdmissionYears] = useState<AdmissionYear[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoadingDepartments, setIsLoadingDepartments] = useState(true);
+  const [isLoadingPrograms, setIsLoadingPrograms] = useState(true);
+  const [isLoadingBatchYears, setIsLoadingBatchYears] = useState(true);
+  const [isLoadingAdmissionYears, setIsLoadingAdmissionYears] = useState(true);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -75,6 +85,9 @@ export default function AlumniRegistrationForm() {
       dateOfBirth: "",
       address: "",
       departmentId: "",
+      programId: "",
+      batchYearId: "",
+      admissionYearId: "",
       batchYear: new Date().getFullYear(),
       graduationYear: new Date().getFullYear(),
       gpa: undefined,
@@ -111,6 +124,53 @@ export default function AlumniRegistrationForm() {
 
     fetchDepartments();
   }, []);
+
+  useEffect(() => {
+    const fetchRelatedData = async () => {
+      if (form.watch("departmentId")) {
+        setIsLoadingPrograms(true);
+        setIsLoadingBatchYears(true);
+        setIsLoadingAdmissionYears(true);
+
+        try {
+          const [programsRes, batchYearsRes, admissionYearsRes] =
+            await Promise.all([
+              fetch(`/api/programs/alumni/${form.watch("departmentId")}`),
+              fetch(`/api/batchYear/alumni/${form.watch("departmentId")}`),
+              fetch(`/api/admissionYear/alumni/${form.watch("departmentId")}`),
+            ]);
+
+          if (!programsRes.ok || !batchYearsRes.ok || !admissionYearsRes.ok) {
+            throw new Error("Failed to fetch related data");
+          }
+
+          const [programsData, batchYearsData, admissionYearsData] =
+            await Promise.all([
+              programsRes.json(),
+              batchYearsRes.json(),
+              admissionYearsRes.json(),
+            ]);
+
+          setPrograms(programsData);
+          setBatchYears(batchYearsData);
+          setAdmissionYears(admissionYearsData);
+        } catch (error) {
+          console.error("Error fetching related data:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load related data. Please try again later.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsLoadingPrograms(false);
+          setIsLoadingBatchYears(false);
+          setIsLoadingAdmissionYears(false);
+        }
+      }
+    };
+
+    fetchRelatedData();
+  }, [form.watch("departmentId")]);
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
@@ -179,7 +239,7 @@ export default function AlumniRegistrationForm() {
                         <FormLabel>Username</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="username"
+                            placeholder="Username"
                             {...field}
                             className="bg-white"
                           />
@@ -197,7 +257,7 @@ export default function AlumniRegistrationForm() {
                         <FormControl>
                           <Input
                             type="email"
-                            placeholder="email@example.com"
+                            placeholder="youremail@sbte.com"
                             {...field}
                             className="bg-white"
                           />
@@ -232,7 +292,7 @@ export default function AlumniRegistrationForm() {
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="John Doe"
+                            placeholder="Your Full Name"
                             {...field}
                             className="bg-white"
                           />
@@ -280,7 +340,7 @@ export default function AlumniRegistrationForm() {
                         <FormLabel>Address</FormLabel>
                         <FormControl>
                           <Input
-                            placeholder="123 Main St, City, Country"
+                            placeholder="Gangtok, Sikkim 737102"
                             {...field}
                             className="bg-white"
                           />
@@ -322,24 +382,104 @@ export default function AlumniRegistrationForm() {
                   />
                   <FormField
                     control={form.control}
-                    name="batchYear"
+                    name="programId"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Batch Year</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value))
-                            }
-                            className="bg-white"
-                          />
-                        </FormControl>
+                        <FormLabel>Program</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={isLoadingPrograms}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="Select a program" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {programs.map((program) => (
+                              <SelectItem key={program.id} value={program.id}>
+                                {program.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Please select a program.
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="batchYearId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Batch Year</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={isLoadingBatchYears}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="Select a batch year" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {batchYears.map((batchYear) => (
+                              <SelectItem
+                                key={batchYear.id}
+                                value={batchYear.id}
+                              >
+                                {batchYear.year}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Please select your batch year.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="admissionYearId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admission Year</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                          disabled={isLoadingAdmissionYears}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="bg-white">
+                              <SelectValue placeholder="Select admission year" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {admissionYears.map((admissionYear) => (
+                              <SelectItem
+                                key={admissionYear.id}
+                                value={admissionYear.id}
+                              >
+                                {admissionYear.year}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Please select your admission year.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="graduationYear"

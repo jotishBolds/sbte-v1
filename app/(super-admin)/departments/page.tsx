@@ -283,7 +283,8 @@ const DepartmentsPage: React.FC = () => {
               <AlertDialogDescription>
                 Are you sure you want to{" "}
                 {toggleConfirmation.department?.isActive ? "disable" : "enable"}{" "}
-                the department "{toggleConfirmation.department?.name}"?
+                the department &quot;{toggleConfirmation.department?.name}
+                &quot;?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

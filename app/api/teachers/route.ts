@@ -5,7 +5,6 @@ import { authOptions } from "../auth/[...nextauth]/auth";
 import prisma from "@/src/lib/prisma";
 import bcrypt from "bcrypt";
 
-
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
@@ -72,14 +71,15 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function PUT(
-  request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
     const userId = session?.user.id;
 
     if (!session || session.user.role !== "TEACHER") {
-      return new NextResponse(JSON.stringify({ message: "Unauthorized" }), { status: 401 });
+      return new NextResponse(JSON.stringify({ message: "Unauthorized" }), {
+        status: 401,
+      });
     }
     // Fetch teacher and user details
     const teacher = await prisma.teacher.findUnique({
@@ -90,11 +90,24 @@ export async function PUT(
     });
 
     if (!teacher) {
-      return new NextResponse(JSON.stringify({ message: "Teacher not found here." }), { status: 404 });
+      return new NextResponse(
+        JSON.stringify({ message: "Teacher not found here." }),
+        { status: 404 }
+      );
     }
 
     const data = await request.json();
-    const { email, username, password, name, phoneNo, address, qualification, designation, experience } = data;
+    const {
+      email,
+      username,
+      password,
+      name,
+      phoneNo,
+      address,
+      qualification,
+      designation,
+      experience,
+    } = data;
 
     const updateData: any = {};
 
@@ -111,7 +124,7 @@ export async function PUT(
         phoneNo: phoneNo || teacher.phoneNo,
         address: address || teacher.address,
         qualification: qualification || teacher.qualification,
-        designation: designation || teacher.designation,
+        designation: designation || teacher.designationId,
         experience: experience || teacher.experience,
       },
     });
@@ -127,17 +140,18 @@ export async function PUT(
 
     // Fetch the updated teacher along with user details
     const updatedTeacherWithUser = await prisma.teacher.findUnique({
-      where: { userId},
+      where: { userId },
       include: {
         user: true, // Include the related updated user details
       },
     });
 
-    return NextResponse.json(updatedTeacherWithUser,
-      { status: 200 }
-    );
+    return NextResponse.json(updatedTeacherWithUser, { status: 200 });
   } catch (error) {
     console.error("Error updating teacher:", error);
-    return new NextResponse(JSON.stringify({ message: "Internal Server Error" }), { status: 500 });
+    return new NextResponse(
+      JSON.stringify({ message: "Internal Server Error" }),
+      { status: 500 }
+    );
   }
 }
