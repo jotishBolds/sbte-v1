@@ -6,115 +6,111 @@ import * as z from "zod";
 
 const prisma = new PrismaClient();
 
+// Define the schema for request body validation
 const batchSubjectSchema = z.object({
-    batchId: z.string(),
-    subjectId: z.string().optional(), // Optional, because a new subject may be created
-    subjectName: z.string(),          // Subject name
-    subjectCode: z.string(),          // Subject code
-    subjectAlias: z.string().optional(), // Subject alias (optional)
-    subjectCreditScore: z.number(),   // Credit score for the subject
-    subjectTypeId: z.string(),        // Subject type ID
-    classType: z.enum(["PRACTICAL", "THEORY", "BOTH"]),
-    creditScore: z.number(),          // Credit score specific to batch
-  });
-  
-  export async function POST(request: NextRequest) {
-    try {
-      const session = await getServerSession(authOptions);
-  
-      if (!session) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-      }
-      if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      }
-  
+  batchId: z.string(),
+  subjectId: z.string(),
+  subjectCode: z.string(),
+  subjectTypeId: z.string(),
+  classType: z.enum(["PRACTICAL", "THEORY", "BOTH"]),
+  creditScore: z.number(),
+});
+
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { batchId, subjectId, subjectCode, subjectTypeId, classType, creditScore } = batchSubjectSchema.parse(
+      await request.json()
+    );
+
+    // Check if the same subject code has already been assigned to the batch
+    const subjectAssignedToBatch = await prisma.batchSubject.findFirst({
+      where: {
+        batchId,
+        subject: {
+          code: subjectCode,
+        },
+      },
+    });
+
+    if (subjectAssignedToBatch) {
+      return NextResponse.json({ error: "Subject with this code is already assigned to the batch" }, { status: 400 });
+    }
+    
+    // Find the current subject
+    const currentSubject = await prisma.subject.findUnique({
+      where: { id: subjectId },
+    });
+
+    if (!currentSubject) {
+      return NextResponse.json({ error: "Subject not found" }, { status: 404 });
+    }
+
+    let updatedSubjectId = subjectId;
+
+    // If the subject code has changed, create a new subject
+    if (currentSubject.code !== subjectCode) {
       const collegeId = session.user.collegeId;
-      const createdById = session.user.id;
-  
-      const body = await request.json();
-      const validationResult = batchSubjectSchema.safeParse(body);
       if (!collegeId) {
         return NextResponse.json({ error: "User not associated with a college" }, { status: 400 });
       }
-      if (!validationResult.success) {
-        return NextResponse.json(
-          { error: "Validation failed", details: validationResult.error.format() },
-          { status: 400 }
-        );
-      }
-  
-      const {
+      const createdById = session.user.id;
+
+      // Create new subject with the updated code and details
+      const newSubject = await prisma.subject.create({
+        data: {
+          name: currentSubject.name, // Keep the same name or pass from the request if it's changed
+          code: subjectCode, // Updated subject code
+          alias: currentSubject.alias, // Retain the same alias
+          creditScore: creditScore, // Use the provided credit score
+          collegeId: collegeId, // Use collegeId from session
+          createdById: createdById,
+          updatedById: createdById,
+        },
+      });
+
+      updatedSubjectId = newSubject.id;
+    }
+
+    // Now, handle the BatchSubject creation/updating
+    // Check if the BatchSubject already exists for the given batch and subject type
+    const existingBatchSubject = await prisma.batchSubject.findFirst({
+      where: {
         batchId,
-        subjectId,
-        subjectName,
-        subjectCode,
-        subjectAlias,
-        subjectCreditScore,
+        subjectId: updatedSubjectId,
         subjectTypeId,
-        classType,
-        creditScore,
-      } = validationResult.data;
-  
-      let subject;
-  
-      // Check if subjectId is provided
-      if (subjectId) {
-        // Fetch the existing subject
-        subject = await prisma.subject.findUnique({
-          where: { id: subjectId },
-        });
-  
-        // If the code is different, create a new subject
-        if (subject && subject.code !== subjectCode) {
-          subject = await prisma.subject.create({
-            data: {
-              name: subjectName,
-              code: subjectCode,
-              alias: subjectAlias,
-              creditScore: subjectCreditScore,
-              collegeId, // Ensure this is a string and defined
-              createdById,
-              updatedById: createdById,
-            },
-          });
-        }
-      } else {
-        // Create a new subject if subjectId is not provided
-        subject = await prisma.subject.create({
-          data: {
-            name: subjectName,
-            code: subjectCode,
-            alias: subjectAlias,
-            creditScore: subjectCreditScore,
-            collegeId,
-            createdById,
-            updatedById: createdById,
-          },
-        });
-      }
-  
-      if (!subject) {
-        return NextResponse.json({ error: "Subject not found or created" }, { status: 404 });
-      }
-  
-      // Create the batch subject
-      const batchSubject = await prisma.batchSubject.create({
+      },
+    });
+
+    if (existingBatchSubject) {
+      // If BatchSubject exists, update the creditScore if necessary
+      await prisma.batchSubject.update({
+        where: { id: existingBatchSubject.id },
+        data: { creditScore, classType },
+      });
+    } else {
+      // If BatchSubject does not exist, create a new one
+      await prisma.batchSubject.create({
         data: {
           batchId,
-          subjectId: subject.id,
+          subjectId: updatedSubjectId,
           subjectTypeId,
-          creditScore, // Store the credit score specific to the batch
+          creditScore,
           classType,
         },
       });
-  
-      return NextResponse.json(batchSubject, { status: 201 });
-    } catch (error) {
-      console.error("Error creating batch subject:", error);
-      return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-    } finally {
-      await prisma.$disconnect();
     }
+
+    return NextResponse.json({ message: "BatchSubject associated successfully" }, { status: 201 });
+  } catch (error) {
+    console.error("Error processing BatchSubject:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
   }
-  
+}
