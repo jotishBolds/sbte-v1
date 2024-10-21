@@ -12,12 +12,9 @@ const alumniUpdateSchema = z.object({
   dateOfBirth: z.string().optional(),
   address: z.string().min(5).max(255).optional(),
   departmentId: z.string().optional(),
-  batchYear: z
-    .number()
-    .int()
-    .min(1900)
-    .max(new Date().getFullYear())
-    .optional(),
+  programId: z.string().optional(),
+  batchYearId: z.string().optional(),
+  admissionYearId: z.string().optional(),
   graduationYear: z
     .number()
     .int()
@@ -29,8 +26,7 @@ const alumniUpdateSchema = z.object({
   currentEmployer: z.string().optional(),
   currentPosition: z.string().optional(),
   industry: z.string().optional(),
-  // linkedInProfile: z.string().url().optional(),
-  linkedInProfile: z.union([z.string().url(), z.literal("")]).optional(), // Allow empty string or valid URL
+  linkedInProfile: z.union([z.string().url(), z.literal("")]).optional(),
   achievements: z.string().optional(),
   verified: z.boolean().optional(),
 });
@@ -48,7 +44,8 @@ export async function GET(
     if (
       !session ||
       !session.user ||
-      (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ALUMNUS")
+      (session.user.role !== "COLLEGE_SUPER_ADMIN" &&
+        session.user.role !== "ALUMNUS")
     ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -84,7 +81,12 @@ export async function GET(
       const loggedInUserId = session.user.id;
       // Compare logged-in user's ID with the requested alumnus ID
       if (loggedInUserId != alumnus.userId) {
-        return NextResponse.json({ error: "You do not have permission to access this alumnus detail." }, { status: 403 });
+        return NextResponse.json(
+          {
+            error: "You do not have permission to access this alumnus detail.",
+          },
+          { status: 403 }
+        );
       }
     }
 
@@ -93,7 +95,9 @@ export async function GET(
       // Compare the college ID of the department to the college ID of the user
       if (alumnus.department.collegeId !== session.user.collegeId) {
         return NextResponse.json(
-          { error: "You do not have permission to access this alumnus detail." },
+          {
+            error: "You do not have permission to access this alumnus detail.",
+          },
           { status: 403 } // Return 403 if access is denied
         );
       }
@@ -121,8 +125,9 @@ export async function PUT(
     // Step 1: Verify if the user is authenticated and is either a College Admin or Alumnus
     if (
       !session ||
-      !session.user || 
-      (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ALUMNUS")
+      !session.user ||
+      (session.user.role !== "COLLEGE_SUPER_ADMIN" &&
+        session.user.role !== "ALUMNUS")
     ) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -144,7 +149,10 @@ export async function PUT(
     });
 
     if (!alumnus) {
-      return NextResponse.json({ message: "Alumnus not found" }, { status: 404 });
+      return NextResponse.json(
+        { message: "Alumnus not found" },
+        { status: 404 }
+      );
     }
 
     // Step 4: If the user is an Alumnus, ensure they are updating their own profile
@@ -158,7 +166,7 @@ export async function PUT(
       }
 
       // Prevent alumnus from updating the `verified` attribute
-      if ('verified' in validatedData) {
+      if ("verified" in validatedData) {
         return NextResponse.json(
           { message: "Alumni cannot modify the verified status" },
           { status: 403 }
@@ -173,7 +181,10 @@ export async function PUT(
       // Ensure the college admin and alumnus belong to the same college
       if (alumnus.department.collegeId !== collegeId) {
         return NextResponse.json(
-          { message: "You do not have permission to update this alumnus's details" },
+          {
+            message:
+              "You do not have permission to update this alumnus's details",
+          },
           { status: 403 }
         );
       }
@@ -190,7 +201,7 @@ export async function PUT(
   } catch (error) {
     // Step 8: Error handling
     console.error("Error updating alumnus:", error);
-    
+
     // Handle validation errors
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -198,15 +209,13 @@ export async function PUT(
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json(
       { message: "Error updating alumnus" },
       { status: 500 }
     );
   }
 }
-
-
 
 export async function DELETE(
   request: NextRequest,
@@ -233,7 +242,7 @@ export async function DELETE(
       return NextResponse.json(
         { message: "College Id not found" },
         { status: 404 }
-      )
+      );
     }
 
     // Step 5: Look for the Alumnus record by the given ID
@@ -242,14 +251,14 @@ export async function DELETE(
       include: {
         department: true, // Include the department to access collegeId
       },
-    })
+    });
 
     // Step 6: Check if the Alumnus exists
     if (!existingAlumnus) {
       return NextResponse.json(
         { message: "Alumnus not found" },
         { status: 404 }
-      )
+      );
     }
 
     // Step 7: Ensure that the Alumnus belongs to the same college as the College Admin
@@ -275,7 +284,6 @@ export async function DELETE(
     // Step 10: Return a success message after deletion
     return NextResponse.json({ message: "Alumnus deleted successfully" });
   } catch (error) {
-
     // Step 11: Handle any errors that occur during the process\
     console.error("Error deleting alumnus:", error);
     return NextResponse.json(
