@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const userRole = session.user.role;
     let statistics: any = {};
-
+    console.log(userRole);  
     switch (userRole) {
       case "SBTE_ADMIN":
         statistics = await getSBTEAdminStatistics();
@@ -33,6 +33,7 @@ export async function GET(request: NextRequest) {
         if (session.user.departmentId) {
           statistics = await getHODStatistics(session.user.departmentId);
         }
+        console.log(statistics);
         break;
       case "TEACHER":
         if (session.user.id) {
