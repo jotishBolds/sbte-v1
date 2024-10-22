@@ -24,6 +24,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
+    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // }
+
     const { batchId, subjectId, subjectCode, subjectTypeId, classType, creditScore } = batchSubjectSchema.parse(
       await request.json()
     );
@@ -41,7 +45,7 @@ export async function POST(request: NextRequest) {
     if (subjectAssignedToBatch) {
       return NextResponse.json({ error: "Subject with this code is already assigned to the batch" }, { status: 400 });
     }
-    
+
     // Find the current subject
     const currentSubject = await prisma.subject.findUnique({
       where: { id: subjectId },
@@ -109,6 +113,50 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: "BatchSubject associated successfully" }, { status: 201 });
   } catch (error) {
     console.error("Error processing BatchSubject:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  } finally {
+    await prisma.$disconnect();
+  }
+}
+
+
+export async function GET(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
+    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // }
+    
+    const { searchParams } = new URL(request.url);
+    const batchId = searchParams.get("batchId");
+
+    if (!batchId) {
+      return NextResponse.json({ error: "batchId is required" }, { status: 400 });
+    }
+    
+
+    const subjects = await prisma.batchSubject.findMany({
+      where: {
+        batchId,
+      },
+      include: {
+        subject: true,
+        subjectType: true,
+      },
+    });
+
+    if (subjects.length === 0) {
+      return NextResponse.json({ error: "No subjects found for the specified batch" }, { status: 404 });
+    }
+
+    return NextResponse.json(subjects , { status: 200 });
+  } catch (error) {
+    console.error("Error fetching subjects for batch:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   } finally {
     await prisma.$disconnect();
