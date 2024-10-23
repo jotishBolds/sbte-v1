@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if the user has the role "COLLEGE_SUPER_ADMIN"
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    // if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
+    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // }
 
     const createdById = session.user.id;
     const collegeId = session.user.collegeId;
@@ -170,21 +170,49 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
+    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && session.user?.role !== "HOD") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const collegeId = session.user.collegeId;
 
-    // Fetch all batches associated with the user's college
-    const batches = await prisma.batch.findMany({
-      where: {
-        program: {
+    // Get the programId from the query parameters if it exists
+    const { searchParams } = new URL(request.url);
+    const programId = searchParams.get("programId");
+
+    // Check if the program exists for the given programId
+    if (programId) {
+      const existingProgram = await prisma.program.findFirst({
+        where: {
+          id: programId,
           department: {
-            collegeId,
+            collegeId, // Ensure the program belongs to the same college
           },
         },
+      });
+
+      if (!existingProgram) {
+        return NextResponse.json({ error: "Program not found" }, { status: 404 });
+      }
+    }
+
+    // Base query to fetch batches associated with the user's college
+    const whereClause: any = {
+      program: {
+        department: {
+          collegeId,
+        },
       },
+    };
+
+    // If programId is passed, add it to the query as a direct field
+    if (programId) {
+      whereClause["programId"] = programId;
+    }
+
+    // Fetch batches based on the constructed where clause
+    const batches = await prisma.batch.findMany({
+      where: whereClause,
       include: {
         term: true,
         academicYear: true,
@@ -197,6 +225,14 @@ export async function GET(request: NextRequest) {
         createdAt: "desc", // You can adjust this as per your requirement
       },
     });
+
+    // Check if no batches found for the program
+    if (batches.length === 0) {
+      return NextResponse.json(
+        { message: "No batch found for this program" },
+        { status: 200 }
+      );
+    }
 
     const responseData = batches.map((batch) => ({
       id: batch.id,
@@ -239,3 +275,4 @@ export async function GET(request: NextRequest) {
     await prisma.$disconnect();
   }
 }
+
