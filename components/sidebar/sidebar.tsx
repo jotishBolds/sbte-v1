@@ -162,6 +162,11 @@ export const Sidebar: React.FC = () => {
             label: "Batches",
             subItems: [
               {
+                href: "/batch",
+                icon: <TableOfContents size={18} />,
+                label: "Batches",
+              },
+              {
                 href: "/batch-year",
                 icon: <TableOfContents size={18} />,
                 label: "Batch Year",
@@ -403,7 +408,7 @@ export const Sidebar: React.FC = () => {
               No results found
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              We couldn't find any menu items matching your search. Try
+              We couldn&quot;t find any menu items matching your search. Try
               adjusting your search terms.
             </p>
           </div>

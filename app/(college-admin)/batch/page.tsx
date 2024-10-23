@@ -621,8 +621,8 @@ const BatchManager: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Batch</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the batch "{batchToDelete?.name}"?
-              This action cannot be undone.
+              Are you sure you want to delete the batch &quot;
+              {batchToDelete?.name}&quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

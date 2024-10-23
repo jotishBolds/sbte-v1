@@ -1,3 +1,5 @@
+//api/register-alumni/route.ts
+
 // import { NextRequest, NextResponse } from "next/server";
 // import { PrismaClient } from "@prisma/client";
 // import bcrypt from "bcrypt";
@@ -115,7 +117,6 @@
 //   }
 // }
 
-
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcrypt";
@@ -135,7 +136,11 @@ const registrationSchema = z.object({
   programId: z.string(), // Added field
   batchYearId: z.string(), // Added field
   admissionYearId: z.string(), // Added field
-  graduationYear: z.number().int().min(1900).max(new Date().getFullYear() + 5),
+  graduationYear: z
+    .number()
+    .int()
+    .min(1900)
+    .max(new Date().getFullYear() + 5),
   gpa: z.number().min(0).max(10).optional(),
   jobStatus: z.string().optional(),
   currentEmployer: z.string().optional(),
@@ -167,28 +172,40 @@ export async function POST(request: NextRequest) {
       where: { id: validatedData.departmentId },
     });
     if (!department) {
-      return NextResponse.json({ error: "Invalid department ID" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid department ID" },
+        { status: 400 }
+      );
     }
 
     const program = await prisma.program.findUnique({
       where: { id: validatedData.programId },
     });
     if (!program) {
-      return NextResponse.json({ error: "Invalid program ID" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid program ID" },
+        { status: 400 }
+      );
     }
 
     const batchYear = await prisma.batchYear.findUnique({
       where: { id: validatedData.batchYearId },
     });
     if (!batchYear) {
-      return NextResponse.json({ error: "Invalid batch year ID" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid batch year ID" },
+        { status: 400 }
+      );
     }
 
     const admissionYear = await prisma.admissionYear.findUnique({
       where: { id: validatedData.admissionYearId },
     });
     if (!admissionYear) {
-      return NextResponse.json({ error: "Invalid admission year ID" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid admission year ID" },
+        { status: 400 }
+      );
     }
 
     // Hash the password
@@ -205,7 +222,9 @@ export async function POST(request: NextRequest) {
           create: {
             name: validatedData.name,
             phoneNo: validatedData.phoneNo || null,
-            dateOfBirth: validatedData.dateOfBirth ? new Date(validatedData.dateOfBirth) : null,
+            dateOfBirth: validatedData.dateOfBirth
+              ? new Date(validatedData.dateOfBirth)
+              : null,
             address: validatedData.address || null,
             departmentId: validatedData.departmentId,
             programId: validatedData.programId,

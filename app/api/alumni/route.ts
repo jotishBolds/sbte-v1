@@ -42,7 +42,10 @@ export async function GET(request: NextRequest) {
 
       // If the department does not exist, return a 404 Not Found response.
       if (!departmentExists) {
-        return NextResponse.json({ message: "No such department found" }, { status: 404 });
+        return NextResponse.json(
+          { message: "No such department found" },
+          { status: 404 }
+        );
       }
     }
 
@@ -50,40 +53,40 @@ export async function GET(request: NextRequest) {
     const alumni = await prisma.alumnus.findMany({
       where: {
         department: {
-          collegeId: collegeId,  // Filter by collegeId
+          collegeId: collegeId, // Filter by collegeId
         },
-        ...(departmentId && { departmentId }),  // If departmentId is provided, filter by it as well
+        ...(departmentId && { departmentId }), // If departmentId is provided, filter by it as well
       },
       include: {
         user: {
           select: {
-            email: true,  // Include only the email from the user relation
+            email: true, // Include only the email from the user relation
           },
         },
         department: {
           select: {
-            name: true,  // Include only the name of the department
+            name: true, // Include only the name of the department
           },
         },
       },
     });
 
     // Step 7: If no alumni are found, return a 404 Not Found response.
-    if (alumni.length == 0) {
-      return NextResponse.json(
-        { message: "No alumni found" },
-        { status: 404 }
-      );
-    }
+    // if (alumni.length == 0) {
+    //   return NextResponse.json(
+    //     { message: "No alumni found" },
+    //     { status: 404 }
+    //   );
+    // }
 
     // Step 8: Format the alumni data before sending the response.
     const formattedAlumni = alumni.map((alumnus) => ({
-      id: alumnus.id,  // Alumnus ID
-      name: alumnus.name,  // Alumnus name
-      email: alumnus.user.email,  // Associated user's email
-      department: alumnus.department.name,  // Alumnus department name
-      graduationYear: alumnus.graduationYear,  // Graduation year of alumnus
-      verified: alumnus.verified,  // Alumnus verified status
+      id: alumnus.id, // Alumnus ID
+      name: alumnus.name, // Alumnus name
+      email: alumnus.user.email, // Associated user's email
+      department: alumnus.department.name, // Alumnus department name
+      graduationYear: alumnus.graduationYear, // Graduation year of alumnus
+      verified: alumnus.verified, // Alumnus verified status
     }));
 
     // Step 9: Return the formatted alumni data as a JSON response.
@@ -97,4 +100,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

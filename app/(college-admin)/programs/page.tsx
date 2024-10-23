@@ -328,8 +328,8 @@ const ProgramTypeManager: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Program Type</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the program type "
-              {programTypeToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete the program type &quot;
+              {programTypeToDelete?.name}&quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

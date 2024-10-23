@@ -128,16 +128,28 @@ export const Navbar: React.FC = () => {
             {session ? (
               <UserDropdown />
             ) : (
-              <Link href="/login" passHref legacyBehavior>
-                <motion.a
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Button variant="default" size="sm" className="shadow-sm">
-                    Log in
-                  </Button>
-                </motion.a>
-              </Link>
+              <div className="flex   gap-2">
+                <Link href="/register-alumni" passHref legacyBehavior>
+                  <motion.a
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button variant="outline" className="w-full shadow-sm">
+                      Alumni Register
+                    </Button>
+                  </motion.a>
+                </Link>
+                <Link href="/login" passHref legacyBehavior>
+                  <motion.a
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <Button variant="default" className="w-full shadow-sm">
+                      Log in
+                    </Button>
+                  </motion.a>
+                </Link>
+              </div>
             )}
           </div>
           <div className="md:hidden">
@@ -172,16 +184,34 @@ export const Navbar: React.FC = () => {
                       </Button>
                     </>
                   ) : (
-                    <Link href="/login" passHref legacyBehavior>
-                      <motion.a
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                      >
-                        <Button variant="default" className="w-full shadow-sm">
-                          Log in
-                        </Button>
-                      </motion.a>
-                    </Link>
+                    <div className="flex flex-col  gap-2">
+                      <Link href="/register-alumni" passHref legacyBehavior>
+                        <motion.a
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <Button
+                            variant="outline"
+                            className="w-full shadow-sm"
+                          >
+                            Alumni Register
+                          </Button>
+                        </motion.a>
+                      </Link>
+                      <Link href="/login" passHref legacyBehavior>
+                        <motion.a
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          <Button
+                            variant="default"
+                            className="w-full shadow-sm"
+                          >
+                            Log in
+                          </Button>
+                        </motion.a>
+                      </Link>
+                    </div>
                   )}
                 </nav>
               </SheetContent>

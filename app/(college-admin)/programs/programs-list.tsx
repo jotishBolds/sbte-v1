@@ -315,7 +315,7 @@ export default function ProgramList() {
             <div>
               <CardTitle className="text-2xl font-bold">Programs</CardTitle>
               <CardDescription>
-                Manage your institution's academic programs
+                Manage your institution&quot;s academic programs
               </CardDescription>
             </div>
             <Button
