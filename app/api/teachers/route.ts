@@ -111,7 +111,7 @@ export async function PUT(
         phoneNo: phoneNo || teacher.phoneNo,
         address: address || teacher.address,
         qualification: qualification || teacher.qualification,
-        designation: designation || teacher.designation,
+        designation: designation || teacher.designationId,
         experience: experience || teacher.experience,
       },
     });
