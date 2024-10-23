@@ -483,8 +483,8 @@ const SubjectManager: React.FC = () => {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Subject</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete the subject "
-              {subjectToDelete?.name}"? This action cannot be undone.
+              Are you sure you want to delete the subject &quot;
+              {subjectToDelete?.name}&quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
