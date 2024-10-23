@@ -91,31 +91,35 @@ model User {
 }
 
 model College {
-  id               String            @id @default(cuid())
-  name             String
-  address          String
-  establishedOn    DateTime
-  websiteUrl       String?
-  contactEmail     String?
-  contactPhone     String?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  users            User[]
-  departments      Department[]
-  students         Student[]
-  financeManagers  FinanceManager[]
-  programTypes     ProgramType[]
-  semesters        Semester[]
-  academicYears    AcademicYear[]
-  admissionYears   AdmissionYear[]
-  batchYears       BatchYear[]
-  batchTypes       BatchType[]
-  designations     Designation[]
-  categories       Category[]
-  subjectTypes     SubjectType[]
-  certificateTypes CertificateType[]
-  examTypes        ExamType[]
-  subjects         Subject[]
+  id                String            @id @default(cuid())
+  name              String
+  address           String
+  establishedOn     DateTime
+  websiteUrl        String?
+  contactEmail      String?
+  contactPhone      String?
+  IFSCCode          String?
+  AccountNo         String?
+  AccountHolderName String?
+  UPIID             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  users             User[]
+  departments       Department[]
+  students          Student[]
+  financeManagers   FinanceManager[]
+  programTypes      ProgramType[]
+  semesters         Semester[]
+  academicYears     AcademicYear[]
+  admissionYears    AdmissionYear[]
+  batchYears        BatchYear[]
+  batchTypes        BatchType[]
+  designations      Designation[]
+  categories        Category[]
+  subjectTypes      SubjectType[]
+  certificateTypes  CertificateType[]
+  examTypes         ExamType[]
+  subjects          Subject[]
 }
 
 model Department {
@@ -128,7 +132,6 @@ model Department {
   collegeId        String
   headOfDepartment HeadOfDepartment?
   users            User[]
-  // subjects         Subject[] //newChange
   students         Student[]
   alumini          Alumnus[]
   programs         Program[]
@@ -536,6 +539,7 @@ model Alumnus {
   userId          String        @unique
   user            User          @relation(fields: [userId], references: [id])
   name            String
+  profilePic      String?
   phoneNo         String?
   dateOfBirth     DateTime?
   address         String?
