@@ -1,4 +1,4 @@
-// api/batch-subject/[id]/route.ts
+// api/batch/subject/[id]/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
