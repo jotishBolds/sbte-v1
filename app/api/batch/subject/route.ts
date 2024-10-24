@@ -1,5 +1,4 @@
-//api/batch/[id]/subject/route.ts
-
+// api/batch/subject/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
@@ -10,7 +9,7 @@ const prisma = new PrismaClient();
 
 // Define the schema for request body validation
 const batchSubjectSchema = z.object({
-  // batchId: z.string(),
+  batchId: z.string(),
   subjectId: z.string(),
   subjectCode: z.string(),
   subjectTypeId: z.string(),
@@ -18,10 +17,7 @@ const batchSubjectSchema = z.object({
   creditScore: z.number(),
 });
 
-export async function POST(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -32,9 +28,15 @@ export async function POST(
     // if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
     //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     // }
-    const batchId = params.id;
-    const { subjectId, subjectCode, subjectTypeId, classType, creditScore } =
-      batchSubjectSchema.parse(await request.json());
+
+    const {
+      batchId,
+      subjectId,
+      subjectCode,
+      subjectTypeId,
+      classType,
+      creditScore,
+    } = batchSubjectSchema.parse(await request.json());
 
     // Check if the same subject code has already been assigned to the batch
     const subjectAssignedToBatch = await prisma.batchSubject.findFirst({
@@ -135,10 +137,7 @@ export async function POST(
   }
 }
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -146,16 +145,11 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
-    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    // }
+    const { searchParams } = new URL(request.url);
+    const batchId = searchParams.get("batchId");
 
-    const batchId = params.id;
-    if (!batchId) {
-      return NextResponse.json(
-        { error: "batchId is required" },
-        { status: 400 }
-      );
+    if (!batchId || batchId === "undefined") {
+      return NextResponse.json([], { status: 200 }); // Return empty array instead of error
     }
 
     const subjects = await prisma.batchSubject.findMany({
@@ -168,20 +162,10 @@ export async function GET(
       },
     });
 
-    // if (subjects.length === 0) {
-    //   return NextResponse.json(
-    //     { error: "No subjects found for the specified batch" },
-    //     { status: 404 }
-    //   );
-    // }
-
-    return NextResponse.json(subjects, { status: 200 });
+    return NextResponse.json(subjects, { status: 200 }); // Return empty array if no subjects
   } catch (error) {
     console.error("Error fetching subjects for batch:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return NextResponse.json([], { status: 200 }); // Return empty array on error
   } finally {
     await prisma.$disconnect();
   }
