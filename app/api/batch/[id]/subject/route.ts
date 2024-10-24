@@ -1,3 +1,5 @@
+//api/batch/[id]/subject/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
@@ -16,8 +18,10 @@ const batchSubjectSchema = z.object({
   creditScore: z.number(),
 });
 
-export async function POST(request: NextRequest,
-  { params }: { params: { id: string } }) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -28,10 +32,9 @@ export async function POST(request: NextRequest,
     // if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
     //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     // }
-    const batchId =   params.id;
-    const { subjectId, subjectCode, subjectTypeId, classType, creditScore } = batchSubjectSchema.parse(
-      await request.json()
-    );
+    const batchId = params.id;
+    const { subjectId, subjectCode, subjectTypeId, classType, creditScore } =
+      batchSubjectSchema.parse(await request.json());
 
     // Check if the same subject code has already been assigned to the batch
     const subjectAssignedToBatch = await prisma.batchSubject.findFirst({
@@ -44,7 +47,10 @@ export async function POST(request: NextRequest,
     });
 
     if (subjectAssignedToBatch) {
-      return NextResponse.json({ error: "Subject with this code is already assigned to the batch" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Subject with this code is already assigned to the batch" },
+        { status: 400 }
+      );
     }
 
     // Find the current subject
@@ -62,7 +68,10 @@ export async function POST(request: NextRequest,
     if (currentSubject.code !== subjectCode) {
       const collegeId = session.user.collegeId;
       if (!collegeId) {
-        return NextResponse.json({ error: "User not associated with a college" }, { status: 400 });
+        return NextResponse.json(
+          { error: "User not associated with a college" },
+          { status: 400 }
+        );
       }
       const createdById = session.user.id;
 
@@ -111,18 +120,25 @@ export async function POST(request: NextRequest,
       });
     }
 
-    return NextResponse.json({ message: "BatchSubject associated successfully" }, { status: 201 });
+    return NextResponse.json(
+      { message: "BatchSubject associated successfully" },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error processing BatchSubject:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   } finally {
     await prisma.$disconnect();
   }
 }
 
-
-export async function GET(request: NextRequest,
-  { params }: { params: { id: string } }) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
   try {
     const session = await getServerSession(authOptions);
 
@@ -133,12 +149,14 @@ export async function GET(request: NextRequest,
     // if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
     //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     // }
-    
-    const batchId =  params.id;
+
+    const batchId = params.id;
     if (!batchId) {
-      return NextResponse.json({ error: "batchId is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "batchId is required" },
+        { status: 400 }
+      );
     }
-    
 
     const subjects = await prisma.batchSubject.findMany({
       where: {
@@ -150,14 +168,20 @@ export async function GET(request: NextRequest,
       },
     });
 
-    if (subjects.length === 0) {
-      return NextResponse.json({ error: "No subjects found for the specified batch" }, { status: 404 });
-    }
+    // if (subjects.length === 0) {
+    //   return NextResponse.json(
+    //     { error: "No subjects found for the specified batch" },
+    //     { status: 404 }
+    //   );
+    // }
 
-    return NextResponse.json(subjects , { status: 200 });
+    return NextResponse.json(subjects, { status: 200 });
   } catch (error) {
     console.error("Error fetching subjects for batch:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   } finally {
     await prisma.$disconnect();
   }
