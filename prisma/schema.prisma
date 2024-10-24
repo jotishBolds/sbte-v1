@@ -141,7 +141,7 @@ model Student {
   id                  String                          @id @default(cuid())
   user                User                            @relation(fields: [userId], references: [id])
   userId              String                          @unique
-  enrollmentNo        String                          @unique
+  enrollmentNo        String?                          @unique
   name                String
   dob                 DateTime
   personalEmail       String                          @unique
@@ -175,11 +175,11 @@ model Student {
   permanentState      String
   permanentCity       String
   permanentPincode    String
-  guardianName        String
-  guardianGender      String
+  guardianName        String?
+  guardianGender      String?
   guardianEmail       String?
-  guardianMobileNo    String
-  guardianRelation    String
+  guardianMobileNo    String?
+  guardianRelation    String?
   program             Program                         @relation(fields: [programId], references: [id])
   programId           String
   college             College                         @relation(fields: [collegeId], references: [id])
