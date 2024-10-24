@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ error: "Validation failed", details: validationResult.error.format() }, { status: 400 });
         }
 
-        const   data = validationResult.data;
+        const data = validationResult.data;
 
         // Ensure startDate is before endDate
         if (data.startDate >= data.endDate) {

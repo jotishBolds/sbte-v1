@@ -176,9 +176,9 @@ export async function GET(request: NextRequest) {
 
     const collegeId = session.user.collegeId;
 
-    // Get the programId from the query parameters if it exists
     const { searchParams } = new URL(request.url);
     const programId = searchParams.get("programId");
+    const academicYearId = searchParams.get("academicYearId");
 
     // Check if the program exists for the given programId
     if (programId) {
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
         where: {
           id: programId,
           department: {
-            collegeId, // Ensure the program belongs to the same college
+            collegeId,
           },
         },
       });
@@ -205,9 +205,13 @@ export async function GET(request: NextRequest) {
       },
     };
 
-    // If programId is passed, add it to the query as a direct field
+    // Add programId and/or academicYearId to the query if they are provided
     if (programId) {
       whereClause["programId"] = programId;
+    }
+
+    if (academicYearId) {
+      whereClause["academicYearId"] = academicYearId;
     }
 
     // Fetch batches based on the constructed where clause
@@ -218,18 +222,17 @@ export async function GET(request: NextRequest) {
         academicYear: true,
         batchType: true,
         program: true,
-        createdBy: true, // Fetch createdBy relation
-        updatedBy: true, // Fetch updatedBy relation
+        createdBy: true,
+        updatedBy: true,
       },
       orderBy: {
-        createdAt: "desc", // You can adjust this as per your requirement
+        createdAt: "desc",
       },
     });
 
-    // Check if no batches found for the program
     if (batches.length === 0) {
       return NextResponse.json(
-        { message: "No batch found for this program" },
+        { message: "No batch found" },
         { status: 200 }
       );
     }
@@ -246,7 +249,6 @@ export async function GET(request: NextRequest) {
       status: batch.status,
       createdAt: batch.createdAt,
       updatedAt: batch.updatedAt,
-      // Include details of the user who created the batch
       createdBy: batch.createdBy
         ? {
             id: batch.createdBy.id,
@@ -254,7 +256,6 @@ export async function GET(request: NextRequest) {
             email: batch.createdBy.email,
           }
         : null,
-      // Include details of the user who updated the batch
       updatedBy: batch.updatedBy
         ? {
             id: batch.updatedBy.id,
@@ -275,4 +276,5 @@ export async function GET(request: NextRequest) {
     await prisma.$disconnect();
   }
 }
+
 
