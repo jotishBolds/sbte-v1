@@ -56,16 +56,11 @@ import * as z from "zod";
 import { Import, Trash, User2 } from "lucide-react";
 import SideBarLayout from "@/components/sidebar/layout";
 
-// Define interfaces for the data structures
+// Updated interfaces (removed College interface)
 interface Teacher {
   id: string;
   name: string;
   email: string;
-}
-
-interface College {
-  id: string;
-  name: string;
 }
 
 interface AcademicYear {
@@ -105,8 +100,8 @@ interface AssignedSubject {
   batchSubject: BatchSubject;
 }
 
+// Updated schema (removed college field)
 const assignSubjectsSchema = z.object({
-  college: z.string().min(1, "College is required"),
   academicYear: z.string().min(1, "Academic year is required"),
   program: z.string().min(1, "Program is required"),
   batchId: z.string().min(1, "Batch is required"),
@@ -122,7 +117,6 @@ const TeacherSubjectAssign: React.FC = () => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [colleges, setColleges] = useState<College[]>([]);
   const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
   const [programs, setPrograms] = useState<Program[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -135,7 +129,6 @@ const TeacherSubjectAssign: React.FC = () => {
   const form = useForm<FormValues>({
     resolver: zodResolver(assignSubjectsSchema),
     defaultValues: {
-      college: "",
       academicYear: "",
       program: "",
       batchId: "",
@@ -145,7 +138,7 @@ const TeacherSubjectAssign: React.FC = () => {
 
   useEffect(() => {
     fetchTeachers();
-    fetchColleges();
+    fetchAcademicYears();
   }, []);
 
   const fetchTeachers = async () => {
@@ -166,24 +159,9 @@ const TeacherSubjectAssign: React.FC = () => {
     }
   };
 
-  const fetchColleges = async () => {
+  const fetchAcademicYears = async () => {
     try {
-      const response = await fetch("/api/college");
-      if (!response.ok) throw new Error("Failed to fetch colleges");
-      const data = await response.json();
-      setColleges(data);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch colleges",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchAcademicYears = async (collegeId: string) => {
-    try {
-      const response = await fetch(`/api/academicYears?collegeId=${collegeId}`);
+      const response = await fetch("/api/academicYear");
       if (!response.ok) throw new Error("Failed to fetch academic years");
       const data = await response.json();
       setAcademicYears(data);
@@ -213,9 +191,11 @@ const TeacherSubjectAssign: React.FC = () => {
     }
   };
 
-  const fetchBatches = async (programId: string) => {
+  const fetchBatches = async (programId: string, academicYearId: string) => {
     try {
-      const response = await fetch(`/api/batch?programId=${programId}`);
+      const response = await fetch(
+        `/api/batch?programId=${programId}&academicYearId=${academicYearId}`
+      );
       if (!response.ok) throw new Error("Failed to fetch batches");
       const data = await response.json();
       setBatches(data);
@@ -404,42 +384,6 @@ const TeacherSubjectAssign: React.FC = () => {
                           >
                             <FormField
                               control={form.control}
-                              name="college"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>College</FormLabel>
-                                  <Select
-                                    onValueChange={(value) => {
-                                      field.onChange(value);
-                                      fetchAcademicYears(value);
-                                      form.setValue("academicYear", "");
-                                      form.setValue("program", "");
-                                      form.setValue("batchId", "");
-                                    }}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select college" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {colleges.map((college) => (
-                                        <SelectItem
-                                          key={college.id}
-                                          value={college.id}
-                                        >
-                                          {college.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
                               name="academicYear"
                               render={({ field }) => (
                                 <FormItem>
@@ -482,7 +426,9 @@ const TeacherSubjectAssign: React.FC = () => {
                                   <Select
                                     onValueChange={(value) => {
                                       field.onChange(value);
-                                      fetchBatches(value);
+                                      const academicYearId =
+                                        form.getValues("academicYear");
+                                      fetchBatches(value, academicYearId);
                                       form.setValue("batchId", "");
                                     }}
                                   >

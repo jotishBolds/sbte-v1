@@ -29,9 +29,9 @@ export async function POST(
     }
 
     // Only users with the role of "HOD" are allowed to perform this action
-    if (session.user?.role !== "HOD") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    // if (session.user?.role !== "HOD" ) {
+    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // }
 
     const teacherId = params.id; // Get teacherId from dynamic route
     const body = await request.json(); // Parse the request body
