@@ -343,7 +343,7 @@ const TeacherSubjectAssign: React.FC = () => {
                           ? "secondary"
                           : "outline"
                       }
-                      className="w-full justify-start text-left p-4"
+                      className="w-full justify-start text-left p-6"
                       onClick={() => handleTeacherSelect(teacher)}
                     >
                       <User2 className="w-4 h-4 mr-2" />

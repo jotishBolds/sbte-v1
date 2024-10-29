@@ -47,6 +47,11 @@ import {
   Search,
   ChevronDown,
   FileX,
+  BookA,
+  Layout,
+  LayoutGrid,
+  UserRoundPlus,
+  UserPlus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -120,6 +125,18 @@ export const Sidebar: React.FC = () => {
             label: "Users",
           },
           {
+            href: "/teacher",
+            icon: <Table2 size={18} />,
+            label: "Teacher",
+            subItems: [
+              {
+                href: "/teacher-designation",
+                icon: <UserPlus size={18} />,
+                label: "Teacher Designation",
+              },
+            ],
+          },
+          {
             href: "/student-subjects",
             icon: <BookCheck size={18} />,
             label: "Subjects",
@@ -163,13 +180,23 @@ export const Sidebar: React.FC = () => {
             subItems: [
               {
                 href: "/batch",
-                icon: <TableOfContents size={18} />,
+                icon: <Layout size={18} />,
                 label: "Batches",
               },
               {
                 href: "/batch-year",
-                icon: <TableOfContents size={18} />,
+                icon: <LayoutGrid size={18} />,
                 label: "Batch Year",
+              },
+              {
+                href: "/batch/subjects",
+                icon: <BookA size={18} />,
+                label: "Batch Subject",
+              },
+              {
+                href: "/batch/teacher-assign",
+                icon: <UserRoundPlus size={18} />,
+                label: "Teacher Assign",
               },
             ],
           },

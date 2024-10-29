@@ -82,6 +82,7 @@ export async function GET(request: NextRequest) {
     // Step 8: Format the alumni data before sending the response.
     const formattedAlumni = alumni.map((alumnus) => ({
       id: alumnus.id, // Alumnus ID
+      profilePic: alumnus.profilePic,
       name: alumnus.name, // Alumnus name
       email: alumnus.user.email, // Associated user's email
       department: alumnus.department.name, // Alumnus department name

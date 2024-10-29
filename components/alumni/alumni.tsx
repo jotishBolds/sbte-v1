@@ -26,6 +26,7 @@ import { toast } from "@/components/ui/use-toast";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdmissionYear, BatchYear, Program } from "@prisma/client";
+import ProfilePictureUpload from "./upload-profile-pic/profile-pic";
 
 interface Department {
   id: string;
@@ -46,6 +47,7 @@ const formSchema = z.object({
   departmentId: z.string(),
   programId: z.string(),
   batchYearId: z.string(),
+  profilePic: z.string().optional(),
   admissionYearId: z.string(),
   batchYear: z.number().int().min(1900).max(new Date().getFullYear()),
   graduationYear: z
@@ -238,6 +240,26 @@ export default function AlumniRegistrationForm() {
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-6"
               >
+                <div className="col-span-2">
+                  <FormField
+                    control={form.control}
+                    name="profilePic"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Profile Picture</FormLabel>
+                        <FormControl>
+                          <ProfilePictureUpload
+                            alumniId={null}
+                            currentProfilePic={field.value}
+                            onUploadSuccess={(path) => field.onChange(path)}
+                            isSubmitting={isLoading}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <FormField
                     control={form.control}

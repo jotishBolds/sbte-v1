@@ -32,8 +32,9 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Search, RefreshCw } from "lucide-react";
+import { CheckCircle, XCircle, Search, RefreshCw, User } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Alumnus {
   id: string;
@@ -42,6 +43,7 @@ interface Alumnus {
   department: string;
   graduationYear: number;
   verified: boolean;
+  profilePic: string | null;
 }
 
 interface Department {
@@ -278,6 +280,7 @@ export default function AlumniList() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Profile</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Department</TableHead>
@@ -289,19 +292,34 @@ export default function AlumniList() {
             <TableBody>
               {isLoading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">
+                  <TableCell colSpan={7} className="text-center py-4">
                     Loading...
                   </TableCell>
                 </TableRow>
               ) : filteredAlumni.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">
+                  <TableCell colSpan={7} className="text-center py-4">
                     No alumni found
                   </TableCell>
                 </TableRow>
               ) : (
                 filteredAlumni.map((alumnus) => (
                   <TableRow key={alumnus.id}>
+                    <TableCell>
+                      <Avatar className="h-10 w-10">
+                        {alumnus.profilePic ? (
+                          <AvatarImage
+                            src={alumnus.profilePic}
+                            alt={alumnus.name}
+                            className="object-cover"
+                          />
+                        ) : (
+                          <AvatarFallback>
+                            <User className="h-6 w-6 text-gray-400" />
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                    </TableCell>
                     <TableCell>{alumnus.name}</TableCell>
                     <TableCell>{alumnus.email}</TableCell>
                     <TableCell>{alumnus.department}</TableCell>

@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { CheckCircle2, Lock, AlertTriangle } from "lucide-react";
-import ReCAPTCHA from "react-google-recaptcha";
+import { Card } from "@/components/ui/card";
+import { CheckCircle2, Lock, AlertTriangle, RefreshCw } from "lucide-react";
 import { ClipLoader } from "react-spinners";
 
 interface LoginFormData {
@@ -16,19 +16,53 @@ interface LoginFormData {
   password: string;
 }
 
+interface MathCaptcha {
+  question: string;
+  answer: number;
+}
+
+const generateMathCaptcha = (seed?: number): MathCaptcha => {
+  // Use seed for initial server-side rendering to prevent hydration errors
+  const random = seed
+    ? () => (seed % 20) + 1
+    : () => Math.floor(Math.random() * 20) + 1;
+
+  const num1 = random();
+  const num2 = random();
+
+  return {
+    question: `${num1} + ${num2}`,
+    answer: num1 + num2,
+  };
+};
+
 export default function LoginPage() {
+  // Use useEffect to update CAPTCHA only on client-side
+  const [captcha, setCaptcha] = useState<MathCaptcha>(() =>
+    generateMathCaptcha(1)
+  );
   const [formData, setFormData] = useState<LoginFormData>({
     email: "",
     password: "",
   });
   const [error, setError] = useState<string>("");
-  const [captchaValue, setCaptchaValue] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [userAnswer, setUserAnswer] = useState<string>("");
   const router = useRouter();
+
+  useEffect(() => {
+    // Update CAPTCHA only on client-side after initial render
+    setCaptcha(generateMathCaptcha());
+  }, []);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const refreshCaptcha = () => {
+    setCaptcha(generateMathCaptcha());
+    setUserAnswer("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,16 +70,16 @@ export default function LoginPage() {
     setError("");
     setIsLoading(true);
 
-    if (!captchaValue) {
-      setError("Please complete the CAPTCHA");
+    if (parseInt(userAnswer) !== captcha.answer) {
+      setError("Incorrect answer. Please try again.");
       setIsLoading(false);
+      refreshCaptcha();
       return;
     }
 
     try {
       const result = await signIn("credentials", {
         ...formData,
-        captcha: captchaValue,
         redirect: false,
       });
 
@@ -68,62 +102,62 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[80vh] bg-gray-100 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        <div className="bg-white shadow-2xl rounded-lg overflow-hidden">
-          <div className="px-6 sm:px-10 py-6">
-            <div className="text-center mb-8">
-              <Lock className="mx-auto h-12 w-12 text-blue-500" />
-              <h1 className="mt-4 text-3xl font-bold text-gray-900">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md mx-auto">
+        <Card className="bg-white shadow-xl rounded-xl overflow-hidden">
+          <div className="px-6 sm:px-10 py-8">
+            <div className="text-center">
+              <div className="bg-blue-50 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+                <Lock className="h-8 w-8 text-blue-500" />
+              </div>
+              <h1 className="mt-6 text-3xl font-bold text-gray-900 tracking-tight">
                 Welcome Back
               </h1>
               <p className="mt-2 text-sm text-gray-600">
-                Sign in to access your College Management System account
+                Sign in to access your College Management System
               </p>
             </div>
+
             {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertTriangle className="h-4 w-4 mr-2" />
+              <Alert
+                variant="destructive"
+                className="mt-6 flex items-center justify-center "
+              >
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Email Address
-                </Label>
-                <Input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 block w-full"
-                  placeholder="you@example.com"
-                />
+
+            <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+              <div className="space-y-5">
+                <div>
+                  <Label htmlFor="email">Email Address</Label>
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    required
+                    className="mt-1"
+                    placeholder="you@example.com"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="password">Password</Label>
+                  <Input
+                    id="password"
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    required
+                    className="mt-1"
+                    placeholder="••••••••"
+                  />
+                </div>
               </div>
-              <div>
-                <Label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Password
-                </Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 block w-full"
-                  placeholder="••••••••"
-                />
-              </div>
+
               <div className="flex items-center justify-between">
                 <div className="flex items-center">
                   <input
@@ -144,22 +178,49 @@ export default function LoginPage() {
                     href="/forgot-password"
                     className="font-medium text-blue-600 hover:text-blue-500"
                   >
-                    Forgot your password?
+                    Forgot password?
                   </Link>
                 </div>
               </div>
-              <div className="flex justify-center w-full">
-                <ReCAPTCHA
-                  sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"
-                  onChange={(value) => setCaptchaValue(value)}
-                  theme="dark"
-                />
+
+              <div className="space-y-3">
+                <Label>Security Check</Label>
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <p className="text-sm text-gray-600 font-medium">
+                        Solve this problem:
+                      </p>
+                      <p className="text-2xl font-bold text-gray-900">
+                        {captcha.question}
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={refreshCaptcha}
+                      className="h-8 w-8 rounded-full"
+                    >
+                      <RefreshCw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Input
+                    id="captcha"
+                    type="number"
+                    value={userAnswer}
+                    onChange={(e) => setUserAnswer(e.target.value)}
+                    required
+                    placeholder="Enter your answer"
+                    className="mt-4"
+                  />
+                </div>
               </div>
+
               <Button
                 type="submit"
-                className="w-full flex justify-center py-2 px-4"
+                className="w-full flex justify-center py-6"
                 disabled={isLoading}
-                size="icon"
               >
                 {isLoading ? (
                   <ClipLoader size={20} color="#ffffff" className="mr-2" />
@@ -168,13 +229,16 @@ export default function LoginPage() {
               </Button>
             </form>
           </div>
-          <div className="px-6 sm:px-10 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between">
-            <div className="mt-3 sm:mt-0 flex items-center">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
-              <span className="text-xs text-gray-600">Secure login</span>
+
+          <div className="px-6 sm:px-10 py-4 bg-gray-50 border-t border-gray-100">
+            <div className="flex items-center justify-center space-x-2">
+              <CheckCircle2 className="h-5 w-5 text-green-500" />
+              <span className="text-sm text-gray-600">
+                Secure login protected
+              </span>
             </div>
           </div>
-        </div>
+        </Card>
       </div>
     </div>
   );
