@@ -64,15 +64,24 @@ export async function GET(request: NextRequest) {
   // Determine the collegeId based on the user's role
   let collegeId;
 
-  if (session.user.role === "SBTE" || session.user.role === "EDUCATION_DEPARTMENT") {
+  if (
+    session.user.role === "SBTE" ||
+    session.user.role === "EDUCATION_DEPARTMENT"
+  ) {
     if (!collegeIdParam) {
       return NextResponse.json(
-        { error: "collegeId is required for SBTE and EDUCATION_DEPARTMENT roles" },
+        {
+          error:
+            "collegeId is required for SBTE and EDUCATION_DEPARTMENT roles",
+        },
         { status: 400 }
       );
     }
     collegeId = collegeIdParam; // Use collegeId from query parameter
-  } else if (session.user.role === "COLLEGE_SUPER_ADMIN" || session.user.role === "HOD") {
+  } else if (
+    session.user.role === "COLLEGE_SUPER_ADMIN" ||
+    session.user.role === "HOD"
+  ) {
     collegeId = session.user.collegeId; // Use collegeId from session
   } else {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -82,18 +91,31 @@ export async function GET(request: NextRequest) {
     // Verify if college, department, and program exist when passed
     const [collegeExists, departmentExists, programExists] = await Promise.all([
       prisma.college.findUnique({ where: { id: collegeId } }),
-      departmentIdParam ? prisma.department.findUnique({ where: { id: departmentIdParam } }) : Promise.resolve(true),
-      programIdParam ? prisma.program.findUnique({ where: { id: programIdParam } }) : Promise.resolve(true),
+      departmentIdParam
+        ? prisma.department.findUnique({ where: { id: departmentIdParam } })
+        : Promise.resolve(true),
+      programIdParam
+        ? prisma.program.findUnique({ where: { id: programIdParam } })
+        : Promise.resolve(true),
     ]);
 
     if (!collegeExists) {
-      return NextResponse.json({ message: "Invalid College ID" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid College ID" },
+        { status: 400 }
+      );
     }
     if (departmentIdParam && !departmentExists) {
-      return NextResponse.json({ message: "Invalid Department ID" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid Department ID" },
+        { status: 400 }
+      );
     }
     if (programIdParam && !programExists) {
-      return NextResponse.json({ message: "Invalid Program ID" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Invalid Program ID" },
+        { status: 400 }
+      );
     }
 
     // Fetch students based on the resolved collegeId, with optional departmentId and programId filters
@@ -104,15 +126,18 @@ export async function GET(request: NextRequest) {
         ...(programIdParam && { programId: programIdParam }),
       },
       include: {
-        user: true,       // Include user details if needed
-        program: true,    // Include program details if needed
+        user: true, // Include user details if needed
+        program: true, // Include program details if needed
         department: true, // Include department details if needed
       },
     });
 
     // Check if no students are found and return a message if so
     if (students.length === 0) {
-      return NextResponse.json({ message: "No students found" }, { status: 200 });
+      return NextResponse.json(
+        { message: "No students found" },
+        { status: 200 }
+      );
     }
 
     return NextResponse.json(students, { status: 200 });
@@ -173,19 +198,46 @@ export async function POST(request: NextRequest) {
       departmentExists,
     ] = await Promise.all([
       prisma.batchYear.findUnique({ where: { id: validatedData.batchYearId } }),
-      prisma.admissionYear.findUnique({ where: { id: validatedData.admissionYearId } }),
-      prisma.academicYear.findUnique({ where: { id: validatedData.academicYearId } }),
+      prisma.admissionYear.findUnique({
+        where: { id: validatedData.admissionYearId },
+      }),
+      prisma.academicYear.findUnique({
+        where: { id: validatedData.academicYearId },
+      }),
       prisma.semester.findUnique({ where: { id: validatedData.termId } }),
       prisma.program.findUnique({ where: { id: validatedData.programId } }),
-      prisma.department.findUnique({ where: { id: validatedData.departmentId } }),
+      prisma.department.findUnique({
+        where: { id: validatedData.departmentId },
+      }),
     ]);
 
-    if (!batchYearExists) return NextResponse.json({ message: "Invalid Batch Year ID" }, { status: 400 });
-    if (!admissionYearExists) return NextResponse.json({ message: "Invalid Admission Year ID" }, { status: 400 });
-    if (!academicYearExists) return NextResponse.json({ message: "Invalid Academic Year ID" }, { status: 400 });
-    if (!termExists) return NextResponse.json({ message: "Invalid Term ID" }, { status: 400 });
-    if (!programExists) return NextResponse.json({ message: "Invalid Program ID" }, { status: 400 });
-    if (!departmentExists) return NextResponse.json({ message: "Invalid Department ID" }, { status: 400 });
+    if (!batchYearExists)
+      return NextResponse.json(
+        { message: "Invalid Batch Year ID" },
+        { status: 400 }
+      );
+    if (!admissionYearExists)
+      return NextResponse.json(
+        { message: "Invalid Admission Year ID" },
+        { status: 400 }
+      );
+    if (!academicYearExists)
+      return NextResponse.json(
+        { message: "Invalid Academic Year ID" },
+        { status: 400 }
+      );
+    if (!termExists)
+      return NextResponse.json({ message: "Invalid Term ID" }, { status: 400 });
+    if (!programExists)
+      return NextResponse.json(
+        { message: "Invalid Program ID" },
+        { status: 400 }
+      );
+    if (!departmentExists)
+      return NextResponse.json(
+        { message: "Invalid Department ID" },
+        { status: 400 }
+      );
 
     // Hash the password
     const hashedPassword = await hash(validatedData.password, 10);
@@ -230,7 +282,9 @@ export async function POST(request: NextRequest) {
           admissionCategory: validatedData.admissionCategory,
           resident: validatedData.resident,
           admissionDate: new Date(validatedData.admissionDate),
-          graduateDate: validatedData.graduateDate ? new Date(validatedData.graduateDate) : null,
+          graduateDate: validatedData.graduateDate
+            ? new Date(validatedData.graduateDate)
+            : null,
           permanentAddress: validatedData.permanentAddress,
           permanentCountry: validatedData.permanentCountry,
           permanentState: validatedData.permanentState,
@@ -257,83 +311,10 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error creating student user:", error);
     return NextResponse.json(
-      { message: "Error creating student user", error: (error as Error).message },
-      { status: 500 }
-    );
-  }
-}
-export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-
-  // Check if the user is authenticated
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(request.url);
-  const collegeIdParam = searchParams.get("collegeId");
-  const departmentIdParam = searchParams.get("departmentId");
-  const programIdParam = searchParams.get("programId");
-
-  // Determine the collegeId based on the user's role
-  let collegeId;
-
-  if (session.user.role === "SBTE" || session.user.role === "EDUCATION_DEPARTMENT") {
-    if (!collegeIdParam) {
-      return NextResponse.json(
-        { error: "collegeId is required for SBTE and EDUCATION_DEPARTMENT roles" },
-        { status: 400 }
-      );
-    }
-    collegeId = collegeIdParam; // Use collegeId from query parameter
-  } else if (session.user.role === "COLLEGE_SUPER_ADMIN" || session.user.role === "HOD") {
-    collegeId = session.user.collegeId; // Use collegeId from session
-  } else {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
-  try {
-    // Verify if college, department, and program exist when passed
-    const [collegeExists, departmentExists, programExists] = await Promise.all([
-      prisma.college.findUnique({ where: { id: collegeId } }),
-      departmentIdParam ? prisma.department.findUnique({ where: { id: departmentIdParam } }) : Promise.resolve(true),
-      programIdParam ? prisma.program.findUnique({ where: { id: programIdParam } }) : Promise.resolve(true),
-    ]);
-
-    if (!collegeExists) {
-      return NextResponse.json({ message: "Invalid College ID" }, { status: 400 });
-    }
-    if (departmentIdParam && !departmentExists) {
-      return NextResponse.json({ message: "Invalid Department ID" }, { status: 400 });
-    }
-    if (programIdParam && !programExists) {
-      return NextResponse.json({ message: "Invalid Program ID" }, { status: 400 });
-    }
-
-    // Fetch students based on the resolved collegeId, with optional departmentId and programId filters
-    const students = await prisma.student.findMany({
-      where: {
-        collegeId,
-        ...(departmentIdParam && { departmentId: departmentIdParam }),
-        ...(programIdParam && { programId: programIdParam }),
+      {
+        message: "Error creating student user",
+        error: (error as Error).message,
       },
-      include: {
-        user: true,       // Include user details if needed
-        program: true,    // Include program details if needed
-        department: true, // Include department details if needed
-      },
-    });
-
-    // Check if no students are found and return a message if so
-    if (students.length === 0) {
-      return NextResponse.json({ message: "No students found" }, { status: 200 });
-    }
-
-    return NextResponse.json({ students }, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching students:", error);
-    return NextResponse.json(
-      { message: "Error fetching students", error: (error as Error).message },
       { status: 500 }
     );
   }
