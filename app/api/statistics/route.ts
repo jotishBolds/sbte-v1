@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
 
     const userRole = session.user.role;
     let statistics: any = {};
-    console.log(userRole);  
+    console.log(userRole);
     switch (userRole) {
       case "SBTE_ADMIN":
         statistics = await getSBTEAdminStatistics();
@@ -117,8 +117,10 @@ async function getTeacherStatistics(userId: string) {
 
   const totalFeedbacks = await prisma.feedback.count({
     where: {
-      teacherAssignedSubject: {
-        teacherId: teacher.id,
+      batchSubjectId: {
+        in: teacher.assignedSubjects.map(
+          (assignment) => assignment.batchSubjectId
+        ),
       },
     },
   });
@@ -222,14 +224,22 @@ async function getStudentStatistics(userId: string) {
 
   const averageAttendance =
     student.monthlyAttendance.length > 0
-      ? student.monthlyAttendance.reduce(
-          (sum, att) =>
+      ? student.monthlyAttendance.reduce((sum, att) => {
+          const totalTheory =
+            att.monthlyBatchSubjectClasses.totalTheoryClasses ?? 0;
+          const totalPractical =
+            att.monthlyBatchSubjectClasses.totalPracticalClasses ?? 0;
+          const totalClasses = totalTheory + totalPractical;
+
+          // Avoid division by zero
+          if (totalClasses === 0) return sum;
+
+          return (
             sum +
             (att.attendedTheoryClasses + att.attendedPracticalClasses) /
-              (att.monthlyBatchSubjectClasses.totalTheoryClasses +
-                att.monthlyBatchSubjectClasses.totalPracticalClasses),
-          0
-        ) / student.monthlyAttendance.length
+              totalClasses
+          );
+        }, 0) / student.monthlyAttendance.length
       : 0;
 
   const averageScore =

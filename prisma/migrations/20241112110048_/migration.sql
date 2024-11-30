@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "ExamMark" ALTER COLUMN "wasAbsent" DROP NOT NULL,
+ALTER COLUMN "debarred" DROP NOT NULL,
+ALTER COLUMN "malpractice" DROP NOT NULL;

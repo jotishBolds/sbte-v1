@@ -38,6 +38,10 @@ const formSchema = z.object({
   websiteUrl: z.string().url().optional().or(z.literal("")),
   contactEmail: z.string().email().optional().or(z.literal("")),
   contactPhone: z.string().optional(),
+  IFSCCode: z.string().optional().or(z.literal("")),
+  AccountNo: z.string().optional().or(z.literal("")),
+  AccountHolderName: z.string().optional().or(z.literal("")),
+  UPIID: z.string().optional().or(z.literal("")),
   superAdminEmail: z
     .string()
     .email({ message: "Please enter a valid email for the Super Admin." }),
@@ -65,6 +69,10 @@ const CreateCollegePage: React.FC = () => {
       websiteUrl: "",
       contactEmail: "",
       contactPhone: "",
+      IFSCCode: "",
+      AccountNo: "",
+      AccountHolderName: "",
+      UPIID: "",
       superAdminEmail: "",
       superAdminPassword: "",
       username: "",
@@ -239,6 +247,76 @@ const CreateCollegePage: React.FC = () => {
                       <FormDescription>
                         Enter the main contact phone number for the college
                         (optional).
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="IFSCCode"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>IFSC Code</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter IFSC Code" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Bank IFSC Code (optional)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="AccountNo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter Account Number" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        Bank Account Number (optional)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="AccountHolderName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account Holder Name</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Enter Account Holder Name"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Bank Account Holder Name (optional)
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="UPIID"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>UPI ID</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter UPI ID" {...field} />
+                      </FormControl>
+                      <FormDescription>
+                        UPI Payment ID (optional)
                       </FormDescription>
                       <FormMessage />
                     </FormItem>

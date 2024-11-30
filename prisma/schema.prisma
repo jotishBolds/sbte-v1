@@ -120,6 +120,8 @@ model College {
   certificateTypes  CertificateType[]
   examTypes         ExamType[]
   subjects          Subject[]
+  NotifiedCollege   NotifiedCollege[]
+  LoadBalancingPdf LoadBalancingPdf[]
 }
 
 model Department {
@@ -141,7 +143,7 @@ model Student {
   id                  String                          @id @default(cuid())
   user                User                            @relation(fields: [userId], references: [id])
   userId              String                          @unique
-  enrollmentNo        String?                          @unique
+  enrollmentNo        String?                         @unique
   name                String
   dob                 DateTime
   personalEmail       String                          @unique
@@ -214,13 +216,16 @@ model HeadOfDepartment {
 }
 
 model ExamType {
-  id         String     @id @default(cuid())
-  examName   String
-  totalMarks Decimal
-  college    College    @relation(fields: [collegeId], references: [id])
-  collegeId  String
-  status     Boolean    @default(true)
-  examMarks  ExamMark[]
+  id           String     @id @default(cuid())
+  examName     String
+  totalMarks   Decimal
+  passingMarks Decimal?
+  college      College    @relation(fields: [collegeId], references: [id])
+  collegeId    String
+  status       Boolean    @default(true)
+  examMarks    ExamMark[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 }
 
 model ExamMark {
@@ -235,6 +240,8 @@ model ExamMark {
   wasAbsent      Boolean      @default(false)
   debarred       Boolean      @default(false)
   malpractice    Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   @@unique([examTypeId, studentId, batchSubjectId])
 }
@@ -351,8 +358,14 @@ model Batch {
   updatedById    String?
   studentBatches StudentBatch[]
   batchSubjects  BatchSubject[]
+   batchBaseExamFees BatchBaseExamFee[]
 }
-
+model BatchBaseExamFee {
+  id      String @id @default(cuid())
+  batch   Batch  @relation(fields: [batchId], references: [id])
+  batchId String
+  baseFee Float
+}  
 model SubjectType {
   id            String         @id @default(cuid())
   college       College        @relation(fields: [collegeId], references: [id])
@@ -377,11 +390,6 @@ model Subject {
   updatedById   String?
   college       College        @relation(fields: [collegeId], references: [id])
   collegeId     String
-  // department    Department     @relation(fields: [departmentId], references: [id]) //newChange
-  // departmentId  String //newChange
-  // marks         Mark[] //newChange
-  // attendance    Attendance[] //newChange
-  // feedbacks     Feedback[] //newChange
   batchSubjects BatchSubject[]
 }
 
@@ -398,6 +406,7 @@ model BatchSubject {
   teacherAssignments TeacherAssignedSubject[]
   monthlyClasses     MonthlyBatchSubjectClasses[]
   examMarks          ExamMark[]
+  Feedback           Feedback[] //newChange
 }
 
 model MonthlyBatchSubjectClasses {
@@ -405,10 +414,10 @@ model MonthlyBatchSubjectClasses {
   batchSubject              BatchSubject                    @relation(fields: [batchSubjectId], references: [id])
   batchSubjectId            String
   month                     Month
-  totalTheoryClasses        Int
-  totalPracticalClasses     Int
-  completedTheoryClasses    Int
-  completedPracticalClasses Int
+  totalTheoryClasses        Int?
+  totalPracticalClasses     Int?
+  completedTheoryClasses    Int?
+  completedPracticalClasses Int?
   monthlyAttendance         MonthlyBatchSubjectAttendance[]
 
   @@unique([batchSubjectId, month])
@@ -422,6 +431,8 @@ model MonthlyBatchSubjectAttendance {
   studentId                    String
   attendedTheoryClasses        Int
   attendedPracticalClasses     Int
+  createdAt                    DateTime                   @default(now())
+  updatedAt                    DateTime                   @updatedAt
 
   @@unique([monthlyBatchSubjectClassesId, studentId])
 }
@@ -487,7 +498,6 @@ model TeacherAssignedSubject {
   teacherId      String
   batchSubject   BatchSubject @relation(fields: [batchSubjectId], references: [id])
   batchSubjectId String
-  Feedback       Feedback[] //newChange
 }
 
 model FinanceManager {
@@ -528,7 +538,7 @@ model Certificate {
   studentId         String
   certificateType   CertificateType @relation(fields: [certificateTypeId], references: [id])
   certificateTypeId String
-  issueDate         DateTime
+  issueDate         DateTime?
   paymentStatus     PaymentStatus
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
@@ -564,23 +574,54 @@ model Alumnus {
   updatedAt       DateTime      @updatedAt
 }
 
-model Notification {
-  id           String   @id @default(cuid())
-  title        String
-  content      String
-  InstituteIds Json
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-}
+// model Notification {
+//   id           String   @id @default(cuid())
+//   title        String
+//   content      String
+//   InstituteIds Json
+//   createdAt    DateTime @default(now())
+//   updatedAt    DateTime @updatedAt
+// }
 
 model Feedback {
-  id                       String                 @id @default(cuid())
-  student                  Student                @relation(fields: [studentId], references: [id])
-  studentId                String
-  teacherAssignedSubject   TeacherAssignedSubject @relation(fields: [teacherAssignedSubjectId], references: [id]) //newChange
-  teacherAssignedSubjectId String //newChange
-  content                  String
-  isAnonymous              Boolean                @default(true)
-  createdAt                DateTime               @default(now())
-  updatedAt                DateTime               @updatedAt
+  id             String       @id @default(cuid())
+  student        Student      @relation(fields: [studentId], references: [id])
+  studentId      String
+  batchSubject   BatchSubject @relation(fields: [batchSubjectId], references: [id])
+  batchSubjectId String
+  content        String?
+  stars          Int
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Notification {
+  id               String            @id @default(cuid())
+  title            String
+  pdfPath          String // Path to the uploaded PDF
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  notifiedColleges NotifiedCollege[]
+
+}
+
+model NotifiedCollege {
+  id             String       @id @default(cuid())
+  notificationId String
+  collegeId      String
+  isRead         Boolean     @default(false)
+  notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  college        College      @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model LoadBalancingPdf {
+  id               String            @id @default(cuid())
+  title            String
+  pdfPath          String 
+  college          College           @relation(fields: [collegeId], references: [id])
+  collegeId        String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
 }

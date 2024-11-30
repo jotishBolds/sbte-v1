@@ -7,150 +7,178 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
 import { UserPlus, CheckCircle2, ArrowLeft } from "lucide-react";
+import { ClipLoader } from "react-spinners";
+import { useTheme } from "next-themes";
 
 export default function RegisterPage() {
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const { theme } = useTheme();
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setIsLoading(true);
 
-    if (password !== confirmPassword) {
+    if (formData.password !== formData.confirmPassword) {
       setError("Passwords do not match. Please try again.");
+      setIsLoading(false);
       return;
     }
 
-    const response = await fetch("/api/sbte-auth/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, email, password }),
-    });
+    try {
+      const response = await fetch("/api/sbte-auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
 
-    if (response.ok) {
-      router.push("/login");
-    } else {
-      const errorData = await response.json();
-      setError(errorData.message || "Registration failed. Please try again.");
+      if (response.ok) {
+        router.push("/login");
+      } else {
+        const errorData = await response.json();
+        setError(errorData.message || "Registration failed. Please try again.");
+      }
+    } catch (error) {
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-[90vh]">
-      <div className="w-full max-w-md">
-        <div className="bg-white shadow-xl rounded-lg overflow-hidden">
-          <div className="px-10 py-12">
-            <div className="text-center mb-8">
-              <UserPlus className="mx-auto h-12 w-12 text-blue-500" />
-              <h1 className="mt-4 text-3xl font-bold text-gray-900">
-                Create an Account
-              </h1>
-              <p className="mt-2 text-sm text-gray-600">
-                Join the College Management System
-              </p>
-            </div>
-            {error && (
-              <Alert variant="destructive" className="mb-6">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label
-                  htmlFor="username"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Username
-                </Label>
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="space-y-1 text-center">
+          <div className="bg-primary/10 dark:bg-primary/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+            <UserPlus className="h-8 w-8 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-semibold tracking-tight">
+            Create an Account
+          </CardTitle>
+          <CardDescription>Join the College Management System</CardDescription>
+        </CardHeader>
+
+        {error && (
+          <Alert
+            variant="destructive"
+            className="mx-6 mb-4 flex items-center justify-center"
+          >
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
+                  name="username"
                   type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={formData.username}
+                  onChange={handleInputChange}
                   required
-                  className="mt-1 block w-full"
                   placeholder="sbte username"
                 />
               </div>
-              <div>
-                <Label
-                  htmlFor="email"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Email Address
-                </Label>
+
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
+                  name="email"
                   type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={formData.email}
+                  onChange={handleInputChange}
                   required
-                  className="mt-1 block w-full"
                   placeholder="you@sbte.com"
                 />
               </div>
-              <div>
-                <Label
-                  htmlFor="password"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Password
-                </Label>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
+                  name="password"
                   type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={formData.password}
+                  onChange={handleInputChange}
                   required
-                  className="mt-1 block w-full"
                   placeholder="••••••••"
                 />
               </div>
-              <div>
-                <Label
-                  htmlFor="confirmPassword"
-                  className="block text-sm font-medium text-gray-700"
-                >
-                  Confirm Password
-                </Label>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input
                   id="confirmPassword"
+                  name="confirmPassword"
                   type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange}
                   required
-                  className="mt-1 block w-full"
                   placeholder="••••••••"
                 />
               </div>
-              <Button
-                type="submit"
-                className="w-full flex justify-center py-2 px-4"
-              >
-                Register
-              </Button>
-            </form>
-          </div>
-          <div className="px-10 py-4 bg-gray-50 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between">
-            <Link
-              href="/login"
-              className="flex items-center text-sm text-blue-600 hover:text-blue-500"
-            >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Back to Login
-            </Link>
-            <div className="mt-3 sm:mt-0 flex items-center">
-              <CheckCircle2 className="h-5 w-5 text-green-500 mr-2" />
-              <span className="text-xs text-gray-600">Secure registration</span>
             </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ClipLoader size={20} color="currentColor" className="mr-2" />
+              ) : null}
+              {isLoading ? "Creating Account..." : "Create Account"}
+            </Button>
+          </form>
+        </CardContent>
+
+        <CardFooter className="bg-muted/50 flex flex-col sm:flex-row items-center justify-between py-4">
+          <Link
+            href="/login"
+            className="flex items-center text-sm text-primary hover:text-primary/80"
+          >
+            <ArrowLeft className="h-4 w-4 mr-1" />
+            Back to Login
+          </Link>
+          <div className="mt-3 sm:mt-0 flex items-center space-x-2">
+            <CheckCircle2 className="h-5 w-5 text-green-500 dark:text-green-400" />
+            <span className="text-sm text-muted-foreground">
+              Secure registration
+            </span>
           </div>
-        </div>
-      </div>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

@@ -37,8 +37,9 @@ export async function DELETE(
     });
 
     // Success response
-    return NextResponse.json({ message: "College and associated super admin deleted successfully" });
-
+    return NextResponse.json({
+      message: "College and associated super admin deleted successfully",
+    });
   } catch (error) {
     console.error("Error deleting college and super admin:", error);
     return NextResponse.json(
@@ -47,7 +48,6 @@ export async function DELETE(
     );
   }
 }
-
 
 export async function PUT(
   request: NextRequest,
@@ -63,16 +63,26 @@ export async function PUT(
     const { id } = params;
     const data = await request.json();
 
+    // Remove fields that shouldn't be updated
+    const { id: _id, createdAt, updatedAt, ...updateData } = data;
+
+    // Convert establishedOn to proper DateTime format
+    if (updateData.establishedOn) {
+      updateData.establishedOn = new Date(
+        updateData.establishedOn
+      ).toISOString();
+    }
+
     const updatedCollege = await prisma.college.update({
       where: { id },
-      data,
+      data: updateData,
     });
 
     return NextResponse.json(updatedCollege);
   } catch (error) {
     console.error("Error updating college:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Failed to update college" },
       { status: 500 }
     );
   }

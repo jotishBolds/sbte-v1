@@ -681,7 +681,7 @@ const BatchSubjectManagement = () => {
                         No subjects assigned
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        This batch doesn't have any subjects assigned yet.
+                        This batch doesn&apos;t have any subjects assigned yet.
                       </p>
                     </div>
                   )

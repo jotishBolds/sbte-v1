@@ -36,6 +36,15 @@ export async function POST(
     const { subjectId, subjectCode, subjectTypeId, classType, creditScore } =
       batchSubjectSchema.parse(await request.json());
 
+    // Check if the batch exists
+    const batchExists = await prisma.batch.findUnique({
+      where: { id: batchId },
+    });
+
+    if (!batchExists) {
+      return NextResponse.json({ error: "Batch not found" }, { status: 404 });
+    }
+
     // Check if the same subject code has already been assigned to the batch
     const subjectAssignedToBatch = await prisma.batchSubject.findFirst({
       where: {
@@ -156,6 +165,14 @@ export async function GET(
         { error: "batchId is required" },
         { status: 400 }
       );
+    }
+    // Check if the batch exists
+    const batchExists = await prisma.batch.findUnique({
+      where: { id: batchId },
+    });
+
+    if (!batchExists) {
+      return NextResponse.json({ error: "Batch not found" }, { status: 404 });
     }
 
     const subjects = await prisma.batchSubject.findMany({

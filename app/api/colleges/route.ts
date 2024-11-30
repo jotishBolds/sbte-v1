@@ -1,8 +1,6 @@
-// app/api/colleges/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
-
 import bcrypt from "bcryptjs";
 import { authOptions } from "../auth/[...nextauth]/auth";
 
@@ -15,6 +13,10 @@ interface CollegeCreationData {
   websiteUrl?: string;
   contactEmail?: string;
   contactPhone?: string;
+  IFSCCode?: string;
+  AccountNo?: string;
+  AccountHolderName?: string;
+  UPIID?: string;
   username?: string;
   superAdminEmail: string;
   superAdminPassword: string;
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Create new college and super admin user in a transaction
     const result = await prisma.$transaction(async (prisma) => {
-      // Create the college
+      // Create the college with all fields including banking details
       const newCollege = await prisma.college.create({
         data: {
           name: data.name,
@@ -79,6 +81,10 @@ export async function POST(request: NextRequest) {
           websiteUrl: data.websiteUrl,
           contactEmail: data.contactEmail,
           contactPhone: data.contactPhone,
+          IFSCCode: data.IFSCCode,
+          AccountNo: data.AccountNo,
+          AccountHolderName: data.AccountHolderName,
+          UPIID: data.UPIID,
         },
       });
 
@@ -109,25 +115,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(result, { status: 201 });
   } catch (error) {
     console.error("Error creating college and super admin:", error);
-
-    // Handle specific Prisma errors
-    // if (error instanceof prisma.PrismaClientKnownRequestError) {
-    //   if (error.code === "P2002") {
-    //     // Unique constraint violation (email or username already exists)
-    //     return NextResponse.json(
-    //       { error: "A user with this email or username already exists" },
-    //       { status: 409 }
-    //     );
-    //   }
-    // }
-
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
     );
   }
 }
-
 
 export async function GET(request: NextRequest) {
   try {

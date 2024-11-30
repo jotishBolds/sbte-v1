@@ -1,7 +1,9 @@
+//api/student/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
-import { hash } from "bcrypt";
+import { hash } from "bcryptjs";
 import prisma from "@/src/lib/prisma";
 import { z } from "zod";
 
@@ -12,6 +14,7 @@ const studentSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().min(1, "Name is required"),
   dob: z.string(),
+  enrollmentNo: z.string().optional(),
   personalEmail: z.string().email("Invalid personal email"),
   phoneNo: z.string().min(10, "Phone number must be at least 10 digits"),
   studentAvatar: z.string().optional(),
@@ -129,6 +132,8 @@ export async function GET(request: NextRequest) {
         user: true, // Include user details if needed
         program: true, // Include program details if needed
         department: true, // Include department details if needed
+        batchYear: true,
+        academicYear: true,
       },
     });
 
@@ -262,8 +267,8 @@ export async function POST(request: NextRequest) {
           dob: new Date(validatedData.dob),
           personalEmail: validatedData.personalEmail,
           phoneNo: validatedData.phoneNo,
-          studentAvatar: validatedData.studentAvatar,
-          enrollmentNo: null,
+          studentAvatar: validatedData.studentAvatar || null,
+          enrollmentNo: validatedData.enrollmentNo || null,
           abcId: validatedData.abcId,
           lastCollegeAttended: validatedData.lastCollegeAttended,
           batchYear: { connect: { id: validatedData.batchYearId } },
@@ -313,6 +318,46 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         message: "Error creating student user",
+        error: (error as Error).message,
+      },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const body = await request.json();
+    const { studentId, studentAvatar } = body;
+
+    if (!studentId || !studentAvatar) {
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Update the student's profile picture
+    const updatedStudent = await prisma.student.update({
+      where: { id: studentId },
+      data: { studentAvatar },
+    });
+
+    return NextResponse.json({
+      message: "Profile picture updated successfully",
+      student: updatedStudent,
+    });
+  } catch (error) {
+    console.error("Error updating student profile picture:", error);
+    return NextResponse.json(
+      {
+        message: "Error updating profile picture",
         error: (error as Error).message,
       },
       { status: 500 }

@@ -1,4 +1,3 @@
-// app/api/college/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
@@ -19,7 +18,18 @@ export async function GET(
   try {
     const college = await prisma.college.findUnique({
       where: { id },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        establishedOn: true,
+        websiteUrl: true,
+        contactEmail: true,
+        contactPhone: true,
+        IFSCCode: true,
+        AccountNo: true,
+        AccountHolderName: true,
+        UPIID: true,
         departments: {
           where: { isActive: true },
           select: { id: true, name: true },
@@ -38,6 +48,7 @@ export async function GET(
 
     return NextResponse.json(college);
   } catch (error) {
+    console.error("Error fetching college:", error);
     return NextResponse.json(
       { message: "Error fetching college details" },
       { status: 500 }
@@ -58,11 +69,23 @@ export async function PUT(
   const { id } = params;
   const body = await request.json();
 
-  // Remove relation fields from the update data
+  // Remove relation fields and metadata from the update data
   const {
     departments,
     students,
     financeManagers,
+    programTypes,
+    semesters,
+    academicYears,
+    admissionYears,
+    batchYears,
+    batchTypes,
+    designations,
+    categories,
+    subjectTypes,
+    certificateTypes,
+    examTypes,
+    subjects,
     createdAt,
     updatedAt,
     ...updateData
@@ -72,6 +95,25 @@ export async function PUT(
     const updatedCollege = await prisma.college.update({
       where: { id },
       data: updateData,
+      select: {
+        id: true,
+        name: true,
+        address: true,
+        establishedOn: true,
+        websiteUrl: true,
+        contactEmail: true,
+        contactPhone: true,
+        IFSCCode: true,
+        AccountNo: true,
+        AccountHolderName: true,
+        UPIID: true,
+        departments: {
+          where: { isActive: true },
+          select: { id: true, name: true },
+        },
+        students: { select: { id: true } },
+        financeManagers: { select: { id: true } },
+      },
     });
 
     return NextResponse.json(updatedCollege);

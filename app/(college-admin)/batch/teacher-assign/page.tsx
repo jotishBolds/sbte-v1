@@ -125,6 +125,7 @@ const TeacherSubjectAssign: React.FC = () => {
     []
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [isBatchesLoading, setIsBatchesLoading] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(assignSubjectsSchema),
@@ -192,19 +193,27 @@ const TeacherSubjectAssign: React.FC = () => {
   };
 
   const fetchBatches = async (programId: string, academicYearId: string) => {
+    setIsBatchesLoading(true);
     try {
       const response = await fetch(
         `/api/batch?programId=${programId}&academicYearId=${academicYearId}`
       );
       if (!response.ok) throw new Error("Failed to fetch batches");
       const data = await response.json();
-      setBatches(data);
+      if (Array.isArray(data)) {
+        setBatches(data);
+      } else {
+        setBatches([]);
+      }
     } catch (error) {
       toast({
         title: "Error",
         description: "Failed to fetch batches",
         variant: "destructive",
       });
+      setBatches([]);
+    } finally {
+      setIsBatchesLoading(false);
     }
   };
 
@@ -471,14 +480,25 @@ const TeacherSubjectAssign: React.FC = () => {
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                      {batches.map((batch) => (
-                                        <SelectItem
-                                          key={batch.id}
-                                          value={batch.id}
-                                        >
-                                          {batch.name}
+                                      {isBatchesLoading ? (
+                                        <SelectItem value="loading" disabled>
+                                          Loading...
                                         </SelectItem>
-                                      ))}
+                                      ) : Array.isArray(batches) &&
+                                        batches.length > 0 ? (
+                                        batches.map((batch) => (
+                                          <SelectItem
+                                            key={batch.id}
+                                            value={batch.id}
+                                          >
+                                            {batch.name}
+                                          </SelectItem>
+                                        ))
+                                      ) : (
+                                        <SelectItem value="no-data" disabled>
+                                          No batches available
+                                        </SelectItem>
+                                      )}
                                     </SelectContent>
                                   </Select>
                                   <FormMessage />

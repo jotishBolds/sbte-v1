@@ -170,7 +170,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && session.user?.role !== "HOD") {
+    if (
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user?.role !== "HOD" &&
+      session.user.role !== "STUDENT" &&
+      session.user.role !== "FINANCE_MANAGER"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -192,7 +197,10 @@ export async function GET(request: NextRequest) {
       });
 
       if (!existingProgram) {
-        return NextResponse.json({ error: "Program not found" }, { status: 404 });
+        return NextResponse.json(
+          { error: "Program not found" },
+          { status: 404 }
+        );
       }
     }
 
@@ -231,19 +239,23 @@ export async function GET(request: NextRequest) {
     });
 
     if (batches.length === 0) {
-      return NextResponse.json(
-        { message: "No batch found" },
-        { status: 200 }
-      );
+      return NextResponse.json({ message: "No batch found" }, { status: 200 });
     }
 
     const responseData = batches.map((batch) => ({
       id: batch.id,
       name: batch.name,
-      term: batch.term.alias,
-      academicYear: batch.academicYear.name,
+      term: {
+        name: batch.term.alias,
+      },
+      academicYear: {
+        name: batch.academicYear.name,
+      },
       batchType: batch.batchType.name,
-      program: batch.program.code,
+      program: {
+        name: batch.program.name,
+        code: batch.program.code,
+      },
       startDate: batch.startDate,
       endDate: batch.endDate,
       status: batch.status,
@@ -276,5 +288,3 @@ export async function GET(request: NextRequest) {
     await prisma.$disconnect();
   }
 }
-
-

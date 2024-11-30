@@ -217,19 +217,19 @@ export default function AlumniRegistrationForm() {
     }
   }
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-100 to-white py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">
+        <div className="text-center mb-8 space-y-2">
+          <h1 className="text-4xl font-bold text-foreground">
             Welcome, Future Alumni!
           </h1>
-          <p className="text-xl text-gray-600">
+          <p className="text-xl text-muted-foreground">
             Join our vibrant community and stay connected with your alma mater.
           </p>
         </div>
 
-        <Card className="backdrop-blur-sm bg-white/80 shadow-xl rounded-lg overflow-hidden">
-          <CardHeader className="bg-gray-700 text-white p-6">
+        <Card className="border shadow-lg">
+          <CardHeader className="bg-primary text-primary-foreground space-y-1">
             <CardTitle className="text-2xl font-semibold text-center">
               Alumni Registration
             </CardTitle>
@@ -260,7 +260,7 @@ export default function AlumniRegistrationForm() {
                     )}
                   />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 ">
                   <FormField
                     control={form.control}
                     name="username"
@@ -271,7 +271,7 @@ export default function AlumniRegistrationForm() {
                           <Input
                             placeholder="Username"
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -289,7 +289,7 @@ export default function AlumniRegistrationForm() {
                             type="email"
                             placeholder="youremail@sbte.com"
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -307,7 +307,7 @@ export default function AlumniRegistrationForm() {
                             type="password"
                             placeholder="********"
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -324,7 +324,7 @@ export default function AlumniRegistrationForm() {
                           <Input
                             placeholder="Your Full Name"
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -342,7 +342,7 @@ export default function AlumniRegistrationForm() {
                             type="tel"
                             placeholder="+1234567890"
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -356,7 +356,7 @@ export default function AlumniRegistrationForm() {
                       <FormItem>
                         <FormLabel>Date of Birth</FormLabel>
                         <FormControl>
-                          <Input type="date" {...field} className="bg-white" />
+                          <Input type="date" {...field} className="" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -372,7 +372,7 @@ export default function AlumniRegistrationForm() {
                           <Input
                             placeholder="Gangtok, Sikkim 737102"
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -391,7 +391,7 @@ export default function AlumniRegistrationForm() {
                           disabled={isLoadingDepartments}
                         >
                           <FormControl>
-                            <SelectTrigger className="bg-white">
+                            <SelectTrigger className="">
                               <SelectValue placeholder="Select a department" />
                             </SelectTrigger>
                           </FormControl>
@@ -422,7 +422,7 @@ export default function AlumniRegistrationForm() {
                           disabled={isLoadingPrograms}
                         >
                           <FormControl>
-                            <SelectTrigger className="bg-white">
+                            <SelectTrigger className="">
                               <SelectValue placeholder="Select a program" />
                             </SelectTrigger>
                           </FormControl>
@@ -453,7 +453,7 @@ export default function AlumniRegistrationForm() {
                           disabled={isLoadingBatchYears}
                         >
                           <FormControl>
-                            <SelectTrigger className="bg-white">
+                            <SelectTrigger className="">
                               <SelectValue placeholder="Select a batch year" />
                             </SelectTrigger>
                           </FormControl>
@@ -487,7 +487,7 @@ export default function AlumniRegistrationForm() {
                           disabled={isLoadingAdmissionYears}
                         >
                           <FormControl>
-                            <SelectTrigger className="bg-white">
+                            <SelectTrigger className="">
                               <SelectValue placeholder="Select admission year" />
                             </SelectTrigger>
                           </FormControl>
@@ -523,7 +523,7 @@ export default function AlumniRegistrationForm() {
                             onChange={(e) =>
                               field.onChange(parseInt(e.target.value))
                             }
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -544,7 +544,7 @@ export default function AlumniRegistrationForm() {
                             onChange={(e) =>
                               field.onChange(parseFloat(e.target.value))
                             }
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -561,7 +561,7 @@ export default function AlumniRegistrationForm() {
                           <Input
                             placeholder="Employed, Unemployed, Student, etc."
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -578,7 +578,7 @@ export default function AlumniRegistrationForm() {
                           <Input
                             placeholder="Company Name"
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -595,7 +595,7 @@ export default function AlumniRegistrationForm() {
                           <Input
                             placeholder="Job Title"
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -612,7 +612,7 @@ export default function AlumniRegistrationForm() {
                           <Input
                             placeholder="e.g. Technology, Healthcare, Finance"
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -630,7 +630,7 @@ export default function AlumniRegistrationForm() {
                             type="url"
                             placeholder="https://www.linkedin.com/in/username"
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />
@@ -647,7 +647,7 @@ export default function AlumniRegistrationForm() {
                           <Input
                             placeholder="Notable accomplishments or awards"
                             {...field}
-                            className="bg-white"
+                            className=""
                           />
                         </FormControl>
                         <FormMessage />

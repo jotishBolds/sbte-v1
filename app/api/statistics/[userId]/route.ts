@@ -46,8 +46,8 @@ async function getTeacherStatistics(userId: string) {
 
   const totalFeedbacks = await prisma.feedback.count({
     where: {
-      teacherAssignedSubjectId: {
-        in: teacher.assignedSubjects.map((as) => as.id),
+      batchSubjectId: {
+        in: teacher.assignedSubjects.map((as) => as.batchSubjectId),
       },
     },
   });

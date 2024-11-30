@@ -52,12 +52,29 @@ import {
   LayoutGrid,
   UserRoundPlus,
   UserPlus,
+  UserPlus2,
+  User2,
+  UserRoundPlusIcon,
+  Table,
+  SignalIcon,
+  LogIn,
+  PencilIcon,
+  BookType,
+  PlusSquare,
+  CalendarCheck,
+  CalendarClock,
+  Award,
+  BookAIcon,
+  Option,
+  StarIcon,
+  ChartBar,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { useNotificationManager } from "./notification-hook/hook";
 
 type NavLinkType = {
   href: string;
@@ -99,8 +116,12 @@ export const Sidebar: React.FC = () => {
             label: "Departments",
           },
 
-          { href: "/reports", icon: <FileText size={18} />, label: "Reports" },
-          { href: "/users", icon: <Users size={18} />, label: "Users" },
+          {
+            href: "/notification/load-balance",
+            icon: <FileText size={18} />,
+            label: "Reports",
+          },
+          // { href: "/users", icon: <Users size={18} />, label: "Users" },
         ];
       case "COLLEGE_SUPER_ADMIN":
         return [
@@ -120,9 +141,69 @@ export const Sidebar: React.FC = () => {
             label: "Departments",
           },
           {
+            href: "/batch",
+            icon: <TableOfContentsIcon size={18} />,
+            label: "Batches",
+            subItems: [
+              {
+                href: "/batch",
+                icon: <Layout size={18} />,
+                label: "Batches",
+              },
+              {
+                href: "/batch-year",
+                icon: <LayoutGrid size={18} />,
+                label: "Batch Year",
+              },
+              {
+                href: "/batch/monthly-batchsubject-classes",
+                icon: <CalendarCheck size={18} />,
+                label: "Monthly Batch Classes",
+              },
+              {
+                href: "/batch/monthly-batchsubject-attendance",
+                icon: <CalendarClock size={18} />,
+                label: "Monthly Batch Attendance",
+              },
+              {
+                href: "/batch/subjects",
+                icon: <BookA size={18} />,
+                label: "Batch Subject",
+              },
+              {
+                href: "/batch/teacher-assign",
+                icon: <UserRoundPlus size={18} />,
+                label: "Teacher Assign",
+              },
+              {
+                href: "/batch/student-batch-assign",
+                icon: <PlusSquare size={18} />,
+                label: "Student Batch Assign",
+              },
+            ],
+          },
+          {
             href: "/create-user/users-list",
             icon: <Users size={18} />,
             label: "Users",
+          },
+
+          {
+            href: "/certificate",
+            icon: <Award size={18} />,
+            label: "Certificates",
+            subItems: [
+              {
+                href: "/certificate",
+                icon: <BookAIcon size={18} />,
+                label: "Certificate",
+              },
+              {
+                href: "/certificate-types",
+                icon: <Option size={18} />,
+                label: "Certificate Types",
+              },
+            ],
           },
           {
             href: "/teacher",
@@ -137,14 +218,59 @@ export const Sidebar: React.FC = () => {
             ],
           },
           {
+            href: "/student",
+            icon: <User2 size={18} />,
+            label: "Student",
+            subItems: [
+              {
+                href: "/student-register",
+                icon: <LogIn size={18} />,
+                label: "Student Registration",
+              },
+              {
+                href: "/student-list",
+                icon: <Table size={18} />,
+                label: "Student List",
+              },
+              {
+                href: "/import-students",
+                icon: <UserRoundPlusIcon size={18} />,
+                label: "Import Students",
+              },
+            ],
+          },
+          {
             href: "/student-subjects",
             icon: <BookCheck size={18} />,
             label: "Subjects",
+          },
+
+          {
+            href: "/exams",
+            icon: <PencilIcon size={18} />,
+            label: "Exams",
+            subItems: [
+              {
+                href: "/exam-type",
+                icon: <BookType size={18} />,
+                label: "Exam Type",
+              },
+              {
+                href: "/exam-marks",
+                icon: <BookType size={18} />,
+                label: "Exam Marks ",
+              },
+            ],
           },
           {
             href: "/alumni-list",
             icon: <BookOpen size={18} />,
             label: "Alumni",
+          },
+          {
+            href: "/feedbacks-list",
+            icon: <StarIcon size={18} />,
+            label: "Feebacks",
           },
           {
             href: "/semester",
@@ -173,33 +299,6 @@ export const Sidebar: React.FC = () => {
             icon: <TableCellsSplit size={18} />,
             label: "Admission Year",
           },
-          {
-            href: "/batch",
-            icon: <TableOfContentsIcon size={18} />,
-            label: "Batches",
-            subItems: [
-              {
-                href: "/batch",
-                icon: <Layout size={18} />,
-                label: "Batches",
-              },
-              {
-                href: "/batch-year",
-                icon: <LayoutGrid size={18} />,
-                label: "Batch Year",
-              },
-              {
-                href: "/batch/subjects",
-                icon: <BookA size={18} />,
-                label: "Batch Subject",
-              },
-              {
-                href: "/batch/teacher-assign",
-                icon: <UserRoundPlus size={18} />,
-                label: "Teacher Assign",
-              },
-            ],
-          },
         ];
       case "ADM":
         return [
@@ -222,17 +321,10 @@ export const Sidebar: React.FC = () => {
             icon: <Home size={18} />,
             label: "Dashboard",
           },
-          { href: "/teachers", icon: <Users size={18} />, label: "Teachers" },
           {
-            href: "/students",
-            icon: <GraduationCap size={18} />,
-            label: "Students",
-          },
-          { href: "/subjects", icon: <Book size={18} />, label: "Subjects" },
-          {
-            href: "/department",
-            icon: <BookOpen size={18} />,
-            label: "Department",
+            href: "/load-balance",
+            icon: <ChartBar size={18} />,
+            label: "Upload Load Balance",
           },
         ];
       case "TEACHER":
@@ -258,15 +350,15 @@ export const Sidebar: React.FC = () => {
             label: "Dashboard",
           },
           {
-            href: "/fee",
+            href: "/batch-base-exam-fees",
             icon: <DollarSign size={18} />,
             label: "Fee Payments",
           },
-          {
-            href: "/financial-reports",
-            icon: <FileText size={18} />,
-            label: "Financial Reports",
-          },
+          // {
+          //   href: "/financial-reports",
+          //   icon: <FileText size={18} />,
+          //   label: "Financial Reports",
+          // },
         ];
       case "STUDENT":
         return [
@@ -275,20 +367,20 @@ export const Sidebar: React.FC = () => {
             icon: <Home size={18} />,
             label: "Dashboard",
           },
+          // {
+          //   href: "/attendance",
+          //   icon: <Calendar size={18} />,
+          //   label: "Attendance",
+          // },
+          // { href: "/marks", icon: <Clipboard size={18} />, label: "Marks" },
+          // { href: "/fees", icon: <DollarSign size={18} />, label: "Fees" },
           {
-            href: "/attendance",
-            icon: <Calendar size={18} />,
-            label: "Attendance",
-          },
-          { href: "/marks", icon: <Clipboard size={18} />, label: "Marks" },
-          { href: "/fees", icon: <DollarSign size={18} />, label: "Fees" },
-          {
-            href: "/certificates",
+            href: "/my-certificates",
             icon: <Star size={18} />,
             label: "Certificates",
           },
           {
-            href: "/feedback",
+            href: "/my-feedback",
             icon: <MessageSquare size={18} />,
             label: "Feedback",
           },
@@ -356,6 +448,8 @@ export const Sidebar: React.FC = () => {
   );
 
   const NavItem = ({ href, icon, label, subItems }: NavLinkType) => {
+    const { notifications, notificationCount, loading, downloadNotification } =
+      useNotificationManager();
     const hasSubItems = subItems && subItems.length > 0;
     const isExpanded = expandedItems.includes(href);
 
@@ -364,7 +458,38 @@ export const Sidebar: React.FC = () => {
         isExpanded ? prev.filter((item) => item !== href) : [...prev, href]
       );
     };
-
+    if (label === "Notifications") {
+      return (
+        <div
+          className={cn(
+            "flex items-center py-2 px-4 text-sm font-medium rounded-md transition-colors cursor-pointer",
+            isActive(href)
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          )}
+          onClick={hasSubItems ? toggleExpand : () => router.push(href)}
+        >
+          <div className="flex items-center w-full">
+            {icon}
+            <span className="ml-3 flex-grow">{label}</span>
+            {notificationCount > 0 && (
+              <Badge variant="destructive" className="ml-2">
+                {notificationCount}
+              </Badge>
+            )}
+            {hasSubItems && (
+              <ChevronDown
+                size={18}
+                className={cn(
+                  "transition-transform",
+                  isExpanded && "transform rotate-180"
+                )}
+              />
+            )}
+          </div>
+        </div>
+      );
+    }
     return (
       <>
         <div
@@ -442,18 +567,25 @@ export const Sidebar: React.FC = () => {
         )}
         <Separator className="my-4" />
         <div className="p-4 space-y-2">
-          <NavItem
-            href="/notifications"
-            icon={<Bell size={18} />}
-            label="Notifications"
-          />
+          {(session.user.role === "COLLEGE_SUPER_ADMIN" ||
+            session.user.role === "SBTE_ADMIN") && (
+            <NavItem
+              href={
+                session.user.role === "COLLEGE_SUPER_ADMIN"
+                  ? "/message"
+                  : "/notification"
+              }
+              icon={<Bell size={18} />}
+              label="Notifications"
+            />
+          )}
           <NavItem
             href="/support"
             icon={<HelpCircle size={18} />}
             label="Support"
           />
           <NavItem
-            href="/settings"
+            href="/profile"
             icon={<Settings size={18} />}
             label="Settings"
           />

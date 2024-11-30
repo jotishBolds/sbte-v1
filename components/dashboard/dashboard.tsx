@@ -83,7 +83,7 @@ const Dashboard: React.FC = () => {
   const [statistics, setStatistics] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
-  console.log(session);
+  console.log("this is session", session);
   useEffect(() => {
     const fetchStatistics = async () => {
       try {
@@ -134,7 +134,7 @@ const Dashboard: React.FC = () => {
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-700">
+                <CardTitle className="text-lg font-semibold ">
                   Statistics Overview
                 </CardTitle>
               </CardHeader>
@@ -162,7 +162,7 @@ const Dashboard: React.FC = () => {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg font-semibold text-gray-700">
+                <CardTitle className="text-lg font-semibold ">
                   Distribution
                 </CardTitle>
               </CardHeader>
@@ -202,7 +202,7 @@ const Dashboard: React.FC = () => {
         <TabsContent value="details">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-semibold text-gray-700">
+              <CardTitle className="text-lg font-semibold ">
                 Trend Analysis
               </CardTitle>
             </CardHeader>
@@ -310,16 +310,10 @@ const Dashboard: React.FC = () => {
   return (
     <div className="container mx-auto py-10">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold tracking-tight text-gray-800">
-          Dashboard
-        </h1>
+        <h1 className="text-3xl font-bold tracking-tight ">Dashboard</h1>
         <div className="flex items-center space-x-4">
-          <Input className="max-w-sm" placeholder="Search..." />
           <Button variant="ghost" size="icon">
             <FiBell className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon">
-            <FiSettings className="h-5 w-5" />
           </Button>
         </div>
       </div>
@@ -338,8 +332,8 @@ const Dashboard: React.FC = () => {
                 </AvatarFallback>
               </Avatar>
               <div className="text-center sm:text-left">
-                <p className="text-xl font-medium text-gray-800">
-                  {session?.user?.name || session?.user?.email || "User"}
+                <p className="text-xl font-medium">
+                  {session?.user?.username || session?.user?.email || "User"}
                 </p>
                 <Badge variant="secondary" className="mt-1">
                   {(session?.user as any)?.role || "Unknown role"}

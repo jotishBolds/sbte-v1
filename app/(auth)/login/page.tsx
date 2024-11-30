@@ -7,9 +7,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Card } from "@/components/ui/card";
-import { CheckCircle2, Lock, AlertTriangle, RefreshCw } from "lucide-react";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+} from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { CheckCircle2, Lock, RefreshCw } from "lucide-react";
 import { ClipLoader } from "react-spinners";
+import { useTheme } from "next-themes";
 
 interface LoginFormData {
   email: string;
@@ -22,7 +31,6 @@ interface MathCaptcha {
 }
 
 const generateMathCaptcha = (seed?: number): MathCaptcha => {
-  // Use seed for initial server-side rendering to prevent hydration errors
   const random = seed
     ? () => (seed % 20) + 1
     : () => Math.floor(Math.random() * 20) + 1;
@@ -37,7 +45,7 @@ const generateMathCaptcha = (seed?: number): MathCaptcha => {
 };
 
 export default function LoginPage() {
-  // Use useEffect to update CAPTCHA only on client-side
+  const { theme } = useTheme();
   const [captcha, setCaptcha] = useState<MathCaptcha>(() =>
     generateMathCaptcha(1)
   );
@@ -48,10 +56,10 @@ export default function LoginPage() {
   const [error, setError] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [userAnswer, setUserAnswer] = useState<string>("");
+  const [rememberMe, setRememberMe] = useState<boolean>(false);
   const router = useRouter();
 
   useEffect(() => {
-    // Update CAPTCHA only on client-side after initial render
     setCaptcha(generateMathCaptcha());
   }, []);
 
@@ -102,144 +110,136 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto">
-        <Card className="bg-white shadow-xl rounded-xl overflow-hidden">
-          <div className="px-6 sm:px-10 py-8">
-            <div className="text-center">
-              <div className="bg-blue-50 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
-                <Lock className="h-8 w-8 text-blue-500" />
+    <div className="min-h-screen bg-gradient-to-b from-background to-muted flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md mx-auto">
+        <CardHeader className="space-y-1 text-center">
+          <div className="bg-primary/10 dark:bg-primary/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+            <Lock className="h-8 w-8 text-primary" />
+          </div>
+          <CardTitle className="text-2xl font-semibold tracking-tight">
+            Welcome Back
+          </CardTitle>
+          <CardDescription>
+            Sign in to access your College Management System
+          </CardDescription>
+        </CardHeader>
+
+        {error && (
+          <Alert
+            variant="destructive"
+            className="mx-6 mb-4 flex items-center justify-center w-auto"
+          >
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
+                <Input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="you@example.com"
+                />
               </div>
-              <h1 className="mt-6 text-3xl font-bold text-gray-900 tracking-tight">
-                Welcome Back
-              </h1>
-              <p className="mt-2 text-sm text-gray-600">
-                Sign in to access your College Management System
-              </p>
+
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="••••••••"
+                />
+              </div>
             </div>
 
-            {error && (
-              <Alert
-                variant="destructive"
-                className="mt-6 flex items-center justify-center "
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={(checked) =>
+                    setRememberMe(checked as boolean)
+                  }
+                />
+                <Label
+                  htmlFor="remember-me"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Remember me
+                </Label>
+              </div>
+              <Link
+                href="/forgot-password"
+                className="text-sm font-medium text-primary hover:text-primary/80"
               >
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
+                Forgot password?
+              </Link>
+            </div>
 
-            <form onSubmit={handleSubmit} className="mt-8 space-y-6">
-              <div className="space-y-5">
-                <div>
-                  <Label htmlFor="email">Email Address</Label>
-                  <Input
-                    id="email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    required
-                    className="mt-1"
-                    placeholder="you@example.com"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="password">Password</Label>
-                  <Input
-                    id="password"
-                    name="password"
-                    type="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    className="mt-1"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <input
-                    id="remember-me"
-                    name="remember-me"
-                    type="checkbox"
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label
-                    htmlFor="remember-me"
-                    className="ml-2 block text-sm text-gray-900"
-                  >
-                    Remember me
-                  </label>
-                </div>
-                <div className="text-sm">
-                  <Link
-                    href="/forgot-password"
-                    className="font-medium text-blue-600 hover:text-blue-500"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <Label>Security Check</Label>
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-2">
-                      <p className="text-sm text-gray-600 font-medium">
-                        Solve this problem:
-                      </p>
-                      <p className="text-2xl font-bold text-gray-900">
-                        {captcha.question}
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="icon"
-                      onClick={refreshCaptcha}
-                      className="h-8 w-8 rounded-full"
-                    >
-                      <RefreshCw className="h-4 w-4" />
-                    </Button>
+            <div className="space-y-3">
+              <Label>Security Check</Label>
+              <div className="bg-muted/50 dark:bg-muted rounded-lg p-6 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground font-medium">
+                      Solve this problem:
+                    </p>
+                    <p className="text-2xl font-bold">{captcha.question}</p>
                   </div>
-                  <Input
-                    id="captcha"
-                    type="number"
-                    value={userAnswer}
-                    onChange={(e) => setUserAnswer(e.target.value)}
-                    required
-                    placeholder="Enter your answer"
-                    className="mt-4"
-                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={refreshCaptcha}
+                    className="h-8 w-8 rounded-full"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </Button>
                 </div>
+                <Input
+                  id="captcha"
+                  type="number"
+                  value={userAnswer}
+                  onChange={(e) => setUserAnswer(e.target.value)}
+                  required
+                  placeholder="Enter your answer"
+                  className="bg-primary-foreground dark:text-secondary"
+                />
               </div>
-
-              <Button
-                type="submit"
-                className="w-full flex justify-center py-6"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <ClipLoader size={20} color="#ffffff" className="mr-2" />
-                ) : null}
-                {isLoading ? "Signing In..." : "Sign In"}
-              </Button>
-            </form>
-          </div>
-
-          <div className="px-6 sm:px-10 py-4 bg-gray-50 border-t border-gray-100">
-            <div className="flex items-center justify-center space-x-2">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
-              <span className="text-sm text-gray-600">
-                Secure login protected
-              </span>
             </div>
-          </div>
-        </Card>
-      </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              size="lg"
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <ClipLoader size={20} color="currentColor" className="mr-2" />
+              ) : null}
+              {isLoading ? "Signing In..." : "Sign In"}
+            </Button>
+          </form>
+        </CardContent>
+
+        <CardFooter className="bg-muted/50 flex items-center justify-center space-x-2 py-4">
+          <CheckCircle2 className="h-5 w-5 text-green-500 dark:text-green-400" />
+          <span className="text-sm text-muted-foreground">
+            Secure login protected
+          </span>
+        </CardFooter>
+      </Card>
     </div>
   );
 }

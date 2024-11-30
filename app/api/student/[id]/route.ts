@@ -1,9 +1,11 @@
+//api/student/[id]/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import prisma from "@/src/lib/prisma";
 import { z } from "zod";
-import { hash } from "bcrypt";
+import { hash } from "bcryptjs";
 
 // GET student by ID
 export async function GET(
@@ -33,6 +35,9 @@ export async function GET(
         user: true,
         program: true,
         department: true,
+        batchYear: true,
+        academicYear: true,
+        term: true,
       },
     });
 
@@ -126,18 +131,22 @@ export async function DELETE(
 
 const userUpdateSchema = z.object({
   username: z.string().optional(),
-  email: z.string().optional(),
-  password: z.string().optional(), // If you implement hashed passwords, handle hashing separately
+  email: z.string().email("Invalid email").optional(),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .optional()
+    .or(z.literal("")),
 });
 
-// Define Zod schema for validation based on `Student` model
+// Schema for student-specific fields (removed user-related fields)
 const studentUpdateSchema = z.object({
-  enrollmentNo: z.string().optional(),
   name: z.string().optional(),
-  dob: z.date().optional(),
-  personalEmail: z.string().email().optional(),
+  dob: z.string().optional(),
+  enrollmentNo: z.string().optional(),
+  personalEmail: z.string().email("Invalid personal email").optional(),
   phoneNo: z.string().optional(),
-  studentAvatar: z.string().url().optional(),
+  studentAvatar: z.string().optional(),
   abcId: z.string().optional(),
   lastCollegeAttended: z.string().optional(),
   batchYearId: z.string().optional(),
@@ -155,8 +164,8 @@ const studentUpdateSchema = z.object({
   caste: z.string().optional(),
   admissionCategory: z.string().optional(),
   resident: z.string().optional(),
-  admissionDate: z.date().optional(),
-  graduateDate: z.date().optional(),
+  admissionDate: z.string().optional(),
+  graduateDate: z.string().optional(),
   permanentAddress: z.string().optional(),
   permanentCountry: z.string().optional(),
   permanentState: z.string().optional(),
@@ -168,9 +177,9 @@ const studentUpdateSchema = z.object({
   guardianMobileNo: z.string().optional(),
   guardianRelation: z.string().optional(),
   programId: z.string().optional(),
-  collegeId: z.string().optional(),
   departmentId: z.string().optional(),
 });
+
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -189,22 +198,22 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const studentData = studentUpdateSchema.parse(body);
-    let userData = userUpdateSchema.parse(body);
 
-    // Hash the password if it is provided
-    if (userData.password) {
-      userData.password = await hash(userData.password, 10); // bcrypt hashing with salt rounds of 10
-    }
+    // Separate user and student data
+    const { username, email, password, ...studentFields } = body;
+
+    // Validate the separated data
+    const studentData = studentUpdateSchema.parse(studentFields);
+    const userData = userUpdateSchema.parse({ username, email, password });
 
     // Start transaction to update User and Student tables
     const result = await prisma.$transaction(async (prisma) => {
-      // Fetch the Student and associated User records to validate ownership and permissions
+      // Fetch the Student and associated User records
       const student = await prisma.student.findUnique({
         where: { id: params.id },
         include: {
           user: true,
-          college: true, // Fetch college details for super admin verification
+          college: true,
         },
       });
 
@@ -212,7 +221,7 @@ export async function PUT(
         throw new Error("Student not found");
       }
 
-      // Student role can only update their own data
+      // Authorization checks
       if (
         session.user.role === "STUDENT" &&
         student.userId !== session.user.id
@@ -220,7 +229,6 @@ export async function PUT(
         throw new Error("Unauthorized to update another student's profile");
       }
 
-      // College super admin can only update students in their own college
       if (
         session.user.role === "COLLEGE_SUPER_ADMIN" &&
         student.collegeId !== session.user.collegeId
@@ -230,19 +238,39 @@ export async function PUT(
         );
       }
 
-      // Update User table if user fields are provided
+      // Prepare user update data
+      const userUpdateData: any = {};
+      if (userData.username) userUpdateData.username = userData.username;
+      if (userData.email) userUpdateData.email = userData.email;
+      if (userData.password) {
+        userUpdateData.password = await hash(userData.password, 10);
+      }
+
+      // Update User if there are user fields to update
       const updatedUser =
-        userData.username || userData.email || userData.password
+        Object.keys(userUpdateData).length > 0
           ? await prisma.user.update({
               where: { id: student.userId },
-              data: userData,
+              data: userUpdateData,
             })
           : student.user;
 
-      // Update Student table
+      // Convert date strings to Date objects if they exist
+      const processedStudentData = {
+        ...studentData,
+        dob: studentData.dob ? new Date(studentData.dob) : undefined,
+        admissionDate: studentData.admissionDate
+          ? new Date(studentData.admissionDate)
+          : undefined,
+        graduateDate: studentData.graduateDate
+          ? new Date(studentData.graduateDate)
+          : undefined,
+      };
+
+      // Update Student
       const updatedStudent = await prisma.student.update({
         where: { id: params.id },
-        data: studentData,
+        data: processedStudentData,
       });
 
       return { updatedUser, updatedStudent };
@@ -257,6 +285,10 @@ export async function PUT(
         { message: "Validation error", errors: error.errors },
         { status: 400 }
       );
+    }
+
+    if (error instanceof Error) {
+      return NextResponse.json({ message: error.message }, { status: 400 });
     }
 
     return NextResponse.json(
