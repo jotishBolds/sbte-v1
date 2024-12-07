@@ -68,6 +68,9 @@ import {
   Option,
   StarIcon,
   ChartBar,
+  IndianRupee,
+  IndianRupeeIcon,
+  BadgeIndianRupee,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -351,8 +354,20 @@ export const Sidebar: React.FC = () => {
           },
           {
             href: "/batch-base-exam-fees",
-            icon: <DollarSign size={18} />,
+            icon: <IndianRupeeIcon size={18} />,
             label: "Fee Payments",
+            subItems: [
+              {
+                href: "/batch-base-exam-fees",
+                icon: <BadgeIndianRupee size={18} />,
+                label: "Base Fee",
+              },
+              {
+                href: "/student-batch-exam-fee",
+                icon: <Table2 size={18} />,
+                label: "Student-Wise Fees",
+              },
+            ],
           },
           // {
           //   href: "/financial-reports",
@@ -383,6 +398,11 @@ export const Sidebar: React.FC = () => {
             href: "/my-feedback",
             icon: <MessageSquare size={18} />,
             label: "Feedback",
+          },
+          {
+            href: "/exam-fee",
+            icon: <IndianRupee size={18} />,
+            label: "Exam Fees",
           },
         ];
       case "ALUMNUS":

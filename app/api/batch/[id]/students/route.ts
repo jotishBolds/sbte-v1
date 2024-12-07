@@ -31,7 +31,8 @@ export async function PUT(
     }
     if (
       session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
-      session.user?.role !== "ADMIN"
+      session.user?.role !== "ADMIN" &&
+      session.user?.role !== "FINANCE_MANAGER"
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -115,7 +116,8 @@ export async function POST(
 
     if (
       session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
-      session.user?.role !== "SBTE_ADMIN"
+      session.user?.role !== "SBTE_ADMIN" &&
+      session.user?.role !== "FINANCE_MANAGER"
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -227,7 +229,8 @@ export async function GET(
     }
     if (
       session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
-      session.user?.role !== "SBTE_ADMIN"
+      session.user?.role !== "SBTE_ADMIN" &&
+      session.user?.role !== "FINANCE_MANAGER"
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

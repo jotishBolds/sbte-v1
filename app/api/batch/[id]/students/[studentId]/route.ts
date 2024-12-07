@@ -24,7 +24,8 @@ export async function PUT(
     }
     if (
       session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
-      session.user?.role !== "ADMIN"
+      session.user?.role !== "ADMIN" &&
+      session.user?.role !== "FINANCE_MANAGER"
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -100,7 +101,8 @@ export async function DELETE(
     }
     if (
       session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
-      session.user?.role !== "ADMIN"
+      session.user?.role !== "ADMIN" &&
+      session.user?.role !== "FINANCE_MANAGER"
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

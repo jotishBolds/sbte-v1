@@ -68,30 +68,32 @@ enum Month {
 }
 
 model User {
-  id               String            @id @default(cuid())
-  username         String?
-  email            String            @unique
-  password         String
-  role             Role
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  college          College?          @relation(fields: [collegeId], references: [id])
-  collegeId        String?
-  department       Department?       @relation(fields: [departmentId], references: [id])
-  departmentId     String?
-  student          Student?
-  teacher          Teacher?
-  financeManager   FinanceManager?
-  alumnus          Alumnus?
-  headOfDepartment HeadOfDepartment?
-  createdBatches   Batch[]           @relation("CreatedBy")
-  updatedBatches   Batch[]           @relation("UpdatedBy")
-  createdSubjects  Subject[]         @relation("SubjectCreatedBy")
-  updatedSubjects  Subject[]         @relation("SubjectUpdatedBy")
+  id                         String                @id @default(cuid())
+  username                   String?
+  email                      String                @unique
+  password                   String
+  role                       Role
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
+  college                    College?              @relation(fields: [collegeId], references: [id])
+  collegeId                  String?
+  department                 Department?           @relation(fields: [departmentId], references: [id])
+  departmentId               String?
+  student                    Student?
+  teacher                    Teacher?
+  financeManager             FinanceManager?
+  alumnus                    Alumnus?
+  headOfDepartment           HeadOfDepartment?
+  createdBatches             Batch[]               @relation("CreatedBy")
+  updatedBatches             Batch[]               @relation("UpdatedBy")
+  createdSubjects            Subject[]             @relation("SubjectCreatedBy")
+  updatedSubjects            Subject[]             @relation("SubjectUpdatedBy")
+  createdStudentBatchExamFee StudentBatchExamFee[] @relation("StudentBatchExamFeeCreatedBy")
+  updatedStudentBatchExamFee StudentBatchExamFee[] @relation("StudentBatchExamFeeUpdatedBy")
 }
 
 model College {
-  id                String            @id @default(cuid())
+  id                String             @id @default(cuid())
   name              String
   address           String
   establishedOn     DateTime
@@ -102,8 +104,8 @@ model College {
   AccountNo         String?
   AccountHolderName String?
   UPIID             String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
   users             User[]
   departments       Department[]
   students          Student[]
@@ -121,7 +123,7 @@ model College {
   examTypes         ExamType[]
   subjects          Subject[]
   NotifiedCollege   NotifiedCollege[]
-  LoadBalancingPdf LoadBalancingPdf[]
+  LoadBalancingPdf  LoadBalancingPdf[]
 }
 
 model Department {
@@ -337,35 +339,37 @@ model BatchType {
 }
 
 model Batch {
-  id             String         @id @default(cuid())
-  name           String
-  term           Semester       @relation("SemesterToBatch", fields: [termId], references: [id])
-  termId         String
-  academicYear   AcademicYear   @relation(fields: [academicYearId], references: [id])
-  academicYearId String
-  program        Program        @relation(fields: [programId], references: [id])
-  programId      String
-  batchType      BatchType      @relation(fields: [batchTypeId], references: [id])
-  batchTypeId    String
-  startDate      DateTime
-  endDate        DateTime
-  status         Boolean
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  createdBy      User           @relation("CreatedBy", fields: [createdById], references: [id])
-  createdById    String
-  updatedBy      User?          @relation("UpdatedBy", fields: [updatedById], references: [id])
-  updatedById    String?
-  studentBatches StudentBatch[]
-  batchSubjects  BatchSubject[]
-   batchBaseExamFees BatchBaseExamFee[]
+  id                String             @id @default(cuid())
+  name              String
+  term              Semester           @relation("SemesterToBatch", fields: [termId], references: [id])
+  termId            String
+  academicYear      AcademicYear       @relation(fields: [academicYearId], references: [id])
+  academicYearId    String
+  program           Program            @relation(fields: [programId], references: [id])
+  programId         String
+  batchType         BatchType          @relation(fields: [batchTypeId], references: [id])
+  batchTypeId       String
+  startDate         DateTime
+  endDate           DateTime
+  status            Boolean
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  createdBy         User               @relation("CreatedBy", fields: [createdById], references: [id])
+  createdById       String
+  updatedBy         User?              @relation("UpdatedBy", fields: [updatedById], references: [id])
+  updatedById       String?
+  studentBatches    StudentBatch[]
+  batchSubjects     BatchSubject[]
+  batchBaseExamFees BatchBaseExamFee[]
 }
+
 model BatchBaseExamFee {
   id      String @id @default(cuid())
   batch   Batch  @relation(fields: [batchId], references: [id])
   batchId String
   baseFee Float
-}  
+}
+
 model SubjectType {
   id            String         @id @default(cuid())
   college       College        @relation(fields: [collegeId], references: [id])
@@ -438,12 +442,41 @@ model MonthlyBatchSubjectAttendance {
 }
 
 model StudentBatch {
-  id          String      @id @default(cuid())
-  student     Student     @relation(fields: [studentId], references: [id])
-  studentId   String
-  batch       Batch       @relation(fields: [batchId], references: [id])
-  batchId     String
-  batchStatus BatchStatus
+  id                  String                @id @default(cuid())
+  student             Student               @relation(fields: [studentId], references: [id])
+  studentId           String
+  batch               Batch                 @relation(fields: [batchId], references: [id])
+  batchId             String
+  batchStatus         BatchStatus
+  StudentBatchExamFee StudentBatchExamFee[]
+}
+
+model Payment {
+  id                   String                @id @default(cuid())
+  amount               Float // Total amount for the selected fees
+  status               PaymentStatus         @default(PENDING)
+  razorpayPaymentId    String?
+  orderId              String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+  studentBatchExamFees StudentBatchExamFee[] @relation("PaymentToExamFee") // Many-to-many relation to StudentBatchExamFee
+}
+
+model StudentBatchExamFee {
+  id             String         @id @default(cuid())
+  studentBatch   StudentBatch   @relation(fields: [studentBatchId], references: [id])
+  studentBatchId String
+  reason         String
+  examFee        Float
+  dueDate        DateTime?
+  paymentStatus  PaymentStatus? @default(PENDING)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  createdBy      User           @relation("StudentBatchExamFeeCreatedBy", fields: [createdById], references: [id])
+  createdById    String
+  updatedBy      User?          @relation("StudentBatchExamFeeUpdatedBy", fields: [updatedById], references: [id])
+  updatedById    String?
+  payments       Payment[]      @relation("PaymentToExamFee")
 }
 
 model Designation {
@@ -602,26 +635,25 @@ model Notification {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   notifiedColleges NotifiedCollege[]
-
 }
 
 model NotifiedCollege {
   id             String       @id @default(cuid())
   notificationId String
   collegeId      String
-  isRead         Boolean     @default(false)
+  isRead         Boolean      @default(false)
   notification   Notification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
   college        College      @relation(fields: [collegeId], references: [id], onDelete: Cascade)
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }
 
 model LoadBalancingPdf {
-  id               String            @id @default(cuid())
-  title            String
-  pdfPath          String 
-  college          College           @relation(fields: [collegeId], references: [id])
-  collegeId        String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id        String   @id @default(cuid())
+  title     String
+  pdfPath   String
+  college   College  @relation(fields: [collegeId], references: [id])
+  collegeId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
