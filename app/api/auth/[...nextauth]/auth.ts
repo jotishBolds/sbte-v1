@@ -1,5 +1,3 @@
-// src/app/api/auth/[...nextauth]/auth-options.ts
-
 import { NextAuthOptions } from "next-auth";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
@@ -15,10 +13,11 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        otp: { label: "OTP", type: "text" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
+        if (!credentials?.email || !credentials.otp) {
+          return null; // OTP is required
         }
 
         const user = await prisma.user.findUnique({
@@ -30,14 +29,45 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const isPasswordValid = await compare(
-          credentials.password,
-          user.password
-        );
+        // Password-based authentication
+        if (credentials.password) {
+          const isPasswordValid = await compare(
+            credentials.password,
+            user.password
+          );
 
-        if (!isPasswordValid) {
+          if (!isPasswordValid) {
+            return null;
+          }
+        }
+
+        // OTP-based authentication
+        if (!user.otp || !user.otpExpiresAt) {
+          return null; // OTP not generated or expired
+        }
+
+        const currentTime = new Date();
+
+        // Check if OTP has expired
+        if (user.otpExpiresAt < currentTime) {
           return null;
         }
+
+        // Check if OTP matches
+        if (user.otp !== credentials.otp) {
+          return null;
+        }
+
+        // Clear OTP after successful verification
+        await prisma.user.update({
+          where: { id: user.id },
+          data: {
+            otp: null,
+            otpExpiresAt: null,
+          },
+        });
+
+        // Additional verification for alumni
         if (user.role === "ALUMNUS" && user.alumnus && !user.alumnus.verified) {
           throw new Error("Account not verified");
         }
@@ -56,7 +86,6 @@ export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
   },
-  // In the callbacks section
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
@@ -79,7 +108,6 @@ export const authOptions: NextAuthOptions = {
       return session;
     },
   },
-
   pages: {
     signIn: "/login",
   },

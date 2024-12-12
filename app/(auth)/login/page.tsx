@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   Card,
   CardHeader,
@@ -16,13 +16,22 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CheckCircle2, Lock, RefreshCw } from "lucide-react";
+import {
+  CheckCircle2,
+  Lock,
+  RefreshCw,
+  KeyRound,
+  Mail,
+  TimerReset,
+  AlertCircle,
+} from "lucide-react";
 import { ClipLoader } from "react-spinners";
 import { useTheme } from "next-themes";
 
 interface LoginFormData {
   email: string;
   password: string;
+  otp?: string;
 }
 
 interface MathCaptcha {
@@ -49,23 +58,37 @@ export default function LoginPage() {
   const [captcha, setCaptcha] = useState<MathCaptcha>(() =>
     generateMathCaptcha(1)
   );
-  const [formData, setFormData] = useState<LoginFormData>({
+  const [loginFormData, setLoginFormData] = useState<LoginFormData>({
     email: "",
     password: "",
+    otp: "",
   });
   const [error, setError] = useState<string>("");
+  const [successMessage, setSuccessMessage] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [otpResendCountdown, setOtpResendCountdown] = useState<number>(0);
   const [userAnswer, setUserAnswer] = useState<string>("");
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const router = useRouter();
+
+  // OTP Resend Countdown Effect
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (otpResendCountdown > 0) {
+      timer = setInterval(() => {
+        setOtpResendCountdown((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [otpResendCountdown]);
 
   useEffect(() => {
     setCaptcha(generateMathCaptcha());
   }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleLoginInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setLoginFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const refreshCaptcha = () => {
@@ -73,13 +96,72 @@ export default function LoginPage() {
     setUserAnswer("");
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSendOtp = async () => {
+    setError("");
+    setSuccessMessage("");
+    setIsLoading(true);
+
+    if (!loginFormData.email) {
+      setError("Please enter an email address");
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/loginOtp/sendOtp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: loginFormData.email,
+          purpose: "login",
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        if (result.errorCode === "OTP_THROTTLED") {
+          const waitTime = Math.ceil(result.waitTime);
+          setOtpResendCountdown(waitTime);
+          setError(
+            `Please wait ${waitTime} seconds before requesting a new OTP.`
+          );
+        } else {
+          setError(result.error || "Failed to send OTP");
+        }
+      } else {
+        setSuccessMessage("OTP has been sent to your email.");
+        setOtpResendCountdown(30);
+      }
+    } catch (error) {
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
+    // Enhanced validation
+    if (!loginFormData.email || !loginFormData.password) {
+      setError("Please enter both email and password");
+      setIsLoading(false);
+      return;
+    }
+
+    if (!loginFormData.otp || loginFormData.otp.length !== 6) {
+      setError("Please enter a valid 6-digit OTP");
+      setIsLoading(false);
+      return;
+    }
+
     if (parseInt(userAnswer) !== captcha.answer) {
-      setError("Incorrect answer. Please try again.");
+      setError("Incorrect security answer. Please try again.");
       setIsLoading(false);
       refreshCaptcha();
       return;
@@ -87,17 +169,17 @@ export default function LoginPage() {
 
     try {
       const result = await signIn("credentials", {
-        ...formData,
+        ...loginFormData,
         redirect: false,
       });
 
       if (result?.error) {
         if (result.error === "Account not verified") {
           setError(
-            "Your alumni account has not been verified yet. Please check back later or contact the administrator."
+            "Your alumni account has not been verified. Contact the administrator."
           );
         } else {
-          setError("Invalid email or password. Please try again.");
+          setError("Invalid login credentials. Please try again.");
         }
       } else {
         router.push("/dashboard");
@@ -110,31 +192,37 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <Card className="w-full max-w-md mx-auto">
-        <CardHeader className="space-y-1 text-center">
-          <div className="bg-primary/10 dark:bg-primary/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center">
+    <div className="min-h-[90vh]  flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-xl mx-auto shadow-2xl ">
+        <CardHeader className="space-y-2 text-center">
+          <div className="bg-primary/10 dark:bg-primary/20 rounded-full w-16 h-16 mx-auto flex items-center justify-center animate-pulse">
             <Lock className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl font-semibold tracking-tight">
-            Welcome Back
+          <CardTitle className="text-2xl font-bold tracking-tight">
+            Secure Login
           </CardTitle>
-          <CardDescription>
-            Sign in to access your College Management System
+          <CardDescription className="text-muted-foreground">
+            Access your College Management System
           </CardDescription>
         </CardHeader>
 
-        {error && (
+        {(error || successMessage) && (
           <Alert
-            variant="destructive"
-            className="mx-6 mb-4 flex items-center justify-center w-auto"
+            variant={error ? "destructive" : "default"}
+            className="mx-6 mb-4 w-auto"
           >
-            <AlertDescription>{error}</AlertDescription>
+            {error ? (
+              <AlertCircle className="h-4 w-4" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4" />
+            )}
+            <AlertTitle>{error ? "Error" : "Success"}</AlertTitle>
+            <AlertDescription>{error || successMessage}</AlertDescription>
           </Alert>
         )}
 
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email Address</Label>
@@ -142,10 +230,11 @@ export default function LoginPage() {
                   id="email"
                   name="email"
                   type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
+                  value={loginFormData.email}
+                  onChange={handleLoginInputChange}
                   required
                   placeholder="you@example.com"
+                  className="focus:ring-2 focus:ring-primary/50 transition-all duration-300"
                 />
               </div>
 
@@ -155,11 +244,49 @@ export default function LoginPage() {
                   id="password"
                   name="password"
                   type="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
+                  value={loginFormData.password}
+                  onChange={handleLoginInputChange}
                   required
                   placeholder="••••••••"
+                  className="focus:ring-2 focus:ring-primary/50 transition-all duration-300"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="otp">One-Time Password (OTP)</Label>
+                <div className="flex space-x-2 items-end">
+                  <Input
+                    id="otp"
+                    name="otp"
+                    type="text"
+                    value={loginFormData.otp}
+                    onChange={handleLoginInputChange}
+                    placeholder="Enter 6-digit OTP"
+                    maxLength={6}
+                    required
+                    className="focus:ring-2 focus:ring-primary/50 transition-all duration-300"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={handleSendOtp}
+                    disabled={
+                      !loginFormData.email ||
+                      isLoading ||
+                      otpResendCountdown > 0
+                    }
+                    className=" flex items-center space-x-1"
+                  >
+                    {otpResendCountdown > 0 ? (
+                      <>
+                        <TimerReset className="mr-1 h-4 w-4" />
+                        {otpResendCountdown}s
+                      </>
+                    ) : (
+                      "Send OTP"
+                    )}
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -179,17 +306,17 @@ export default function LoginPage() {
                   Remember me
                 </Label>
               </div>
-              <Link
+              {/* <Link
                 href="/forgot-password"
-                className="text-sm font-medium text-primary hover:text-primary/80"
+                className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
               >
                 Forgot password?
-              </Link>
+              </Link> */}
             </div>
 
             <div className="space-y-3">
               <Label>Security Check</Label>
-              <div className="bg-muted/50 dark:bg-muted rounded-lg p-6 space-y-4">
+              <div className="bg-muted/50 dark:bg-muted rounded-lg p-6 space-y-4 border border-border">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <p className="text-sm text-muted-foreground font-medium">
@@ -202,7 +329,7 @@ export default function LoginPage() {
                     variant="outline"
                     size="icon"
                     onClick={refreshCaptcha}
-                    className="h-8 w-8 rounded-full"
+                    className="h-8 w-8 rounded-full hover:bg-primary/10 transition-colors"
                   >
                     <RefreshCw className="h-4 w-4" />
                   </Button>
@@ -214,14 +341,14 @@ export default function LoginPage() {
                   onChange={(e) => setUserAnswer(e.target.value)}
                   required
                   placeholder="Enter your answer"
-                  className="bg-primary-foreground dark:text-secondary"
+                  className="bg-primary-foreground dark:text-secondary focus:ring-2 focus:ring-primary/50 transition-all duration-300"
                 />
               </div>
             </div>
 
             <Button
               type="submit"
-              className="w-full"
+              className="w-full group transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg"
               size="lg"
               disabled={isLoading}
             >
@@ -233,8 +360,8 @@ export default function LoginPage() {
           </form>
         </CardContent>
 
-        <CardFooter className="bg-muted/50 flex items-center justify-center space-x-2 py-4">
-          <CheckCircle2 className="h-5 w-5 text-green-500 dark:text-green-400" />
+        <CardFooter className="bg-muted/50 flex items-center justify-center space-x-2 py-4 rounded-b-lg">
+          <CheckCircle2 className="h-5 w-5 text-green-500 dark:text-green-400 animate-pulse" />
           <span className="text-sm text-muted-foreground">
             Secure login protected
           </span>

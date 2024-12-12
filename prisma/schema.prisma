@@ -84,6 +84,9 @@ model User {
   financeManager             FinanceManager?
   alumnus                    Alumnus?
   headOfDepartment           HeadOfDepartment?
+    otp              String?
+  otpExpiresAt     DateTime?
+  lastOtpRequestAt DateTime?
   createdBatches             Batch[]               @relation("CreatedBy")
   updatedBatches             Batch[]               @relation("UpdatedBy")
   createdSubjects            Subject[]             @relation("SubjectCreatedBy")

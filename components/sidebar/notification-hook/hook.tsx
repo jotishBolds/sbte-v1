@@ -66,12 +66,17 @@ export const useNotificationManager = () => {
         }
 
         if (session.user.role === "COLLEGE_SUPER_ADMIN") {
-          return data.filter((notif: ExtendedNotification) =>
-            notif.notifiedColleges.some(
-              (college) =>
-                college.collegeId === session.user.collegeId && !college.isRead
-            )
-          ).length;
+          if (data.message == "No notifications found.") {
+            return;
+          } else {
+            return data.filter((notif: ExtendedNotification) =>
+              notif.notifiedColleges.some(
+                (college) =>
+                  college.collegeId === session.user.collegeId &&
+                  !college.isRead
+              )
+            ).length;
+          }
         }
 
         return 0;
