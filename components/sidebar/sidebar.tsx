@@ -71,6 +71,12 @@ import {
   IndianRupee,
   IndianRupeeIcon,
   BadgeIndianRupee,
+  Pen,
+  BookCopy,
+  BookDashed,
+  PenLine,
+  PenSquare,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -169,6 +175,11 @@ export const Sidebar: React.FC = () => {
                 label: "Monthly Batch Attendance",
               },
               {
+                href: "/batch/monthly-batchsubject-attendance/import",
+                icon: <Check size={18} />,
+                label: "Import Monthly Batch Attendance",
+              },
+              {
                 href: "/batch/subjects",
                 icon: <BookA size={18} />,
                 label: "Batch Subject",
@@ -182,6 +193,21 @@ export const Sidebar: React.FC = () => {
                 href: "/batch/student-batch-assign",
                 icon: <PlusSquare size={18} />,
                 label: "Student Batch Assign",
+              },
+              {
+                href: "/import-students",
+                icon: <UserRoundPlusIcon size={18} />,
+                label: "Import Students",
+              },
+              {
+                href: "/batchwise-marks-list",
+                icon: <PenLine size={18} />,
+                label: "Batchwise Exam Marks",
+              },
+              {
+                href: "/batchwise-attendance",
+                icon: <PenSquare size={18} />,
+                label: "Batchwise Attendance",
               },
             ],
           },
@@ -262,6 +288,12 @@ export const Sidebar: React.FC = () => {
                 href: "/exam-marks",
                 icon: <BookType size={18} />,
                 label: "Exam Marks ",
+              },
+
+              {
+                href: "/exam-marks/import",
+                icon: <BookDashed size={18} />,
+                label: "Import Exam Marks ",
               },
             ],
           },
@@ -404,6 +436,16 @@ export const Sidebar: React.FC = () => {
             icon: <IndianRupee size={18} />,
             label: "Exam Fees",
           },
+          {
+            href: "/student-attendance",
+            icon: <Pen size={18} />,
+            label: "Attendance",
+          },
+          {
+            href: "/student-batch-marks",
+            icon: <BookCopy size={18} />,
+            label: "Exam Marks",
+          },
         ];
       case "ALUMNUS":
         return [
@@ -417,11 +459,11 @@ export const Sidebar: React.FC = () => {
             icon: <UserCheck size={18} />,
             label: "Alumni Profile",
           },
-          {
-            href: "/events",
-            icon: <Calendar size={18} />,
-            label: "Alumni Events",
-          },
+          // {
+          //   href: "/events",
+          //   icon: <Calendar size={18} />,
+          //   label: "Alumni Events",
+          // },
         ];
       default:
         return [];
@@ -550,7 +592,15 @@ export const Sidebar: React.FC = () => {
         <div className="flex flex-col">
           <p className="font-semibold text-lg">{session.user.username}</p>
           <Badge variant="default" className="mt-1 self-start">
-            {session.user.role}
+            {session.user.role === "COLLEGE_SUPER_ADMIN"
+              ? "COLLEGE ADMIN"
+              : session.user.role === "FINANCE_MANAGER"
+              ? "FINANCE MANAGER"
+              : session.user.role === "SBTE_ADMIN"
+              ? "SBTE Administrator"
+              : session.user.role === "EDUCATION_DEPARTMENT"
+              ? "EDUCATION DEPARTMENT"
+              : session.user.role}
           </Badge>
         </div>
       </div>

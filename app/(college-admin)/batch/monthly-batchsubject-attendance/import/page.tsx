@@ -31,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, Upload, FileSpreadsheet, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import SideBarLayout from "@/components/sidebar/layout";
 
 const importFormSchema = z.object({
   file: z.instanceof(File, {
@@ -112,86 +113,87 @@ export default function AttendanceImport() {
   };
 
   return (
-    <Card className="w-full max-w-3xl mx-auto my-4 md:my-8 shadow-lg">
-      <CardHeader className="space-y-2 md:space-y-4">
-        <CardTitle className="text-2xl md:text-3xl font-bold text-center">
-          Import Attendance
-        </CardTitle>
-        <CardDescription className="text-center text-sm md:text-base">
-          Upload an Excel file (.xlsx) containing student attendance records
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
-              control={form.control}
-              name="monthlyBatchSubjectClassesId"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-semibold">
-                    Batch Subject
-                  </FormLabel>
-                  <Select
-                    disabled={isLoadingBatchSubjects}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger className="h-12">
-                        <SelectValue placeholder="Select batch subject">
-                          {field.value && monthlyClasses
-                            ? getSubjectName(
-                                monthlyClasses.find(
-                                  (mc: any) => mc.id === field.value
+    <SideBarLayout>
+      <Card className="w-full max-w-7xl mx-auto my-4 md:my-8 shadow-lg">
+        <CardHeader className="space-y-2 md:space-y-4">
+          <CardTitle className="text-2xl md:text-3xl font-bold text-center">
+            Import Attendance
+          </CardTitle>
+          <CardDescription className="text-center text-sm md:text-base">
+            Upload an Excel file (.xlsx) containing student attendance records
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <FormField
+                control={form.control}
+                name="monthlyBatchSubjectClassesId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold">
+                      Batch Subject
+                    </FormLabel>
+                    <Select
+                      disabled={isLoadingBatchSubjects}
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="h-12">
+                          <SelectValue placeholder="Select batch subject">
+                            {field.value && monthlyClasses
+                              ? getSubjectName(
+                                  monthlyClasses.find(
+                                    (mc: any) => mc.id === field.value
+                                  )
                                 )
-                              )
-                            : "Select batch subject"}
-                        </SelectValue>
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {monthlyClasses?.map((monthlyClass: any) => (
-                        <SelectItem
-                          key={monthlyClass.id}
-                          value={monthlyClass.id}
-                          className="py-4 px-3 hover:bg-accent cursor-pointer"
-                        >
-                          <div className="flex flex-col gap-2">
-                            <div className="font-medium">
-                              {monthlyClass.batchSubject?.subject?.name ||
-                                "Unnamed Subject"}
+                              : "Select batch subject"}
+                          </SelectValue>
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {monthlyClasses?.map((monthlyClass: any) => (
+                          <SelectItem
+                            key={monthlyClass.id}
+                            value={monthlyClass.id}
+                            className="py-4 px-3 hover:bg-accent cursor-pointer"
+                          >
+                            <div className="flex flex-col gap-2">
+                              <div className="font-medium">
+                                {monthlyClass.batchSubject?.subject?.name ||
+                                  "Unnamed Subject"}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                Month: {monthlyClass.month} | Theory:{" "}
+                                {monthlyClass.completedTheoryClasses ?? 0}/
+                                {monthlyClass.totalTheoryClasses ?? 0} |
+                                Practical:{" "}
+                                {monthlyClass.completedPracticalClasses ?? 0}/
+                                {monthlyClass.totalPracticalClasses ?? 0}
+                              </div>
                             </div>
-                            <div className="text-sm text-muted-foreground">
-                              Month: {monthlyClass.month} | Theory:{" "}
-                              {monthlyClass.completedTheoryClasses ?? 0}/
-                              {monthlyClass.totalTheoryClasses ?? 0} |
-                              Practical:{" "}
-                              {monthlyClass.completedPracticalClasses ?? 0}/
-                              {monthlyClass.totalPracticalClasses ?? 0}
-                            </div>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="file"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-semibold">
-                    Excel File
-                  </FormLabel>
-                  <FormControl>
-                    <div className="relative">
-                      <div
-                        className={`
+              <FormField
+                control={form.control}
+                name="file"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold">
+                      Excel File
+                    </FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <div
+                          className={`
                         border-2 border-dashed rounded-lg p-8
                         ${
                           selectedFileName
@@ -201,123 +203,124 @@ export default function AttendanceImport() {
                         transition-colors duration-200 cursor-pointer
                         flex flex-col items-center justify-center gap-4
                       `}
-                      >
-                        <Input
-                          type="file"
-                          accept=".xlsx"
-                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              field.onChange(file);
-                              setSelectedFileName(file.name);
-                            }
-                          }}
-                        />
-                        {selectedFileName ? (
-                          <div className="flex flex-col items-center gap-2">
-                            <FileSpreadsheet className="h-12 w-12 text-green-500" />
-                            <span className="text-sm font-medium text-green-600">
-                              {selectedFileName}
-                            </span>
-                            <span className="text-xs text-green-500">
-                              Click or drag to change file
-                            </span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center gap-2">
-                            <Upload className="h-12 w-12 text-gray-400" />
-                            <span className="text-sm font-medium">
-                              Click or drag and drop
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              Supports Excel (.xlsx) files
-                            </span>
-                          </div>
-                        )}
+                        >
+                          <Input
+                            type="file"
+                            accept=".xlsx"
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                field.onChange(file);
+                                setSelectedFileName(file.name);
+                              }
+                            }}
+                          />
+                          {selectedFileName ? (
+                            <div className="flex flex-col items-center gap-2">
+                              <FileSpreadsheet className="h-12 w-12 text-green-500" />
+                              <span className="text-sm font-medium text-green-600">
+                                {selectedFileName}
+                              </span>
+                              <span className="text-xs text-green-500">
+                                Click or drag to change file
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center gap-2">
+                              <Upload className="h-12 w-12 text-gray-400" />
+                              <span className="text-sm font-medium">
+                                Click or drag and drop
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                Supports Excel (.xlsx) files
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full md:w-auto md:min-w-[200px] h-8text-base font-medium"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  Importing...
-                </>
-              ) : (
-                <>
-                  <Upload className="mr-2 h-5 w-5" />
-                  Import Attendance
-                </>
-              )}
-            </Button>
-          </form>
-        </Form>
-
-        {importResponse && (
-          <div className="mt-8 space-y-4">
-            {importResponse.message && (
-              <Alert className="bg-green-50 border-green-200">
-                <AlertTitle className="text-green-800 font-semibold">
-                  Success
-                </AlertTitle>
-                <AlertDescription className="text-green-700">
-                  {importResponse.message}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {importResponse.errors?.map((error, index) => (
-              <Alert
-                key={index}
-                variant="destructive"
-                className="flex items-start gap-2"
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full md:w-auto md:min-w-[200px] h-8text-base font-medium"
               >
-                <X className="h-5 w-5 mt-0.5" />
-                <div>
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </div>
-              </Alert>
-            ))}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    Importing...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-5 w-5" />
+                    Import Attendance
+                  </>
+                )}
+              </Button>
+            </form>
+          </Form>
 
-            {(importResponse.missingStudentRows?.length || 0) > 0 && (
-              <Alert variant="destructive" className="flex items-start gap-2">
-                <X className="h-5 w-5 mt-0.5" />
-                <div>
-                  <AlertTitle>Missing Students</AlertTitle>
-                  <AlertDescription>
-                    Invalid or missing enrollment numbers in rows:{" "}
-                    {importResponse.missingStudentRows?.join(", ")}
+          {importResponse && (
+            <div className="mt-8 space-y-4">
+              {importResponse.message && (
+                <Alert className="bg-green-50 border-green-200">
+                  <AlertTitle className="text-green-800 font-semibold">
+                    Success
+                  </AlertTitle>
+                  <AlertDescription className="text-green-700">
+                    {importResponse.message}
                   </AlertDescription>
-                </div>
-              </Alert>
-            )}
+                </Alert>
+              )}
 
-            {(importResponse.duplicateRows?.length || 0) > 0 && (
-              <Alert variant="destructive" className="flex items-start gap-2">
-                <X className="h-5 w-5 mt-0.5" />
-                <div>
-                  <AlertTitle>Duplicate Entries</AlertTitle>
-                  <AlertDescription>
-                    Duplicate entries found in rows:{" "}
-                    {importResponse.duplicateRows?.join(", ")}
-                  </AlertDescription>
-                </div>
-              </Alert>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              {importResponse.errors?.map((error, index) => (
+                <Alert
+                  key={index}
+                  variant="destructive"
+                  className="flex items-start gap-2"
+                >
+                  <X className="h-5 w-5 mt-0.5" />
+                  <div>
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                  </div>
+                </Alert>
+              ))}
+
+              {(importResponse.missingStudentRows?.length || 0) > 0 && (
+                <Alert variant="destructive" className="flex items-start gap-2">
+                  <X className="h-5 w-5 mt-0.5" />
+                  <div>
+                    <AlertTitle>Missing Students</AlertTitle>
+                    <AlertDescription>
+                      Invalid or missing enrollment numbers in rows:{" "}
+                      {importResponse.missingStudentRows?.join(", ")}
+                    </AlertDescription>
+                  </div>
+                </Alert>
+              )}
+
+              {(importResponse.duplicateRows?.length || 0) > 0 && (
+                <Alert variant="destructive" className="flex items-start gap-2">
+                  <X className="h-5 w-5 mt-0.5" />
+                  <div>
+                    <AlertTitle>Duplicate Entries</AlertTitle>
+                    <AlertDescription>
+                      Duplicate entries found in rows:{" "}
+                      {importResponse.duplicateRows?.join(", ")}
+                    </AlertDescription>
+                  </div>
+                </Alert>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </SideBarLayout>
   );
 }

@@ -44,6 +44,7 @@ import {
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { FileSpreadsheet, Upload, AlertCircle, Info } from "lucide-react";
+import SideBarLayout from "@/components/sidebar/layout";
 
 interface Batch {
   id: string;
@@ -203,224 +204,228 @@ export default function ExamMarksImport() {
   };
 
   return (
-    <div className="container mx-auto p-4 md:p-6 lg:p-8">
-      <Card className="max-w-2xl mx-auto">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileSpreadsheet className="h-6 w-6" />
-            Import Exam Marks
-          </CardTitle>
-          <CardDescription>
-            Upload an Excel file containing student exam marks
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <FormField
-                control={form.control}
-                name="batchId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Batch</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a batch" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {batches.map((batch) => (
-                          <SelectItem key={batch.id} value={batch.id}>
-                            {batch.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="batchSubjectId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Subject</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      disabled={!form.watch("batchId")}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a subject" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {batchSubjects.map((subject) => (
-                          <SelectItem key={subject.id} value={subject.id}>
-                            {subject.subject.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="examTypeId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Exam Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select exam type" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {examTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>
-                            {type.examName} ({type.totalMarks} marks)
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="file"
-                render={() => (
-                  <FormItem>
-                    <FormLabel>Excel File</FormLabel>
-                    <FormControl>
-                      <Input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".xlsx"
-                        onChange={(e) => {
-                          const file = e.target.files?.[0];
-                          if (file) {
-                            form.setValue("file", file, {
-                              shouldValidate: true,
-                            });
-                          }
-                        }}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Upload an Excel file (.xlsx) containing student marks
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {uploadProgress > 0 && (
-                <div className="space-y-2">
-                  <Progress value={uploadProgress} />
-                  <p className="text-sm text-muted-foreground text-center">
-                    {uploadProgress === 100
-                      ? "Upload complete"
-                      : "Uploading..."}
-                  </p>
-                </div>
-              )}
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={form.formState.isSubmitting}
+    <SideBarLayout>
+      <div className="container mx-auto p-4 md:p-6 lg:p-8">
+        <Card className="max-w-7xl mx-auto">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileSpreadsheet className="h-6 w-6" />
+              Import Exam Marks
+            </CardTitle>
+            <CardDescription>
+              Upload an Excel file containing student exam marks
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-6"
               >
-                {form.formState.isSubmitting ? (
-                  <>
-                    <Upload className="mr-2 h-4 w-4 animate-spin" />
-                    Importing...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import Marks
-                  </>
+                <FormField
+                  control={form.control}
+                  name="batchId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Batch</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a batch" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {batches.map((batch) => (
+                            <SelectItem key={batch.id} value={batch.id}>
+                              {batch.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="batchSubjectId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Subject</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        disabled={!form.watch("batchId")}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a subject" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {batchSubjects.map((subject) => (
+                            <SelectItem key={subject.id} value={subject.id}>
+                              {subject.subject.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="examTypeId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Exam Type</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select exam type" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {examTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>
+                              {type.examName} ({type.totalMarks} marks)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="file"
+                  render={() => (
+                    <FormItem>
+                      <FormLabel>Excel File</FormLabel>
+                      <FormControl>
+                        <Input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".xlsx"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              form.setValue("file", file, {
+                                shouldValidate: true,
+                              });
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        Upload an Excel file (.xlsx) containing student marks
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {uploadProgress > 0 && (
+                  <div className="space-y-2">
+                    <Progress value={uploadProgress} />
+                    <p className="text-sm text-muted-foreground text-center">
+                      {uploadProgress === 100
+                        ? "Upload complete"
+                        : "Uploading..."}
+                    </p>
+                  </div>
                 )}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        <CardFooter>
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertTitle>Note</AlertTitle>
-            <AlertDescription>
-              Make sure your Excel file follows the required format. Download
-              the template for reference.
-            </AlertDescription>
-          </Alert>
-        </CardFooter>
-      </Card>
 
-      <AlertDialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Import Errors</AlertDialogTitle>
-            <AlertDialogDescription>
-              <div className="space-y-4">
-                {errorDetails?.errors.map((error, index) => (
-                  <Alert key={index} variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                ))}
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={form.formState.isSubmitting}
+                >
+                  {form.formState.isSubmitting ? (
+                    <>
+                      <Upload className="mr-2 h-4 w-4 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Import Marks
+                    </>
+                  )}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+          <CardFooter>
+            <Alert>
+              <Info className="h-4 w-4" />
+              <AlertTitle>Note</AlertTitle>
+              <AlertDescription>
+                Make sure your Excel file follows the required format.
+              </AlertDescription>
+            </Alert>
+          </CardFooter>
+        </Card>
 
-                {errorDetails?.missingRows.length ? (
-                  <div>
-                    <p className="font-medium">Missing Enrollment Numbers:</p>
-                    <p className="text-sm">
-                      Rows: {errorDetails.missingRows.join(", ")}
-                    </p>
-                  </div>
-                ) : null}
+        <AlertDialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Import Errors</AlertDialogTitle>
+              <AlertDialogDescription>
+                <div className="space-y-4">
+                  {errorDetails?.errors.map((error, index) => (
+                    <Alert key={index} variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  ))}
 
-                {errorDetails?.existingRows.length ? (
-                  <div>
-                    <p className="font-medium">Duplicate Entries:</p>
-                    <p className="text-sm">
-                      Rows: {errorDetails.existingRows.join(", ")}
-                    </p>
-                  </div>
-                ) : null}
+                  {errorDetails?.missingRows.length ? (
+                    <div>
+                      <p className="font-medium">Missing Enrollment Numbers:</p>
+                      <p className="text-sm">
+                        Rows: {errorDetails.missingRows.join(", ")}
+                      </p>
+                    </div>
+                  ) : null}
 
-                {errorDetails?.exceededMarksRows.length ? (
-                  <div>
-                    <p className="font-medium">Marks Exceeded:</p>
-                    <p className="text-sm">
-                      Rows: {errorDetails.exceededMarksRows.join(", ")}
-                    </p>
-                  </div>
-                ) : null}
-              </div>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction>Acknowledge</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
+                  {errorDetails?.existingRows.length ? (
+                    <div>
+                      <p className="font-medium">Duplicate Entries:</p>
+                      <p className="text-sm">
+                        Rows: {errorDetails.existingRows.join(", ")}
+                      </p>
+                    </div>
+                  ) : null}
+
+                  {errorDetails?.exceededMarksRows.length ? (
+                    <div>
+                      <p className="font-medium">Marks Exceeded:</p>
+                      <p className="text-sm">
+                        Rows: {errorDetails.exceededMarksRows.join(", ")}
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction>Acknowledge</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    </SideBarLayout>
   );
 }

@@ -336,7 +336,15 @@ const Dashboard: React.FC = () => {
                   {session?.user?.username || session?.user?.email || "User"}
                 </p>
                 <Badge variant="secondary" className="mt-1">
-                  {(session?.user as any)?.role || "Unknown role"}
+                  {session?.user.role === "COLLEGE_SUPER_ADMIN"
+                    ? "COLLEGE ADMIN"
+                    : session?.user.role === "FINANCE_MANAGER"
+                    ? "FINANCE MANAGER"
+                    : session?.user.role === "SBTE_ADMIN"
+                    ? "SBTE Administrator"
+                    : session?.user.role === "EDUCATION_DEPARTMENT"
+                    ? "EDUCATION DEPARTMENT"
+                    : session?.user.role || "SBTE"}
                 </Badge>
               </div>
             </div>

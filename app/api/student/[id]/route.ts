@@ -187,14 +187,17 @@ export async function PUT(
   try {
     const session = await getServerSession(authOptions);
 
-    // Authentication and authorization checks
+    // Check if the user is authenticated
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     if (
-      !session ||
-      !session.user ||
-      (session.user.role !== "COLLEGE_SUPER_ADMIN" &&
-        session.user.role !== "STUDENT")
+      session.user.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user.role !== "HOD" &&
+      session.user.role !== "SBTE_ADMIN"
     ) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const body = await request.json();

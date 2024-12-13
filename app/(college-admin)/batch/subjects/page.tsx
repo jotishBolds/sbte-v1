@@ -115,8 +115,15 @@ interface SubjectType {
 
 interface BatchSubject {
   id: string;
-  subject: Subject;
-  subjectType: SubjectType;
+  subject: {
+    id: string;
+    name: string;
+    code: string;
+  };
+  subjectType: {
+    id: string;
+    name: string;
+  };
   creditScore: number;
   classType: ClassType;
 }
@@ -201,7 +208,17 @@ const BatchSubjectManagement = () => {
       const response = await fetch("/api/batch");
       if (!response.ok) throw new Error("Failed to fetch batches");
       const data = await response.json();
-      setBatches(data);
+
+      // Transform batch data to flatten nested objects
+      const transformedBatches = data.map((batch: any) => ({
+        ...batch,
+        term: batch.term?.name || batch.term,
+        academicYear: batch.academicYear?.name || batch.academicYear,
+        program: batch.program?.name || batch.program,
+        batchType: batch.batchType?.name || batch.batchType,
+      }));
+
+      setBatches(transformedBatches);
     } catch (error) {
       toast({
         title: "Error",
@@ -248,8 +265,17 @@ const BatchSubjectManagement = () => {
       setIsLoading(true);
       const response = await fetch(`/api/batch/${batchId}/subject`);
       if (!response.ok) throw new Error("Failed to fetch batch subjects");
+
       const data = await response.json();
-      setBatchSubjects(data.error ? [] : data);
+
+      // Ensure data is an array and contains valid subjects
+      const validSubjects = Array.isArray(data)
+        ? data.filter(
+            (subject) => subject && subject.subject && subject.subjectType
+          )
+        : [];
+
+      setBatchSubjects(validSubjects);
     } catch (error) {
       setBatchSubjects([]);
       toast({
@@ -622,12 +648,18 @@ const BatchSubjectManagement = () => {
                           {batchSubjects.map((subject) => (
                             <TableRow key={subject.id}>
                               <TableCell className="font-medium">
-                                {subject.subject.name}
+                                {subject.subject?.name || "N/A"}
                               </TableCell>
-                              <TableCell>{subject.subject.code}</TableCell>
-                              <TableCell>{subject.subjectType.name}</TableCell>
-                              <TableCell>{subject.classType}</TableCell>
-                              <TableCell>{subject.creditScore}</TableCell>
+                              <TableCell>
+                                {subject.subject?.code || "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                {subject.subjectType?.name || "N/A"}
+                              </TableCell>
+                              <TableCell>
+                                {subject.classType || "N/A"}
+                              </TableCell>
+                              <TableCell>{subject.creditScore || 0}</TableCell>
                               <TableCell className="text-right">
                                 <div className="flex justify-end gap-2">
                                   <Button

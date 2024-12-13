@@ -55,7 +55,7 @@ const formSchema = z.object({
     .int()
     .min(1900)
     .max(new Date().getFullYear() + 5),
-  gpa: z.number().min(0).max(4).optional(),
+  gpa: z.number().min(0).max(10).optional(),
   jobStatus: z.string().optional(),
   currentEmployer: z.string().optional(),
   currentPosition: z.string().optional(),

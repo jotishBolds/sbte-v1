@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const userRole = session.user.role;
     let statistics: any = {};
     console.log(userRole);
+
     switch (userRole) {
       case "SBTE_ADMIN":
         statistics = await getSBTEAdminStatistics();
@@ -33,7 +34,11 @@ export async function GET(request: NextRequest) {
         if (session.user.departmentId) {
           statistics = await getHODStatistics(session.user.departmentId);
         }
-        console.log(statistics);
+        break;
+      case "ALUMNUS":
+        if (session.user.id) {
+          statistics = await getAlumnusStatistics(session.user.id);
+        }
         break;
       case "TEACHER":
         if (session.user.id) {
@@ -44,6 +49,14 @@ export async function GET(request: NextRequest) {
         if (session.user.id) {
           statistics = await getStudentStatistics(session.user.id);
         }
+        break;
+      case "FINANCE_MANAGER":
+        if (session.user.id) {
+          statistics = await getFinanceManagerStatistics(session.user.id);
+        }
+        break;
+      case "EDUCATION_DEPARTMENT":
+        statistics = await getEducationDepartmentStatistics();
         break;
       default:
         return NextResponse.json(
@@ -254,5 +267,105 @@ async function getStudentStatistics(userId: string) {
     totalSubjects,
     averageAttendance: Math.round(averageAttendance * 100) / 100,
     averageScore: Math.round(averageScore * 100) / 100,
+  };
+}
+
+async function getAlumnusStatistics(userId: string) {
+  const alumnus = await prisma.alumnus.findUnique({
+    where: { userId },
+    include: {
+      department: true,
+      program: true,
+      batchYear: true,
+      admissionYear: true,
+    },
+  });
+
+  if (!alumnus) {
+    throw new Error("Alumnus not found");
+  }
+
+  return {
+    name: alumnus.name,
+    department: alumnus.department.name,
+    program: alumnus.program.name,
+    batchYear: alumnus.batchYear.year,
+    admissionYear: alumnus.admissionYear.year,
+    graduationYear: alumnus.graduationYear,
+    jobStatus: alumnus.jobStatus,
+    currentEmployer: alumnus.currentEmployer,
+    currentPosition: alumnus.currentPosition,
+    industry: alumnus.industry,
+    gpa: alumnus.gpa,
+    verified: alumnus.verified,
+  };
+}
+async function getFinanceManagerStatistics(userId: string) {
+  const financeManager = await prisma.financeManager.findUnique({
+    where: { userId },
+    include: { college: true },
+  });
+
+  if (!financeManager) {
+    throw new Error("Finance Manager not found");
+  }
+
+  const totalFeePayments = await prisma.feePayment.count({
+    where: { student: { collegeId: financeManager.collegeId } },
+  });
+
+  const totalPendingPayments = await prisma.feePayment.count({
+    where: {
+      student: { collegeId: financeManager.collegeId },
+      paymentStatus: "PENDING",
+    },
+  });
+
+  const totalCompletedPayments = await prisma.feePayment.count({
+    where: {
+      student: { collegeId: financeManager.collegeId },
+      paymentStatus: "COMPLETED",
+    },
+  });
+
+  const totalRevenue = await prisma.feePayment.aggregate({
+    where: {
+      student: { collegeId: financeManager.collegeId },
+      paymentStatus: "COMPLETED",
+    },
+    _sum: { amount: true },
+  });
+
+  const totalExamFees = await prisma.studentBatchExamFee.aggregate({
+    where: {
+      studentBatch: {
+        student: { collegeId: financeManager.collegeId },
+      },
+    },
+    _sum: { examFee: true },
+  });
+
+  return {
+    totalFeePayments,
+    totalPendingPayments,
+    totalCompletedPayments,
+    totalRevenue: totalRevenue._sum.amount || 0,
+    totalExamFees: totalExamFees._sum.examFee || 0,
+  };
+}
+
+async function getEducationDepartmentStatistics() {
+  const totalColleges = await prisma.college.count();
+  const totalDepartments = await prisma.department.count();
+  const totalPrograms = await prisma.program.count();
+  const totalStudents = await prisma.student.count();
+  const totalTeachers = await prisma.teacher.count();
+
+  return {
+    totalColleges,
+    totalDepartments,
+    totalPrograms,
+    totalStudents,
+    totalTeachers,
   };
 }

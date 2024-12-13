@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
             rowData["name"] = cellValue;
             break;
           case 5:
-            rowData["enrollmentNo"] = cellValue;
+            rowData["enrollmentNo"] = cellValue?.toString();
             break;
           case 6:
             rowData["dob"] = cellValue;
