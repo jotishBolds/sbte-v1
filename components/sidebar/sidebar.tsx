@@ -100,8 +100,36 @@ export const Sidebar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
+  const [collegeLogo, setCollegeLogo] = useState<string | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch college logo if available
+
+  // Fetch all colleges and find the matching college logo
+  useEffect(() => {
+    if (session?.user?.collegeId) {
+      fetch("/api/colleges")
+        .then((response) => {
+          if (!response.ok) {
+            throw new Error("Failed to fetch colleges");
+          }
+          return response.json();
+        })
+        .then((data) => {
+          const college = data.find(
+            (college: any) => college.id === session.user.collegeId
+          );
+          if (college?.logo) {
+            setCollegeLogo(college.logo);
+          }
+        })
+        .catch((error) => {
+          console.error("Error fetching college logo:", error);
+          setCollegeLogo(null);
+        });
+    }
+  }, [session?.user?.collegeId]);
 
   // Memoize role-based links to prevent unnecessary re-renders
   const roleBasedLinks = useMemo((): NavLinkType[] => {
@@ -590,7 +618,15 @@ export const Sidebar: React.FC = () => {
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
         <div className="flex flex-col">
-          <p className="font-semibold text-lg">{session.user.username}</p>
+          {session.user.role === "COLLEGE_SUPER_ADMIN" && collegeLogo ? (
+            <img
+              src={collegeLogo}
+              alt="College Logo"
+              className="h-24 w-24 object-contain rounded-full mb-2"
+            />
+          ) : (
+            <p className="font-semibold text-lg">{session.user.username}</p>
+          )}
           <Badge variant="default" className="mt-1 self-start">
             {session.user.role === "COLLEGE_SUPER_ADMIN"
               ? "COLLEGE ADMIN"

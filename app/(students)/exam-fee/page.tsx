@@ -74,6 +74,8 @@ const BatchExamFees: React.FC = () => {
   );
   const [isPaymentProcessing, setIsPaymentProcessing] =
     React.useState<boolean>(false);
+  const [showSuccessMessage, setShowSuccessMessage] =
+    React.useState<boolean>(false);
 
   // Fetch student ID and prefill data
   React.useEffect(() => {
@@ -294,7 +296,8 @@ const BatchExamFees: React.FC = () => {
               setBatchFees(processedBatchFees);
               setSelectedFees([]);
               setIsPaymentDialogOpen(false);
-              alert("Payment successful and verified!");
+              setShowSuccessMessage(true); // Show success message
+              setTimeout(() => setShowSuccessMessage(false), 5000); // Hide after 5 seconds
             } else {
               alert("Failed to update payment data.");
             }
@@ -577,6 +580,17 @@ const BatchExamFees: React.FC = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Success Message */}
+        {showSuccessMessage && (
+          <Alert className="fixed bottom-4 right-4 w-auto max-w-sm">
+            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <AlertTitle>Success</AlertTitle>
+            <AlertDescription>
+              Payment successful and verified!
+            </AlertDescription>
+          </Alert>
+        )}
       </Card>
     </SideBarLayout>
   );

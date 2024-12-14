@@ -1,3 +1,5 @@
+//File : /api/colleges/route.ts
+
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
@@ -17,6 +19,8 @@ interface CollegeCreationData {
   AccountNo?: string;
   AccountHolderName?: string;
   UPIID?: string;
+  logo?: string;
+  abbreviation?: string;
   username?: string;
   superAdminEmail: string;
   superAdminPassword: string;
@@ -26,7 +30,11 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user?.role !== "SBTE_ADMIN") {
+    if (
+      !session ||
+      (session.user?.role !== "SBTE_ADMIN" &&
+        session.user?.role !== "COLLEGE_SUPER_ADMIN")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
@@ -72,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     // Create new college and super admin user in a transaction
     const result = await prisma.$transaction(async (prisma) => {
-      // Create the college with all fields including banking details
+      // Create the college with all fields including banking details, logo, and abbreviation
       const newCollege = await prisma.college.create({
         data: {
           name: data.name,
@@ -85,6 +93,8 @@ export async function POST(request: NextRequest) {
           AccountNo: data.AccountNo,
           AccountHolderName: data.AccountHolderName,
           UPIID: data.UPIID,
+          logo: data.logo,
+          abbreviation: data.abbreviation,
         },
       });
 
@@ -126,7 +136,11 @@ export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user?.role !== "SBTE_ADMIN") {
+    if (
+      !session ||
+      (session.user?.role !== "SBTE_ADMIN" &&
+        session.user.role !== "COLLEGE_SUPER_ADMIN")
+    ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 

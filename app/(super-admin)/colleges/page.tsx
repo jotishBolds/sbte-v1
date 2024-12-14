@@ -7,8 +7,8 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardContent,
   CardDescription,
+  CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,10 +23,9 @@ import {
   Phone,
   Calendar,
   MapPin,
-  CreditCard,
-  User,
-  Wallet,
+  Upload,
   School,
+  Eye,
 } from "lucide-react";
 import SideBarLayout from "@/components/sidebar/layout";
 import { ClipLoader } from "react-spinners";
@@ -48,6 +47,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import CollegeViewModal from "./view-details";
 
 interface College {
   id: string;
@@ -61,6 +61,8 @@ interface College {
   AccountNo?: string;
   AccountHolderName?: string;
   UPIID?: string;
+  logo?: string;
+  abbreviation: string;
 }
 
 const CollegesPage: React.FC = () => {
@@ -72,6 +74,15 @@ const CollegesPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [viewingCollege, setViewingCollege] = useState<College | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+  const handleView = (college: College) => {
+    setViewingCollege(college);
+    setIsViewModalOpen(true);
+  };
 
   useEffect(() => {
     fetchColleges();
@@ -106,9 +117,43 @@ const CollegesPage: React.FC = () => {
     }
   };
 
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif"];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      if (!validTypes.includes(file.type)) {
+        setError("Invalid file type. Please upload a valid image file.");
+        return;
+      }
+
+      if (file.size > maxSize) {
+        setError("File size too large. Maximum size is 5MB.");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      setLogoFile(file);
+      setError(null);
+    }
+  };
+
   const handleEdit = (college: College) => {
-    setEditingCollege(college);
+    setEditingCollege({
+      ...college,
+      establishedOn: new Date(college.establishedOn)
+        .toISOString()
+        .split("T")[0],
+    });
     setIsEditModalOpen(true);
+    setLogoFile(null);
+    setLogoPreview(college.logo || null);
   };
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -117,22 +162,54 @@ const CollegesPage: React.FC = () => {
 
     setIsLoading(true);
     try {
+      let logoPath = editingCollege.logo;
+
+      if (logoFile) {
+        const logoFormData = new FormData();
+        logoFormData.append("logo", logoFile);
+        logoFormData.append("abbreviation", editingCollege.abbreviation);
+
+        const logoResponse = await fetch("/api/colleges/logoUpload", {
+          method: "POST",
+          body: logoFormData,
+        });
+
+        if (!logoResponse.ok) {
+          const errorData = await logoResponse.json();
+          throw new Error(errorData.error || "Failed to upload logo");
+        }
+
+        const logoData = await logoResponse.json();
+        logoPath = logoData.logoPath;
+      }
+
+      const updateData = {
+        ...editingCollege,
+        logo: logoPath,
+      };
+
       const response = await fetch(`/api/colleges/${editingCollege.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(editingCollege),
+        body: JSON.stringify(updateData),
       });
+
       if (!response.ok) throw new Error("Failed to update college");
 
       setColleges(
         colleges.map((college) =>
-          college.id === editingCollege.id ? editingCollege : college
+          college.id === editingCollege.id ? updateData : college
         )
       );
+
       setIsEditModalOpen(false);
       setEditingCollege(null);
+      setLogoFile(null);
+      setLogoPreview(null);
     } catch (err) {
-      setError("Failed to update college");
+      setError(
+        err instanceof Error ? err.message : "An unexpected error occurred"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -169,7 +246,7 @@ const CollegesPage: React.FC = () => {
               </div>
               <Button
                 onClick={() => router.push("/collage-creation")}
-                className="bg-green-500 hover:bg-green-600 text-white w-full md:w-auto"
+                className=" w-full md:w-auto"
               >
                 <PlusCircle className="mr-2 h-4 w-4" /> Add New College
               </Button>
@@ -202,10 +279,22 @@ const CollegesPage: React.FC = () => {
                     key={college.id}
                     className="hover:shadow-xl transition-shadow"
                   >
-                    <CardHeader>
-                      <CardTitle className="text-lg font-semibold">
-                        {college.name}
-                      </CardTitle>
+                    <CardHeader className="flex flex-row items-center space-x-4">
+                      {college.logo && (
+                        <img
+                          src={college.logo}
+                          alt={`${college.name} logo`}
+                          className="h-16 w-16 object-contain rounded-md"
+                        />
+                      )}
+                      <div>
+                        <CardTitle className="text-lg font-semibold">
+                          {college.name}
+                        </CardTitle>
+                        <p className="text-sm text-muted-foreground">
+                          {college.abbreviation}
+                        </p>
+                      </div>
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="flex items-start gap-2">
@@ -248,19 +337,15 @@ const CollegesPage: React.FC = () => {
                         </div>
                       )}
                       <div className="flex justify-end gap-2 pt-4">
-                        <Button
-                          onClick={() => handleEdit(college)}
-                          className="bg-blue-500 hover:bg-blue-600 text-white"
-                          size="sm"
-                        >
+                        <Button onClick={() => handleView(college)} size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button onClick={() => handleEdit(college)} size="sm">
                           <Edit className="h-4 w-4" />
                         </Button>
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
-                            <Button
-                              className="bg-red-500 hover:bg-red-600 text-white"
-                              size="sm"
-                            >
+                            <Button size="sm">
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </AlertDialogTrigger>
@@ -302,6 +387,32 @@ const CollegesPage: React.FC = () => {
           </DialogHeader>
           {editingCollege && (
             <form onSubmit={handleUpdate} className="space-y-6">
+              <div className="flex items-center space-x-4 mb-4">
+                <Input
+                  type="file"
+                  accept=".jpg,.jpeg,.png,.gif"
+                  className="hidden"
+                  id="logo-upload"
+                  onChange={handleLogoChange}
+                />
+                <label
+                  htmlFor="logo-upload"
+                  className="flex items-center cursor-pointer 
+                    bg-primary text-primary-foreground 
+                    hover:bg-primary/90 px-4 py-2 rounded-md"
+                >
+                  <Upload className="mr-2 h-4 w-4" />
+                  Update Logo
+                </label>
+                {(logoPreview || editingCollege.logo) && (
+                  <img
+                    src={logoPreview || editingCollege.logo}
+                    alt="Logo Preview"
+                    className="h-20 w-20 object-contain rounded-md"
+                  />
+                )}
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="name">College Name</Label>
@@ -312,6 +423,20 @@ const CollegesPage: React.FC = () => {
                       setEditingCollege({
                         ...editingCollege,
                         name: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="abbreviation">Abbreviation</Label>
+                  <Input
+                    id="name"
+                    value={editingCollege.abbreviation}
+                    onChange={(e) =>
+                      setEditingCollege({
+                        ...editingCollege,
+                        abbreviation: e.target.value,
                       })
                     }
                     required
@@ -503,6 +628,12 @@ const CollegesPage: React.FC = () => {
           <PlusCircle className="h-6 w-6" />
         </Button>
       </div>
+
+      <CollegeViewModal
+        college={viewingCollege}
+        isOpen={isViewModalOpen}
+        onClose={() => setIsViewModalOpen(false)}
+      />
     </SideBarLayout>
   );
 };

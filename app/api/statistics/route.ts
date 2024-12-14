@@ -310,47 +310,113 @@ async function getFinanceManagerStatistics(userId: string) {
     throw new Error("Finance Manager not found");
   }
 
-  const totalFeePayments = await prisma.feePayment.count({
-    where: { student: { collegeId: financeManager.collegeId } },
-  });
-
-  const totalPendingPayments = await prisma.feePayment.count({
+  const totalFees = await prisma.payment.aggregate({
     where: {
-      student: { collegeId: financeManager.collegeId },
-      paymentStatus: "PENDING",
-    },
-  });
-
-  const totalCompletedPayments = await prisma.feePayment.count({
-    where: {
-      student: { collegeId: financeManager.collegeId },
-      paymentStatus: "COMPLETED",
-    },
-  });
-
-  const totalRevenue = await prisma.feePayment.aggregate({
-    where: {
-      student: { collegeId: financeManager.collegeId },
-      paymentStatus: "COMPLETED",
-    },
-    _sum: { amount: true },
-  });
-
-  const totalExamFees = await prisma.studentBatchExamFee.aggregate({
-    where: {
-      studentBatch: {
-        student: { collegeId: financeManager.collegeId },
+      studentBatchExamFees: {
+        some: {
+          studentBatch: {
+            student: {
+              user: {
+                collegeId: financeManager.collegeId,
+              },
+            },
+          },
+        },
       },
     },
-    _sum: { examFee: true },
+    _sum: {
+      amount: true,
+    },
   });
+  const totalFeePayments = totalFees._sum.amount || 0;
+
+  const totalPendingExamFee = await prisma.studentBatchExamFee.aggregate({
+    where: {
+      studentBatch: {
+        student: {
+          user: {
+            collegeId: financeManager.collegeId,
+          },
+        },
+      },
+      paymentStatus: "PENDING",
+    },
+    _sum: {
+      examFee: true,
+    },
+  });
+  const totalPendingPayments = totalPendingExamFee._sum.examFee || 0;
+
+  const totalCompletedExamFee = await prisma.studentBatchExamFee.aggregate({
+    where: {
+      studentBatch: {
+        student: {
+          user: {
+            collegeId: financeManager.collegeId,
+          },
+        },
+      },
+      paymentStatus: "COMPLETED",
+    },
+    _sum: {
+      examFee: true,
+    },
+  });
+  const totalCompletedPayments = totalCompletedExamFee._sum.examFee || 0;
+
+  const totalExamFee = await prisma.studentBatchExamFee.aggregate({
+    where: {
+      studentBatch: {
+        student: {
+          user: {
+            collegeId: financeManager.collegeId,
+          },
+        },
+      },
+    },
+    _sum: {
+      examFee: true,
+    },
+  });
+  const totalExamFees = totalExamFee._sum.examFee || 0;
+
+  // const totalExamFees = await prisma.studentBatchExamFee.aggregate({
+  //   where: {
+  //     studentBatch: {
+  //       student: { collegeId: financeManager.collegeId },
+  //     },
+  //   },
+  //   _sum: { examFee: true },
+  // });
+
+  // const totalPendingPayments = await prisma.feePayment.count({
+  //   where: {
+  //     student: { collegeId: financeManager.collegeId },
+  //     paymentStatus: "PENDING",
+  //   },
+  // });
+
+  // const totalCompletedPayments = await prisma.feePayment.count({
+  //   where: {
+  //     student: { collegeId: financeManager.collegeId },
+  //     paymentStatus: "COMPLETED",
+  //   },
+  // });
+
+  // const totalRevenue = await prisma.feePayment.aggregate({
+  //   where: {
+  //     student: { collegeId: financeManager.collegeId },
+  //     paymentStatus: "COMPLETED",
+  //   },
+  //   _sum: { amount: true },
+  // });
 
   return {
     totalFeePayments,
     totalPendingPayments,
     totalCompletedPayments,
-    totalRevenue: totalRevenue._sum.amount || 0,
-    totalExamFees: totalExamFees._sum.examFee || 0,
+    // totalRevenue: totalRevenue._sum.amount || 0,
+    totalExamFees: totalExamFees || 0,
   };
 }
 

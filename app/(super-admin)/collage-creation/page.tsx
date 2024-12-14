@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import SideBarLayout from "@/components/sidebar/layout";
+import { Upload } from "lucide-react";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -42,6 +43,11 @@ const formSchema = z.object({
   AccountNo: z.string().optional().or(z.literal("")),
   AccountHolderName: z.string().optional().or(z.literal("")),
   UPIID: z.string().optional().or(z.literal("")),
+  abbreviation: z
+    .string()
+    .min(2, { message: "Abbreviation must be at least 2 characters." })
+    .max(10, { message: "Abbreviation must be at most 10 characters." }),
+  logo: z.instanceof(File).optional(),
   superAdminEmail: z
     .string()
     .email({ message: "Please enter a valid email for the Super Admin." }),
@@ -59,7 +65,9 @@ const CreateCollegePage: React.FC = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
-
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -73,6 +81,7 @@ const CreateCollegePage: React.FC = () => {
       AccountNo: "",
       AccountHolderName: "",
       UPIID: "",
+      abbreviation: "",
       superAdminEmail: "",
       superAdminPassword: "",
       username: "",
@@ -88,16 +97,77 @@ const CreateCollegePage: React.FC = () => {
     return null;
   }
 
+  const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type and size
+      const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif"];
+      const maxSize = 5 * 1024 * 1024; // 5MB
+
+      if (!validTypes.includes(file.type)) {
+        setError("Invalid file type. Please upload a valid image file.");
+        return;
+      }
+
+      if (file.size > maxSize) {
+        setError("File size too large. Maximum size is 5MB.");
+        return;
+      }
+
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+
+      // Set file for upload
+      setLogoFile(file);
+      form.setValue("logo", file);
+      setError(null);
+    }
+  };
+
   const onSubmit = async (values: FormValues) => {
+    setIsLoading(true);
     setError(null);
 
     try {
+      let logoPath = "";
+
+      // Upload logo if exists
+      if (logoFile) {
+        const logoFormData = new FormData();
+        logoFormData.append("logo", logoFile);
+        logoFormData.append("abbreviation", values.abbreviation);
+
+        const logoResponse = await fetch("/api/colleges/logoUpload", {
+          method: "POST",
+          body: logoFormData,
+        });
+
+        if (!logoResponse.ok) {
+          const errorData = await logoResponse.json();
+          throw new Error(errorData.error || "Failed to upload logo");
+        }
+
+        const logoData = await logoResponse.json();
+        logoPath = logoData.logoPath;
+      }
+
+      // Prepare submission data
+      const submissionData = {
+        ...values,
+        logo: logoPath,
+      };
+
+      // Submit college and super admin data
       const response = await fetch("/api/colleges", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(values),
+        body: JSON.stringify(submissionData),
       });
 
       if (!response.ok) {
@@ -112,274 +182,411 @@ const CreateCollegePage: React.FC = () => {
       setError(
         err instanceof Error ? err.message : "An unexpected error occurred"
       );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
     <SideBarLayout>
-      <div className="container mx-auto py-10">
-        <Card>
-          <CardHeader>
-            <CardTitle>Create New College and Super Admin</CardTitle>
-            <CardDescription>
-              Enter the details of the new college and its super admin below.
-            </CardDescription>
+      <div className="container mx-auto px-4 py-8 lg:py-12 max-w-7xl">
+        <Card className="shadow-xl border-none">
+          <CardHeader className="border-b  pb-6">
+            <div className="flex flex-col md:flex-row items-center justify-between space-y-4 md:space-y-0">
+              <div>
+                <CardTitle className="text-2xl md:text-3xl font-semibold ">
+                  Create New College
+                </CardTitle>
+                <CardDescription className="mt-2">
+                  Configure comprehensive college details and admin account
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent>
+
+          <CardContent className="pt-8">
             {error && (
-              <Alert variant="destructive" className="mb-6">
+              <Alert variant="destructive" className="mb-6 rounded-lg">
                 <AlertTitle>Error</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             )}
+
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="space-y-8"
               >
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({
-                    field,
-                  }: {
-                    field: ControllerRenderProps<FormValues, "name">;
-                  }) => (
-                    <FormItem>
-                      <FormLabel>College Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="College name" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Enter the official name of the college.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="address"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Address</FormLabel>
-                      <FormControl>
-                        <Input placeholder="College address" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Provide the full address of the college.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="establishedOn"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Established On</FormLabel>
-                      <FormControl>
-                        <Input type="date" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Select the date when the college was established.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="websiteUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Website URL</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="url"
-                          placeholder="https://www.example.com"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Enter the college &apos; s official website URL
-                        (optional).
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="contactEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="contact@example.com"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Provide the main contact email for the college
-                        (optional).
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="contactPhone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Contact Phone</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="tel"
-                          placeholder="+1234567890"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Enter the main contact phone number for the college
-                        (optional).
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="IFSCCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>IFSC Code</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter IFSC Code" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Bank IFSC Code (optional)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                {/* College Basic Information */}
+                <div className=" p-6 rounded-lg  ">
+                  <h3 className="text-xl font-semibold  mb-6 border-b pb-3">
+                    College Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="abbreviation"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>College Abbreviation</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter college abbreviation"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Short, unique identifier (2-10 characters)
+                          </FormDescription>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="AccountNo"
-                  render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Account Number</FormLabel>
+                      <FormLabel>College Logo</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter Account Number" {...field} />
+                        <div className="flex items-center space-x-4">
+                          <Input
+                            type="file"
+                            accept=".jpg,.jpeg,.png,.gif"
+                            className="hidden"
+                            id="logo-upload"
+                            onChange={handleLogoChange}
+                          />
+                          <label
+                            htmlFor="logo-upload"
+                            className="flex items-center justify-center 
+                            cursor-pointer bg-primary text-white 
+                            hover:bg-primary/90 px-4 py-2 rounded-md 
+                            transition-colors duration-200 w-full"
+                          >
+                            <Upload className="mr-2 h-4 w-4" />
+                            Upload Logo
+                          </label>
+                          {logoPreview && (
+                            <img
+                              src={logoPreview}
+                              alt="Logo Preview"
+                              className="h-16 w-16 md:h-20 md:w-20 object-cover rounded-md border"
+                            />
+                          )}
+                        </div>
                       </FormControl>
-                      <FormDescription>
-                        Bank Account Number (optional)
+                      <FormDescription className="text-xs">
+                        Max 5MB, JPG, PNG, GIF formats
                       </FormDescription>
-                      <FormMessage />
                     </FormItem>
-                  )}
-                />
+                  </div>
 
-                <FormField
-                  control={form.control}
-                  name="AccountHolderName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Account Holder Name</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Enter Account Holder Name"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Bank Account Holder Name (optional)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>College Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Full college name"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
 
-                <FormField
-                  control={form.control}
-                  name="UPIID"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>UPI ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter UPI ID" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        UPI Payment ID (optional)
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="superAdminEmail"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Super Admin Email</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          placeholder="superadmin@example.com"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Enter the email for the College Super Admin account.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="superAdminPassword"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Super Admin Password</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="password"
-                          placeholder="********"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Enter a strong password for the College Super Admin
-                        account.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Username</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter username" {...field} />
-                      </FormControl>
-                      <FormDescription>
-                        Choose a username for the College Super Admin account.
-                      </FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <Button type="submit">Create College and Super Admin</Button>
+                    <FormField
+                      control={form.control}
+                      name="address"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Full Address</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Complete college address"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  {/* Added Established On and Website URL Fields */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                    <FormField
+                      control={form.control}
+                      name="establishedOn"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Established On</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="date"
+                              placeholder="Select date"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Date when the college was established
+                          </FormDescription>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="websiteUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Website URL</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="https://www.college.edu"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Official college website
+                          </FormDescription>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Contact and Financial Information */}
+                <div className=" p-6 rounded-lg ">
+                  <h3 className="text-xl font-semibold  mb-6 border-b pb-3">
+                    Contact & Financial Details
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="contactEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="official@college.edu"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Primary institutional email
+                          </FormDescription>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="contactPhone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Contact Number</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="tel"
+                              placeholder="+91 (XXX) XXX-XXXX"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Official contact number
+                          </FormDescription>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <FormField
+                      control={form.control}
+                      name="IFSCCode"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>IFSC Code</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="BANK0001234"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormDescription>Bank IFSC code</FormDescription>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="AccountNo"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Account Number</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="XXXXXXXXXX"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Institutional account
+                          </FormDescription>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="AccountHolderName"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Account Holder Name</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="Enter account holder name"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Name of the account holder
+                          </FormDescription>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                    <FormField
+                      control={form.control}
+                      name="UPIID"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>UPI ID</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="college@upi"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormDescription>Payment identifier</FormDescription>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                </div>
+
+                {/* Super Admin Credentials */}
+                <div className="p-6 rounded-lg ">
+                  <h3 className="text-xl font-semibold  mb-6 border-b pb-3">
+                    Super Admin Account
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <FormField
+                      control={form.control}
+                      name="superAdminEmail"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Admin Email</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="email"
+                              placeholder="admin@college.edu"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Primary administrative email
+                          </FormDescription>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Username</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="college_admin"
+                              {...field}
+                              className="w-full "
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Choose a unique username
+                          </FormDescription>
+                          <FormMessage className="text-red-500" />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="superAdminPassword"
+                    render={({ field }) => (
+                      <FormItem className="mt-6">
+                        <FormLabel>Admin Password</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="password"
+                            placeholder="Strong password"
+                            {...field}
+                            className="w-full "
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Minimum 8 characters, include uppercase, lowercase,
+                          numbers
+                        </FormDescription>
+                        <FormMessage className="text-red-500" />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="flex justify-center mt-8 w-full">
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white mr-2"></div>
+                        Loading...
+                      </div>
+                    ) : (
+                      "Create College & Admin Account"
+                    )}
+                  </Button>
+                </div>
               </form>
             </Form>
           </CardContent>
