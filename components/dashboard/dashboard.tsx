@@ -73,11 +73,7 @@ const StatCard: React.FC<StatCardProps> = ({
       <div>
         <p className="text-sm font-medium text-gray-500">{title}</p>
         <p className={`text-2xl font-bold text-${color}-600`}>
-          {title.includes("Fee") ||
-          title.includes("Revenue") ||
-          title.includes("Payment")
-            ? `₹${value}`
-            : value}
+          {title.includes("Payment") ? `₹${value}` : value}
         </p>
       </div>
     </CardContent>

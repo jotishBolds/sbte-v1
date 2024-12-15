@@ -215,6 +215,7 @@ async function getStudentStatistics(userId: string) {
               batchSubjects: true,
             },
           },
+          StudentBatchExamFee: true,
         },
       },
       monthlyAttendance: {
@@ -222,7 +223,11 @@ async function getStudentStatistics(userId: string) {
           monthlyBatchSubjectClasses: true,
         },
       },
-      examMarks: true,
+      examMarks: {
+        include: {
+          examType: true,
+        },
+      },
     },
   });
 
@@ -237,36 +242,185 @@ async function getStudentStatistics(userId: string) {
 
   const averageAttendance =
     student.monthlyAttendance.length > 0
-      ? student.monthlyAttendance.reduce((sum, att) => {
-          const totalTheory =
-            att.monthlyBatchSubjectClasses.totalTheoryClasses ?? 0;
-          const totalPractical =
-            att.monthlyBatchSubjectClasses.totalPracticalClasses ?? 0;
-          const totalClasses = totalTheory + totalPractical;
+      ? (() => {
+          let totalAttendedClasses = 0;
+          let totalClasses = 0;
 
-          // Avoid division by zero
-          if (totalClasses === 0) return sum;
+          student.monthlyAttendance.forEach((att) => {
+            const totalTheory =
+              att.monthlyBatchSubjectClasses.totalTheoryClasses ?? 0;
+            const totalPractical =
+              att.monthlyBatchSubjectClasses.totalPracticalClasses ?? 0;
+            const attendedTheory = att.attendedTheoryClasses ?? 0;
+            const attendedPractical = att.attendedPracticalClasses ?? 0;
 
-          return (
-            sum +
-            (att.attendedTheoryClasses + att.attendedPracticalClasses) /
-              totalClasses
-          );
-        }, 0) / student.monthlyAttendance.length
+            const monthTotalClasses = totalTheory + totalPractical;
+
+            if (monthTotalClasses > 0) {
+              totalClasses += monthTotalClasses;
+              totalAttendedClasses += attendedTheory + attendedPractical;
+            }
+          });
+
+          return totalClasses > 0
+            ? (totalAttendedClasses / totalClasses) * 100
+            : 0;
+        })()
       : 0;
 
   const averageScore =
     student.examMarks.length > 0
-      ? student.examMarks.reduce(
-          (sum, mark) => sum + Number(mark.achievedMarks),
-          0
-        ) / student.examMarks.length
+      ? (() => {
+          let totalPercentage = 0;
+          let validEntries = 0;
+
+          student.examMarks.forEach((examMark) => {
+            if (
+              examMark.wasAbsent ||
+              examMark.debarred ||
+              examMark.malpractice
+            ) {
+              return;
+            }
+
+            const totalMarks = examMark.examType.totalMarks.toNumber();
+            const achievedMarks = examMark.achievedMarks.toNumber();
+
+            if (totalMarks > 0) {
+              const percentage = (achievedMarks / totalMarks) * 100;
+              totalPercentage += percentage;
+              validEntries++;
+            }
+          });
+
+          return validEntries > 0 ? totalPercentage / validEntries : 0;
+        })()
       : 0;
+
+  // Calculate fees data
+  const feesData = student.studentBatches.reduce(
+    (acc, studentBatch) => {
+      const pendingFees = studentBatch.StudentBatchExamFee.filter(
+        (fee) => fee.paymentStatus === "PENDING"
+      );
+
+      const totalPendingAmount = pendingFees.reduce(
+        (sum, fee) => sum + fee.examFee,
+        0
+      );
+
+      const completedFees = studentBatch.StudentBatchExamFee.filter(
+        (fee) => fee.paymentStatus === "COMPLETED"
+      );
+
+      const totalCompletedAmount = completedFees.reduce(
+        (sum, fee) => sum + fee.examFee,
+        0
+      );
+
+      acc.totalPendingAmount += totalPendingAmount;
+      acc.totalCompletedAmount += totalCompletedAmount;
+      acc.pendingFeesCount += pendingFees.length; // Count of PENDING fees
+
+      return acc;
+    },
+    { totalPendingAmount: 0, totalCompletedAmount: 0, pendingFeesCount: 0 }
+  );
+
+  // Fetch the latest batch
+  const latestBatch = student.studentBatches.sort((a, b) =>
+    a.batch.createdAt > b.batch.createdAt ? -1 : 1
+  )[0]; // Assuming createdAt is the key to identify the latest batch
+
+  let latestBatchAverageAttendance = 0;
+  let latestBatchAverageScore = 0;
+
+  if (latestBatch) {
+    // Fetch exam marks for the latest batch
+    const latestBatchSubjects = latestBatch.batch.batchSubjects;
+
+    const latestBatchExamMarks = await prisma.examMark.findMany({
+      where: {
+        studentId: student.id,
+        batchSubjectId: {
+          in: latestBatchSubjects.map((subject) => subject.id),
+        },
+      },
+      include: {
+        examType: true,
+      },
+    });
+
+    if (latestBatchExamMarks.length > 0) {
+      let totalMarksPercentage = 0;
+      let validEntries = 0;
+
+      latestBatchExamMarks.forEach((examMark) => {
+        if (
+          !examMark.wasAbsent &&
+          !examMark.debarred &&
+          !examMark.malpractice
+        ) {
+          const totalMarks = examMark.examType.totalMarks.toNumber();
+          const totalAchieved = examMark.achievedMarks.toNumber();
+          totalMarksPercentage += (totalAchieved / totalMarks) * 100;
+          validEntries++;
+        }
+      });
+
+      latestBatchAverageScore = totalMarksPercentage / validEntries;
+    }
+    // Fetch attendance for the latest batch
+    const latestBatchAttendance =
+      await prisma.monthlyBatchSubjectAttendance.findMany({
+        where: {
+          studentId: student.id,
+          monthlyBatchSubjectClasses: {
+            batchSubjectId: {
+              in: latestBatchSubjects.map((subject) => subject.id),
+            },
+          },
+        },
+        include: {
+          monthlyBatchSubjectClasses: true,
+        },
+      });
+
+    if (latestBatchAttendance.length > 0) {
+      let totalAttendedClasses = 0;
+      let totalClasses = 0;
+
+      latestBatchAttendance.forEach((att) => {
+        const totalTheory =
+          att.monthlyBatchSubjectClasses.totalTheoryClasses ?? 0;
+        const totalPractical =
+          att.monthlyBatchSubjectClasses.totalPracticalClasses ?? 0;
+        const attendedTheory = att.attendedTheoryClasses ?? 0;
+        const attendedPractical = att.attendedPracticalClasses ?? 0;
+
+        const monthTotalClasses = totalTheory + totalPractical;
+
+        if (monthTotalClasses > 0) {
+          totalClasses += monthTotalClasses;
+          totalAttendedClasses += attendedTheory + attendedPractical;
+        }
+      });
+
+      latestBatchAverageAttendance =
+        totalClasses > 0 ? (totalAttendedClasses / totalClasses) * 100 : 0;
+    }
+  }
 
   return {
     totalSubjects,
     averageAttendance: Math.round(averageAttendance * 100) / 100,
     averageScore: Math.round(averageScore * 100) / 100,
+    totalPendingAmount: feesData.totalPendingAmount,
+    totalCompletedAmount: feesData.totalCompletedAmount,
+    pendingFeesCount: feesData.pendingFeesCount,
+    latestBatchAverageAttendance:
+      Math.round(latestBatchAverageAttendance * 100) / 100,
+    latestBatchAverageScore: Math.round(latestBatchAverageScore * 100) / 100,
   };
 }
 

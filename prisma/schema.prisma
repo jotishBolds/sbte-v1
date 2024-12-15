@@ -402,21 +402,21 @@ model Subject {
   batchSubjects BatchSubject[]
 }
 
-model BatchSubject {
-  id                 String                       @id @default(cuid())
-  batch              Batch                        @relation(fields: [batchId], references: [id])
-  batchId            String
-  subject            Subject                      @relation(fields: [subjectId], references: [id])
-  subjectId          String
-  subjectType        SubjectType                  @relation(fields: [subjectTypeId], references: [id])
-  subjectTypeId      String
-  creditScore        Float
-  classType          ClassType
-  teacherAssignments TeacherAssignedSubject[]
-  monthlyClasses     MonthlyBatchSubjectClasses[]
-  examMarks          ExamMark[]
-  Feedback           Feedback[] //newChange
-}
+  model BatchSubject {
+    id                 String                       @id @default(cuid())
+    batch              Batch                        @relation(fields: [batchId], references: [id])
+    batchId            String
+    subject            Subject                      @relation(fields: [subjectId], references: [id])
+    subjectId          String
+    subjectType        SubjectType                  @relation(fields: [subjectTypeId], references: [id])
+    subjectTypeId      String
+    creditScore        Float
+    classType          ClassType
+    teacherAssignments TeacherAssignedSubject[]
+    monthlyClasses     MonthlyBatchSubjectClasses[]
+    examMarks          ExamMark[]
+    Feedback           Feedback[] //newChange
+  }
 
 model MonthlyBatchSubjectClasses {
   id                        String                          @id @default(cuid())
@@ -454,7 +454,10 @@ model StudentBatch {
   batchId             String
   batchStatus         BatchStatus
   StudentBatchExamFee StudentBatchExamFee[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime?              @updatedAt
 }
+
 
 model Payment {
   id                   String                @id @default(cuid())
