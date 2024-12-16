@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,6 +26,7 @@ import {
 } from "lucide-react";
 import { ClipLoader } from "react-spinners";
 import { useTheme } from "next-themes";
+import { ForgotPasswordModal } from "./forgot-pass";
 
 interface LoginFormData {
   email: string;
@@ -69,6 +69,8 @@ export default function LoginPage() {
   const [otpResendCountdown, setOtpResendCountdown] = useState<number>(0);
   const [userAnswer, setUserAnswer] = useState<string>("");
   const [rememberMe, setRememberMe] = useState<boolean>(false);
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] =
+    useState<boolean>(false);
   const router = useRouter();
 
   // OTP Resend Countdown Effect
@@ -306,12 +308,13 @@ export default function LoginPage() {
                   Remember me
                 </Label>
               </div>
-              {/* <Link
-                href="/forgot-password"
+              <Button
+                variant="link"
+                onClick={() => setIsForgotPasswordModalOpen(true)}
                 className="text-sm font-medium text-primary hover:text-primary/80 transition-colors"
               >
                 Forgot password?
-              </Link> */}
+              </Button>
             </div>
 
             <div className="space-y-3">
@@ -348,7 +351,7 @@ export default function LoginPage() {
 
             <Button
               type="submit"
-              className="w-full group transition-all duration-300 ease-in-out hover:scale-105 hover:shadow-lg"
+              className="w-full "
               size="lg"
               disabled={isLoading}
             >
@@ -367,6 +370,10 @@ export default function LoginPage() {
           </span>
         </CardFooter>
       </Card>
+      <ForgotPasswordModal
+        isOpen={isForgotPasswordModalOpen}
+        onOpenChange={setIsForgotPasswordModalOpen}
+      />
     </div>
   );
 }

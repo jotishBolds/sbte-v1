@@ -77,6 +77,7 @@ import {
   PenLine,
   PenSquare,
   Check,
+  User2Icon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -151,6 +152,11 @@ export const Sidebar: React.FC = () => {
             href: "/departments",
             icon: <GraduationCapIcon size={18} />,
             label: "Departments",
+          },
+          {
+            href: "/user-creation",
+            icon: <User2Icon size={18} />,
+            label: "SBTE Users",
           },
 
           {

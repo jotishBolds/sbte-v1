@@ -63,3 +63,19 @@ export interface NotificationProps {
   notification: ExtendedNotification;
   userRole: string;
 }
+export type UserRole = "SBTE_ADMIN" | "EDUCATION_DEPARTMENT";
+
+export interface SBTEUser {
+  id: string;
+  username: string;
+  email: string;
+  role: UserRole;
+}
+
+export interface UserFormData {
+  id?: string;
+  username: string;
+  email: string;
+  password?: string;
+  role: UserRole;
+}
