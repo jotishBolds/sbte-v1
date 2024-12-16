@@ -27,7 +27,10 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
     if (!session)
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN")
+    if (
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user.role !== "ADM"
+    )
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const collegeId = session.user.collegeId;
@@ -93,7 +96,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     if (
       session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
-      session.user?.role !== "TEACHER"
+      session.user?.role !== "TEACHER" &&
+      session.user.role !== "ADM"
     )
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 

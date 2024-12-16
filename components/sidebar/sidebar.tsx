@@ -375,7 +375,6 @@ export const Sidebar: React.FC = () => {
             icon: <Users size={18} />,
             label: "Manage Users",
           },
-          { href: "/reports", icon: <FileText size={18} />, label: "Reports" },
         ];
       case "HOD":
         return [

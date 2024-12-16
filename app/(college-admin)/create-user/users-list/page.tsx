@@ -176,7 +176,7 @@ const UserManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [designations, setDesignations] = useState<TeacherDesignation[]>([]);
   const [categories, setCategories] = useState<EmployeeCategory[]>([]);
-  const itemsPerPage = 6;
+  const itemsPerPage = 10;
 
   const {
     control,
@@ -328,45 +328,35 @@ const UserManagement: React.FC = () => {
             <ScrollArea className="h-80 w-full rounded-md border">
               <div className="space-y-6">
                 {/* Personal Information Section */}
-                <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold mb-4 text-slate-800">
+                <div className=" p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-4 ">
                     Personal Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="name"
-                        className="flex items-center text-slate-700"
-                      >
-                        <FaUser className="mr-2 text-slate-500" /> Full Name
+                      <Label htmlFor="name" className="flex items-center ">
+                        <FaUser className="mr-2 " /> Full Name
                       </Label>
                       <Input
                         {...register("name")}
-                        className="border-slate-200"
+                        className=""
                         placeholder="Enter full name"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="phoneNo"
-                        className="flex items-center text-slate-700"
-                      >
-                        <FaPhone className="mr-2 text-slate-500" /> Phone Number
+                      <Label htmlFor="phoneNo" className="flex items-center ">
+                        <FaPhone className="mr-2 " /> Phone Number
                       </Label>
                       <Input
                         {...register("phoneNo")}
-                        className="border-slate-200"
                         placeholder="Enter phone number"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="gender"
-                        className="flex items-center text-slate-700"
-                      >
-                        <FaVenusMars className="mr-2 text-slate-500" /> Gender
+                      <Label htmlFor="gender" className="flex items-center ">
+                        <FaVenusMars className="mr-2 " /> Gender
                       </Label>
                       <Controller
                         name="gender"
@@ -376,7 +366,7 @@ const UserManagement: React.FC = () => {
                             onValueChange={field.onChange}
                             value={field.value}
                           >
-                            <SelectTrigger className="border-slate-200">
+                            <SelectTrigger>
                               <SelectValue placeholder="Select gender" />
                             </SelectTrigger>
                             <SelectContent>
@@ -392,10 +382,9 @@ const UserManagement: React.FC = () => {
                     <div className="space-y-2">
                       <Label
                         htmlFor="maritalStatus"
-                        className="flex items-center text-slate-700"
+                        className="flex items-center "
                       >
-                        <FaRing className="mr-2 text-slate-500" /> Marital
-                        Status
+                        <FaRing className="mr-2 " /> Marital Status
                       </Label>
                       <Controller
                         name="maritalStatus"
@@ -405,7 +394,7 @@ const UserManagement: React.FC = () => {
                             onValueChange={field.onChange}
                             value={field.value}
                           >
-                            <SelectTrigger className="border-slate-200">
+                            <SelectTrigger>
                               <SelectValue placeholder="Select marital status" />
                             </SelectTrigger>
                             <SelectContent>
@@ -423,15 +412,11 @@ const UserManagement: React.FC = () => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label
-                        htmlFor="religion"
-                        className="flex items-center text-slate-700"
-                      >
-                        <FaPray className="mr-2 text-slate-500" /> Religion
+                      <Label htmlFor="religion" className="flex items-center ">
+                        <FaPray className="mr-2 " /> Religion
                       </Label>
                       <Input
                         {...register("religion")}
-                        className="border-slate-200"
                         placeholder="Enter religion"
                       />
                     </div>
@@ -464,15 +449,12 @@ const UserManagement: React.FC = () => {
                   </div>
 
                   <div className="mt-4">
-                    <Label
-                      htmlFor="address"
-                      className="flex items-center text-slate-700"
-                    >
-                      <FaMapMarkerAlt className="mr-2 text-slate-500" /> Address
+                    <Label htmlFor="address" className="flex items-center ">
+                      <FaMapMarkerAlt className="mr-2 " /> Address
                     </Label>
                     <Textarea
                       {...register("address")}
-                      className="mt-2 border-slate-200"
+                      className="mt-2 "
                       placeholder="Enter complete address"
                       rows={3}
                     />
@@ -480,22 +462,21 @@ const UserManagement: React.FC = () => {
                 </div>
 
                 {/* Professional Information Section */}
-                <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold mb-4 text-slate-800">
+                <div className="p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-4 ">
                     Professional Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div className="space-y-2">
                       <Label
                         htmlFor="qualification"
-                        className="flex items-center text-slate-700"
+                        className="flex items-center "
                       >
-                        <FaGraduationCap className="mr-2 text-slate-500" />{" "}
-                        Qualification
+                        <FaGraduationCap className="mr-2 " /> Qualification
                       </Label>
                       <Input
                         {...register("qualification")}
-                        className="border-slate-200"
+                        className=""
                         placeholder="Enter qualification"
                       />
                     </div>
@@ -503,14 +484,13 @@ const UserManagement: React.FC = () => {
                     <div className="space-y-2">
                       <Label
                         htmlFor="experience"
-                        className="flex items-center text-slate-700"
+                        className="flex items-center "
                       >
-                        <FaBriefcase className="mr-2 text-slate-500" />{" "}
-                        Experience
+                        <FaBriefcase className="mr-2 " /> Experience
                       </Label>
                       <Input
                         {...register("experience")}
-                        className="border-slate-200"
+                        className=""
                         placeholder="Years of experience"
                       />
                     </div>
@@ -518,10 +498,9 @@ const UserManagement: React.FC = () => {
                     <div className="space-y-2">
                       <Label
                         htmlFor="designationId"
-                        className="flex items-center text-slate-700"
+                        className="flex items-center "
                       >
-                        <FaUserTag className="mr-2 text-slate-500" />{" "}
-                        Designation
+                        <FaUserTag className="mr-2 " /> Designation
                       </Label>
                       <Controller
                         name="designationId"
@@ -531,7 +510,7 @@ const UserManagement: React.FC = () => {
                             onValueChange={field.onChange}
                             value={field.value}
                           >
-                            <SelectTrigger className="border-slate-200">
+                            <SelectTrigger className="">
                               <SelectValue placeholder="Select designation" />
                             </SelectTrigger>
                             <SelectContent>
@@ -552,9 +531,9 @@ const UserManagement: React.FC = () => {
                     <div className="space-y-2">
                       <Label
                         htmlFor="categoryId"
-                        className="flex items-center text-slate-700"
+                        className="flex items-center "
                       >
-                        <FaUsers className="mr-2 text-slate-500" /> Category
+                        <FaUsers className="mr-2 " /> Category
                       </Label>
                       <Controller
                         name="categoryId"
@@ -564,7 +543,7 @@ const UserManagement: React.FC = () => {
                             onValueChange={field.onChange}
                             value={field.value}
                           >
-                            <SelectTrigger className="border-slate-200">
+                            <SelectTrigger className="">
                               <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent>
@@ -585,33 +564,31 @@ const UserManagement: React.FC = () => {
                     <div className="space-y-2">
                       <Label
                         htmlFor="joiningDate"
-                        className="flex items-center text-slate-700"
+                        className="flex items-center "
                       >
-                        <FaCalendar className="mr-2 text-slate-500" /> Joining
-                        Date
+                        <FaCalendar className="mr-2 " /> Joining Date
                       </Label>
                       <Input
                         type="date"
                         {...register("joiningDate")}
-                        className="border-slate-200"
+                        className=""
                       />
                     </div>
                   </div>
                 </div>
 
                 {/* Additional Information Section */}
-                <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
-                  <h3 className="text-lg font-semibold mb-4 text-slate-800">
+                <div className=" p-6 rounded-lg shadow-sm">
+                  <h3 className="text-lg font-semibold mb-4 ">
                     Additional Information
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="flex items-center justify-between p-4 bg-white rounded-lg">
+                    <div className="flex items-center justify-between p-4  rounded-lg">
                       <Label
                         htmlFor="hasResigned"
-                        className="flex items-center text-slate-700"
+                        className="flex items-center "
                       >
-                        <FaBriefcase className="mr-2 text-slate-500" /> Has
-                        Resigned
+                        <FaBriefcase className="mr-2 " /> Has Resigned
                       </Label>
                       <Controller
                         name="hasResigned"
@@ -625,13 +602,12 @@ const UserManagement: React.FC = () => {
                       />
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-white rounded-lg">
+                    <div className="flex items-center justify-between p-4  rounded-lg">
                       <Label
                         htmlFor="isLocalResident"
-                        className="flex items-center text-slate-700"
+                        className="flex items-center "
                       >
-                        <FaHome className="mr-2 text-slate-500" /> Local
-                        Resident
+                        <FaHome className="mr-2 " /> Local Resident
                       </Label>
                       <Controller
                         name="isLocalResident"
@@ -645,13 +621,12 @@ const UserManagement: React.FC = () => {
                       />
                     </div>
 
-                    <div className="flex items-center justify-between p-4 bg-white rounded-lg">
+                    <div className="flex items-center justify-between p-4  rounded-lg">
                       <Label
                         htmlFor="isDifferentlyAbled"
-                        className="flex items-center text-slate-700"
+                        className="flex items-center "
                       >
-                        <FaWheelchair className="mr-2 text-slate-500" />{" "}
-                        Differently Abled
+                        <FaWheelchair className="mr-2 " /> Differently Abled
                       </Label>
                       <Controller
                         name="isDifferentlyAbled"
@@ -675,49 +650,40 @@ const UserManagement: React.FC = () => {
           <ScrollArea className="h-80 w-full rounded-md border">
             <div className="space-y-6">
               {/* Personal Information Section */}
-              <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4 text-slate-800">
+              <div className=" p-6 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold mb-4 ">
                   Personal Information
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="name"
-                      className="flex items-center text-slate-700"
-                    >
-                      <FaUser className="mr-2 text-slate-500" /> Full Name
+                    <Label htmlFor="name" className="flex items-center ">
+                      <FaUser className="mr-2 " /> Full Name
                     </Label>
                     <Input
                       {...register("name")}
-                      className="border-slate-200"
+                      className=""
                       placeholder="Enter full name"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="phoneNo"
-                      className="flex items-center text-slate-700"
-                    >
-                      <FaPhone className="mr-2 text-slate-500" /> Phone Number
+                    <Label htmlFor="phoneNo" className="flex items-center ">
+                      <FaPhone className="mr-2 " /> Phone Number
                     </Label>
                     <Input
                       {...register("phoneNo")}
-                      className="border-slate-200"
+                      className=""
                       placeholder="Enter phone number"
                     />
                   </div>
 
                   <div className="col-span-full">
-                    <Label
-                      htmlFor="address"
-                      className="flex items-center text-slate-700"
-                    >
-                      <FaMapMarkerAlt className="mr-2 text-slate-500" /> Address
+                    <Label htmlFor="address" className="flex items-center ">
+                      <FaMapMarkerAlt className="mr-2 " /> Address
                     </Label>
                     <Textarea
                       {...register("address")}
-                      className="border-slate-200"
+                      className=""
                       placeholder="Enter complete address"
                       rows={3}
                     />
@@ -726,36 +692,32 @@ const UserManagement: React.FC = () => {
               </div>
 
               {/* Professional Information Section */}
-              <div className="bg-slate-50 p-6 rounded-lg shadow-sm">
-                <h3 className="text-lg font-semibold mb-4 text-slate-800">
+              <div className=" p-6 rounded-lg shadow-sm">
+                <h3 className="text-lg font-semibold mb-4 ">
                   Professional Information
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label
                       htmlFor="qualification"
-                      className="flex items-center text-slate-700"
+                      className="flex items-center "
                     >
-                      <FaGraduationCap className="mr-2 text-slate-500" />{" "}
-                      Qualification
+                      <FaGraduationCap className="mr-2 " /> Qualification
                     </Label>
                     <Input
                       {...register("qualification")}
-                      className="border-slate-200"
+                      className=""
                       placeholder="Enter qualification"
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label
-                      htmlFor="experience"
-                      className="flex items-center text-slate-700"
-                    >
-                      <FaBriefcase className="mr-2 text-slate-500" /> Experience
+                    <Label htmlFor="experience" className="flex items-center ">
+                      <FaBriefcase className="mr-2 " /> Experience
                     </Label>
                     <Input
                       {...register("experience")}
-                      className="border-slate-200"
+                      className=""
                       placeholder="Years of experience"
                     />
                   </div>
@@ -842,7 +804,7 @@ const UserManagement: React.FC = () => {
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">
                           {user.username}
-                          <div className="md:hidden mt-1 text-sm text-gray-500">
+                          <div className="md:hidden mt-1 text-sm ">
                             {user.email}
                             <br />
                             {user.role}

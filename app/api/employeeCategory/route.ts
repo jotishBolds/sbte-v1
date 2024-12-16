@@ -33,7 +33,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if the user has the role "COLLEGE_SUPER_ADMIN"
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
+    if (
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user.role !== "ADM"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -122,7 +125,8 @@ export async function GET(request: NextRequest) {
     // Check if the user has the role "COLLEGE_SUPER_ADMIN"
     if (
       session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
-      session.user?.role !== "TEACHER"
+      session.user?.role !== "TEACHER" &&
+      session.user.role !== "ADM"
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

@@ -139,7 +139,8 @@ export async function GET(request: NextRequest) {
     if (
       !session ||
       (session.user?.role !== "SBTE_ADMIN" &&
-        session.user.role !== "COLLEGE_SUPER_ADMIN")
+        session.user.role !== "COLLEGE_SUPER_ADMIN" &&
+        session.user.role !== "ADM")
     ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }

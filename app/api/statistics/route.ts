@@ -169,6 +169,37 @@ async function getCollegeSuperAdminStatistics(collegeId: string) {
   return { totalDepartments, totalStudents, totalTeachers, totalSubjects };
 }
 
+async function getPassPercentage(departmentId: string) {
+  // Fetch students with `PROMOTED` or `RESIT` statuses in the department
+  const studentBatches = await prisma.studentBatch.findMany({
+    where: {
+      student: {
+        departmentId,
+      },
+      batchStatus: {
+        in: ["PROMOTED", "RESIT"], // Include both statuses
+      },
+    },
+    include: {
+      student: true,
+    },
+  });
+
+  // Count the number of PROMOTED and RESIT statuses
+  const totalRelevantStudents = studentBatches.length;
+  const totalPromotedStudents = studentBatches.filter(
+    (batch) => batch.batchStatus === "PROMOTED"
+  ).length;
+
+  // Calculate pass percentage
+  const passPercentage =
+    totalRelevantStudents > 0
+      ? (totalPromotedStudents / totalRelevantStudents) * 100
+      : 0;
+
+  return passPercentage;
+}
+
 async function getHODStatistics(departmentId: string) {
   const totalStudents = await prisma.student.count({ where: { departmentId } });
   const totalTeachers = await prisma.teacher.count({
@@ -201,7 +232,29 @@ async function getHODStatistics(departmentId: string) {
   });
   const totalAlumni = await prisma.alumnus.count({ where: { departmentId } });
 
-  return { totalStudents, totalTeachers, totalSubjects, totalAlumni };
+  let passPercentage = await getPassPercentage(departmentId);
+  passPercentage = Math.round(passPercentage);
+
+  const unassignedSubjectsCount = await prisma.batchSubject.count({
+    where: {
+      batch: {
+        program: { departmentId },
+        status: true,
+      },
+      teacherAssignments: {
+        none: {},
+      },
+    },
+  });
+
+  return {
+    totalStudents,
+    totalTeachers,
+    totalSubjects,
+    totalAlumni,
+    passPercentage,
+    unassignedSubjectsCount,
+  };
 }
 
 async function getStudentStatistics(userId: string) {
