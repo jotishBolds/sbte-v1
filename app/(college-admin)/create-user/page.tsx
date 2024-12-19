@@ -78,6 +78,14 @@ interface Department {
   name: string;
 }
 
+// Function to format role name
+const formatRoleName = (role: string) => {
+  return role
+    .split("_")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(" ");
+};
+
 const UserRegistrationForm: React.FC = () => {
   const router = useRouter();
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -102,6 +110,7 @@ const UserRegistrationForm: React.FC = () => {
   });
 
   const selectedRole = watch("role");
+  const username = watch("username");
 
   useEffect(() => {
     setShowDepartmentField(["HOD", "STUDENT"].includes(selectedRole));
@@ -139,8 +148,17 @@ const UserRegistrationForm: React.FC = () => {
 
       if (!response.ok) throw new Error("Failed to create user");
 
-      toast({ title: "Success", description: "User created successfully" });
-      router.push("/create-user");
+      // Role-specific toast message
+      toast({
+        title: "Success",
+        description: `${username} (${formatRoleName(
+          data.role
+        )}) account created successfully`,
+        duration: 3000,
+      });
+
+      // Redirect to user list
+      router.push("/user-list");
     } catch (error) {
       console.error("Error creating user:", error);
       toast({
@@ -177,20 +195,20 @@ const UserRegistrationForm: React.FC = () => {
 
   return (
     <SideBarLayout>
-      <div className="flex flex-col justify-center items-center min-h-[70vh]">
-        <Card className="w-full max-w-2xl shadow-lg">
+      <div className="flex flex-col justify-center items-center min-h-[80vh] p-4">
+        <Card className="w-full max-w-4xl shadow-lg">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold mb-2">
+            <CardTitle className="text-2xl md:text-3xl font-bold mb-2">
               User Registration
             </CardTitle>
-            <CardDescription className="text-gray-600">
+            <CardDescription className="text-gray-600 text-sm md:text-base">
               Create a new user account by filling out the form below. Ensure
               all required fields are completed accurately.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                 {formFields.map(renderFormField)}
               </div>
 
@@ -215,7 +233,7 @@ const UserRegistrationForm: React.FC = () => {
                       <SelectContent>
                         {roleSchema.options.map((role) => (
                           <SelectItem key={role} value={role}>
-                            {role.replace("_", " ")}
+                            {formatRoleName(role)}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -264,7 +282,11 @@ const UserRegistrationForm: React.FC = () => {
                 </div>
               )}
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button
+                type="submit"
+                className="w-full mt-4 transition-all duration-300 hover:scale-[1.01] active:scale-[0.99]"
+                disabled={isSubmitting}
+              >
                 {isSubmitting ? (
                   <>
                     <FaSpinner className="mr-2 h-4 w-4 animate-spin" />

@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/table";
 import SideBarLayout from "@/components/sidebar/layout";
 import { Separator } from "@/components/ui/separator";
+import CollegeDashboardSkeleton from "./skeleton";
 
 interface College {
   id: string;
@@ -187,22 +188,18 @@ export default function CollegeDashboard() {
   );
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    );
+    return <CollegeDashboardSkeleton />;
   }
 
   if (!college) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
+        {/* <div className="text-center">
           <h2 className="text-2xl font-bold mb-2">No College Data Available</h2>
           <p className="text-gray-600">
             Please check your permissions or try again later.
           </p>
-        </div>
+        </div> */}
       </div>
     );
   }

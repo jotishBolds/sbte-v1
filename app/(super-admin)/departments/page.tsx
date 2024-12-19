@@ -28,6 +28,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import SideBarLayout from "@/components/sidebar/layout";
+import { Badge } from "@/components/ui/badge";
+import { CheckCircle, XCircle } from "lucide-react";
 
 interface Department {
   id: string;
@@ -188,10 +190,29 @@ const DepartmentsPage: React.FC = () => {
                 <TableCell>{department.name}</TableCell>
                 <TableCell>{department.college.name}</TableCell>
                 <TableCell>
-                  <Switch
-                    checked={department.isActive}
-                    onCheckedChange={() => handleToggleActive(department)}
-                  />
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      checked={department.isActive}
+                      onCheckedChange={() => handleToggleActive(department)}
+                    />
+                    <Badge
+                      className={
+                        department.isActive
+                          ? "bg-green-100 text-green-800"
+                          : "bg-yellow-100 text-yellow-800"
+                      }
+                    >
+                      {department.isActive ? (
+                        <>
+                          <CheckCircle className="h-4 w-4 mr-1" /> Active
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="h-4 w-4 mr-1" /> Inactive
+                        </>
+                      )}
+                    </Badge>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Button

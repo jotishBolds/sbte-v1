@@ -1,9 +1,9 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -63,6 +63,7 @@ import SideBarLayout from "@/components/sidebar/layout";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import DeleteModal from "@/components/modals/deleteModal";
 
 const roleSchema = z.enum([
   "HOD",
@@ -160,7 +161,6 @@ const userSchema = z
     z.union([
       teacherFieldsSchema,
       hodFieldsSchema,
-
       financeManagerFieldsSchema,
       studentFieldsSchema,
       alumnusFieldsSchema,
@@ -176,6 +176,9 @@ const UserManagement: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [designations, setDesignations] = useState<TeacherDesignation[]>([]);
   const [categories, setCategories] = useState<EmployeeCategory[]>([]);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // State for delete modal
+  const [userToDelete, setUserToDelete] = useState<string | null>(null); // User ID to delete
+  const [isLoading, setIsLoading] = useState(true);
   const itemsPerPage = 10;
 
   const {
@@ -237,6 +240,7 @@ const UserManagement: React.FC = () => {
   };
 
   const fetchUsers = async () => {
+    setIsLoading(true);
     try {
       const response = await fetch("/api/register-users");
       if (!response.ok) throw new Error("Failed to fetch users");
@@ -249,6 +253,8 @@ const UserManagement: React.FC = () => {
         description: "Failed to fetch users. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -258,34 +264,39 @@ const UserManagement: React.FC = () => {
       username: user.username,
       email: user.email,
       role: user.role,
-
       ...(user as any),
     });
-
-    console.log("hadnleedit", user);
     setIsEditModalOpen(true);
   };
 
-  const handleDelete = async (userId: string) => {
-    if (window.confirm("Are you sure you want to delete this user?")) {
-      try {
-        const response = await fetch(`/api/register-users/${userId}`, {
-          method: "DELETE",
-        });
-        if (!response.ok) throw new Error("Failed to delete user");
-        toast({
-          title: "Success",
-          description: "User deleted successfully",
-        });
-        fetchUsers();
-      } catch (error) {
-        console.error("Error deleting user:", error);
-        toast({
-          title: "Error",
-          description: "Failed to delete user. Please try again.",
-          variant: "destructive",
-        });
-      }
+  const handleDelete = (userId: string) => {
+    setUserToDelete(userId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!userToDelete) return;
+
+    try {
+      const response = await fetch(`/api/register-users/${userToDelete}`, {
+        method: "DELETE",
+      });
+      if (!response.ok) throw new Error("Failed to delete user");
+      toast({
+        title: "Success",
+        description: "User deleted successfully",
+      });
+      fetchUsers();
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete user. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleteModalOpen(false);
+      setUserToDelete(null);
     }
   };
 
@@ -298,8 +309,6 @@ const UserManagement: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
       });
-
-      console.log("Data being sent:", data);
 
       if (!response.ok) throw new Error("Failed to update user");
 
@@ -782,7 +791,14 @@ const UserManagement: React.FC = () => {
             </Link>
           </CardHeader>
           <CardContent>
-            {users.length === 0 ? (
+            {isLoading ? (
+              <div className="space-y-4">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-8 w-full" />
+              </div>
+            ) : users.length === 0 ? (
               <p>No users found for your college.</p>
             ) : (
               <div className="overflow-x-auto">
@@ -953,6 +969,13 @@ const UserManagement: React.FC = () => {
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Modal */}
+        <DeleteModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          onConfirm={confirmDelete}
+        />
       </div>
     </SideBarLayout>
   );

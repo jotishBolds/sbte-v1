@@ -354,30 +354,38 @@ export async function DELETE(
   try {
     const id = params.id;
 
-    // Delete related records first
-    await prisma.headOfDepartment.deleteMany({
-      where: { userId: id },
-    });
+    // Delete related records in a transaction to ensure atomicity
+    await prisma.$transaction(async (prisma) => {
+      // First, delete all TeacherAssignedSubject records for this teacher
+      await prisma.teacherAssignedSubject.deleteMany({
+        where: { teacherId: id },
+      });
 
-    await prisma.teacher.deleteMany({
-      where: { userId: id },
-    });
+      // Then delete other related records
+      await prisma.headOfDepartment.deleteMany({
+        where: { userId: id },
+      });
 
-    await prisma.financeManager.deleteMany({
-      where: { userId: id },
-    });
+      await prisma.teacher.deleteMany({
+        where: { userId: id },
+      });
 
-    await prisma.student.deleteMany({
-      where: { userId: id },
-    });
+      await prisma.financeManager.deleteMany({
+        where: { userId: id },
+      });
 
-    await prisma.alumnus.deleteMany({
-      where: { userId: id },
-    });
+      await prisma.student.deleteMany({
+        where: { userId: id },
+      });
 
-    // Now delete the user
-    await prisma.user.delete({
-      where: { id: id },
+      await prisma.alumnus.deleteMany({
+        where: { userId: id },
+      });
+
+      // Finally delete the user
+      await prisma.user.delete({
+        where: { id: id },
+      });
     });
 
     return NextResponse.json(

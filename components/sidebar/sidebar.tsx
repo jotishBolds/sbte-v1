@@ -78,6 +78,7 @@ import {
   PenSquare,
   Check,
   User2Icon,
+  ChartArea,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -136,6 +137,18 @@ export const Sidebar: React.FC = () => {
   const roleBasedLinks = useMemo((): NavLinkType[] => {
     switch (session?.user.role) {
       case "EDUCATION_DEPARTMENT":
+        return [
+          {
+            href: "/dashboard",
+            icon: <Home size={18} />,
+            label: "Dashboard",
+          },
+          {
+            href: "/college-stats",
+            icon: <ChartArea size={18} />,
+            label: "College/Student Stats",
+          },
+        ];
       case "SBTE_ADMIN":
         return [
           {

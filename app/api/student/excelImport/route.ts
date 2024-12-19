@@ -389,10 +389,12 @@ export async function POST(req: NextRequest) {
           where: { name: rowData.program },
           take: 1, // Limit to one result
         });
+        console.log("this is program", program);
         programId = program.length > 0 ? program[0].id : null;
         if (!programId) {
           missingProgramRows.push(row.number);
         }
+        console.log("this is programID", programId);
       } else {
         missingProgramRows.push(row.number);
       }

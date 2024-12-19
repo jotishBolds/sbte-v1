@@ -69,8 +69,8 @@ const CertificateList = () => {
         const data = await response.json();
         if (Array.isArray(data)) {
           setCertificates(data);
-        } else if (data.message) {
-          // Handle the "No certificates found" case
+        } else if (data.message === "No certificates found") {
+          // Specifically handle the "No certificates" case
           setCertificates([]);
         }
       } catch (err) {
@@ -112,16 +112,6 @@ const CertificateList = () => {
     );
   }
 
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    );
-  }
-
   return (
     <Card className="w-full">
       <CardHeader>
@@ -135,10 +125,16 @@ const CertificateList = () => {
             ))}
           </div>
         ) : certificates.length === 0 ? (
-          <div className="text-center py-8">
-            <FileText className="mx-auto h-12 w-12 text-gray-400" />
-            <p className="mt-4 text-lg text-gray-500">No certificates found</p>
-          </div>
+          <Table>
+            <TableBody>
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8">
+                  You currently have no certificates. Certificates will appear
+                  here once they are issued.
+                </TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
         ) : (
           <div className="overflow-x-auto">
             <Table>

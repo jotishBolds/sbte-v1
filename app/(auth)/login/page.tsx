@@ -344,7 +344,7 @@ export default function LoginPage() {
                   onChange={(e) => setUserAnswer(e.target.value)}
                   required
                   placeholder="Enter your answer"
-                  className="bg-primary-foreground dark:text-secondary focus:ring-2 focus:ring-primary/50 transition-all duration-300"
+                  className=" bg-primary-foreground dark:text-white focus:ring-2 focus:ring-primary/50 transition-all duration-300"
                 />
               </div>
             </div>

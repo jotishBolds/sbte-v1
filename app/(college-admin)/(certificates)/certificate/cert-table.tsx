@@ -40,6 +40,7 @@ import {
   Filter,
   ChevronLeft,
   ChevronRight,
+  FileText,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
@@ -131,6 +132,7 @@ export function CertificateTable({
       </Badge>
     );
   };
+
   const handleSort = (field: keyof Certificate) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -139,6 +141,7 @@ export function CertificateTable({
       setSortDirection("asc");
     }
   };
+
   return (
     <Card className="w-full">
       <CardHeader>
@@ -171,127 +174,146 @@ export function CertificateTable({
           </Select>
         </div>
 
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort("student")}
-                >
-                  Student Name
-                  {sortField === "student" && (
-                    <span className="ml-2">
-                      {sortDirection === "asc" ? "↑" : "↓"}
-                    </span>
-                  )}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort("certificateType")}
-                >
-                  Certificate Type
-                  {sortField === "certificateType" && (
-                    <span className="ml-2">
-                      {sortDirection === "asc" ? "↑" : "↓"}
-                    </span>
-                  )}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort("issueDate")}
-                >
-                  Issue Date
-                  {sortField === "issueDate" && (
-                    <span className="ml-2">
-                      {sortDirection === "asc" ? "↑" : "↓"}
-                    </span>
-                  )}
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer"
-                  onClick={() => handleSort("paymentStatus")}
-                >
-                  Payment Status
-                  {sortField === "paymentStatus" && (
-                    <span className="ml-2">
-                      {sortDirection === "asc" ? "↑" : "↓"}
-                    </span>
-                  )}
-                </TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {paginatedCertificates.map((certificate) => (
-                <TableRow key={certificate.id}>
-                  <TableCell className="font-medium">
-                    {certificate.student.name}
-                  </TableCell>
-                  <TableCell>{certificate.certificateType.name}</TableCell>
-                  <TableCell>
-                    {certificate.issueDate
-                      ? format(new Date(certificate.issueDate), "PPP")
-                      : "Not Issued"}
-                  </TableCell>
-                  <TableCell>
-                    {getStatusBadge(certificate.paymentStatus)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => onEdit(certificate)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Edit Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => onDelete(certificate.id)}
-                          className="text-red-600"
-                        >
-                          <Trash className="mr-2 h-4 w-4" />
-                          Delete Certificate
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        <div className="flex items-center justify-between mt-4">
-          <p className="text-sm text-gray-500">
-            Showing {startIndex + 1} to{" "}
-            {Math.min(startIndex + ITEMS_PER_PAGE, filteredCertificates.length)}{" "}
-            of {filteredCertificates.length} certificates
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
+        {certificates.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-12 rounded-md border">
+            <FileText className="h-12 w-12  mb-4" />
+            <h3 className="text-xl font-semibold mb-2">
+              No Certificates Issued Yet
+            </h3>
+            <p className=" text-center mb-4">
+              When certificates are issued, they will appear here.
+            </p>
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead
+                      className="cursor-pointer"
+                      onClick={() => handleSort("student")}
+                    >
+                      Student Name
+                      {sortField === "student" && (
+                        <span className="ml-2">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer"
+                      onClick={() => handleSort("certificateType")}
+                    >
+                      Certificate Type
+                      {sortField === "certificateType" && (
+                        <span className="ml-2">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer"
+                      onClick={() => handleSort("issueDate")}
+                    >
+                      Issue Date
+                      {sortField === "issueDate" && (
+                        <span className="ml-2">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer"
+                      onClick={() => handleSort("paymentStatus")}
+                    >
+                      Payment Status
+                      {sortField === "paymentStatus" && (
+                        <span className="ml-2">
+                          {sortDirection === "asc" ? "↑" : "↓"}
+                        </span>
+                      )}
+                    </TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedCertificates.map((certificate) => (
+                    <TableRow key={certificate.id}>
+                      <TableCell className="font-medium">
+                        {certificate.student.name}
+                      </TableCell>
+                      <TableCell>{certificate.certificateType.name}</TableCell>
+                      <TableCell>
+                        {certificate.issueDate
+                          ? format(new Date(certificate.issueDate), "PPP")
+                          : "Not Issued"}
+                      </TableCell>
+                      <TableCell>
+                        {getStatusBadge(certificate.paymentStatus)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => onEdit(certificate)}
+                            >
+                              <Pencil className="mr-2 h-4 w-4" />
+                              Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => onDelete(certificate.id)}
+                              className="text-red-600"
+                            >
+                              <Trash className="mr-2 h-4 w-4" />
+                              Delete Certificate
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-gray-500">
+                Showing {startIndex + 1} to{" "}
+                {Math.min(
+                  startIndex + ITEMS_PER_PAGE,
+                  filteredCertificates.length
+                )}{" "}
+                of {filteredCertificates.length} certificates
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   );

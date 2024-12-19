@@ -144,12 +144,12 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    if (certificates.length === 0) {
-      return NextResponse.json(
-        { message: "No certificate issuance found for the college" },
-        { status: 404 }
-      );
-    }
+    // if (certificates.length === 0) {
+    //   return NextResponse.json(
+    //     { message: "No certificate issuance found for the college" },
+    //     { status: 404 }
+    //   );
+    // }
 
     return NextResponse.json(certificates, { status: 200 });
   } catch (error) {

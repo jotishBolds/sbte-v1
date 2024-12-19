@@ -131,13 +131,13 @@ const BatchManager: React.FC = () => {
       const response = await fetch("/api/batch");
       if (!response.ok) throw new Error("Failed to fetch batches");
       const data = await response.json();
-
+      console.log("data transformed", data);
       const transformedBatches = data.map((batch: any) => ({
         ...batch,
         term: batch.term.name,
         academicYear: batch.academicYear.name,
         program: batch.program.name,
-        batchType: batch.batchType.name,
+        batchType: batch.batchType,
       }));
       setBatches(transformedBatches);
     } catch (error) {

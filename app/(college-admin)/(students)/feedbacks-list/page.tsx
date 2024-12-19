@@ -307,7 +307,7 @@ export default function AdminFeedbackList() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Subject</TableHead>
-                  <TableHead>Student</TableHead>
+                  {/* <TableHead>Student</TableHead> */}
                   <TableHead>Rating</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Actions</TableHead>
@@ -319,9 +319,9 @@ export default function AdminFeedbackList() {
                     <TableCell>
                       {feedback.batchSubject?.subject?.name || "N/A"}
                     </TableCell>
-                    <TableCell>
+                    {/* <TableCell>
                       {feedback.student?.name || "Anonymous"}
-                    </TableCell>
+                    </TableCell> */}
                     <TableCell>
                       <Badge variant="secondary">
                         {feedback.stars}{" "}
@@ -430,11 +430,11 @@ export default function AdminFeedbackList() {
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
-                <div>
+                {/* <div>
                   <strong>Student:</strong>
                   {` ${selectedFeedback.student?.name || "Anonymous"} 
                    (${selectedFeedback.student?.enrollmentNo || "N/A"})`}
-                </div>
+                </div> */}
                 <div>
                   <strong>Subject:</strong>
                   {` ${selectedFeedback.batchSubject?.subject?.name || "N/A"}`}
