@@ -58,6 +58,7 @@ import {
 import SideBarLayout from "@/components/sidebar/layout";
 import { EditStudentModal } from "./edit-modal";
 import { Badge } from "@/components/ui/badge";
+import { useRouter } from "next/navigation";
 
 // Types for our student data
 interface Student {
@@ -181,7 +182,7 @@ const StudentList = () => {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-
+  const router = useRouter();
   const { toast } = useToast();
 
   // Fetch students
@@ -637,7 +638,7 @@ const StudentList = () => {
             <h1 className="text-3xl font-bold">Students</h1>
             <p className="text-gray-500">Manage and view student information</p>
           </div>
-          <Button>
+          <Button onClick={() => router.push("/student-register")}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add Student
           </Button>
