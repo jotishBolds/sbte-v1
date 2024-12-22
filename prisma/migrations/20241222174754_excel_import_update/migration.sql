@@ -1,0 +1,9 @@
+-- AlterTable
+ALTER TABLE "Student" ALTER COLUMN "motherName" DROP NOT NULL,
+ALTER COLUMN "fatherName" DROP NOT NULL,
+ALTER COLUMN "admissionDate" DROP NOT NULL,
+ALTER COLUMN "permanentAddress" DROP NOT NULL,
+ALTER COLUMN "permanentCountry" DROP NOT NULL,
+ALTER COLUMN "permanentState" DROP NOT NULL,
+ALTER COLUMN "permanentCity" DROP NOT NULL,
+ALTER COLUMN "permanentPincode" DROP NOT NULL;

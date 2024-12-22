@@ -155,9 +155,9 @@ model Student {
   userId              String                          @unique
   enrollmentNo        String?                         @unique
   name                String
-  dob                 DateTime
-  personalEmail       String                          @unique
-  phoneNo             String
+  dob                 DateTime?
+  personalEmail       String?                          @unique
+  phoneNo             String?
   studentAvatar       String?
   abcId               String?
   lastCollegeAttended String?
@@ -172,21 +172,21 @@ model Student {
   gender              String
   isLocalStudent      Boolean                         @default(false)
   isDifferentlyAbled  Boolean                         @default(false)
-  motherName          String
-  fatherName          String
+  motherName          String?
+  fatherName          String?
   bloodGroup          String?
   religion            String?
   nationality         String?
   caste               String?
   admissionCategory   String?
   resident            String?
-  admissionDate       DateTime
+  admissionDate       DateTime?
   graduateDate        DateTime?
-  permanentAddress    String
-  permanentCountry    String
-  permanentState      String
-  permanentCity       String
-  permanentPincode    String
+  permanentAddress    String?
+  permanentCountry    String?
+  permanentState      String?
+  permanentCity       String?
+  permanentPincode    String?
   guardianName        String?
   guardianGender      String?
   guardianEmail       String?
@@ -209,7 +209,6 @@ model Student {
   examMarks           ExamMark[]
   monthlyAttendance   MonthlyBatchSubjectAttendance[]
 }
-
 model HeadOfDepartment {
   id            String     @id @default(cuid())
   user          User       @relation(fields: [userId], references: [id])

@@ -7,6 +7,14 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import prisma from "@/src/lib/prisma";
 import { z } from "zod";
 
+const chunkArray = <T>(array: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
+
 const ExamMarkSchema = z.object({
   // studentName: z.string().min(1, "Student name is required."),
   enrollNo: z.string().min(1, "Enrollment number is required."),
@@ -184,31 +192,72 @@ export async function POST(request: Request) {
       );
     }
 
-    // Batch insertion for exam marks
-    await prisma.$transaction(
-      jsonData.map((data) => {
-        return prisma.examMark.create({
-          data: {
-            studentId: data.studentId,
-            batchSubjectId: data.batchSubjectId,
-            examTypeId: data.examTypeId,
-            achievedMarks: data.achievedMarks,
-            wasAbsent: data.wasAbsent,
-            debarred: data.debarred,
-            malpractice: data.malpractice,
+    // Process in smaller chunks
+    const CHUNK_SIZE = 10;
+    const dataChunks = chunkArray(jsonData, CHUNK_SIZE);
+
+    let successCount = 0;
+    let errors: any[] = [];
+
+    for (const chunk of dataChunks) {
+      try {
+        await prisma.$transaction(
+          async (tx) => {
+            for (const data of chunk) {
+              await tx.examMark.create({
+                data: {
+                  studentId: data.studentId,
+                  batchSubjectId: data.batchSubjectId,
+                  examTypeId: data.examTypeId,
+                  achievedMarks: data.achievedMarks,
+                  wasAbsent: data.wasAbsent,
+                  debarred: data.debarred,
+                  malpractice: data.malpractice,
+                },
+              });
+              successCount++;
+            }
           },
+          {
+            timeout: 20000, // 20 second timeout
+            maxWait: 5000, // 5 second maximum wait time
+          }
+        );
+      } catch (chunkError) {
+        console.error("Error processing chunk:", chunkError);
+        errors.push({
+          error:
+            chunkError instanceof Error ? chunkError.message : "Unknown error",
+          affectedRecords: chunk.length,
         });
-      })
-    );
+      }
+    }
+
+    if (errors.length > 0) {
+      return NextResponse.json(
+        {
+          message: `Partially completed. Successfully created ${successCount} exam marks.`,
+          errors: errors,
+          successCount,
+        },
+        { status: 207 }
+      ); // 207 Multi-Status
+    }
 
     return NextResponse.json(
-      { message: "Exam marks imported successfully." },
+      {
+        message: `Successfully imported ${successCount} exam marks.`,
+        successCount,
+      },
       { status: 201 }
     );
   } catch (error) {
     console.error("Error processing exam marks import:", error);
     return NextResponse.json(
-      { error: "An unexpected error occurred while importing exam marks." },
+      {
+        error: "An unexpected error occurred while importing exam marks.",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

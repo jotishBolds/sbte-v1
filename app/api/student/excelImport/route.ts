@@ -15,6 +15,13 @@ import prisma from "@/src/lib/prisma";
 import { z } from "zod";
 import ExcelJS from "exceljs";
 
+const chunkArray = <T>(array: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
 // Define Zod validation schemas based on your User and Student models
 const userSchema = z.object({
   username: z.string().optional(),
@@ -33,16 +40,17 @@ const userSchema = z.object({
 });
 
 const studentSchema = z.object({
-  name: z.string(),
+  name: z.string().optional(),
   dob: z
     .string()
     .refine((val) => !isNaN(Date.parse(val)), {
       message: "Invalid date format for DOB",
     })
-    .transform((val) => new Date(val)),
-  personalEmail: z.string().email(),
+    .transform((val) => new Date(val))
+    .optional(),
+  personalEmail: z.string().email().optional(),
   enrollmentNo: z.string().optional(),
-  phoneNo: z.string(),
+  phoneNo: z.string().optional(),
   studentAvatar: z.string().optional(),
   abcId: z.string().optional(),
   lastCollegeAttended: z.string().optional(),
@@ -53,8 +61,8 @@ const studentSchema = z.object({
   gender: z.enum(["Male", "Female", "Other"]),
   isLocalStudent: z.boolean().default(false),
   isDifferentlyAbled: z.boolean().default(false),
-  motherName: z.string(),
-  fatherName: z.string(),
+  motherName: z.string().optional(),
+  fatherName: z.string().optional(),
   bloodGroup: z.string().optional(),
   religion: z.string().optional(),
   nationality: z.string().optional(),
@@ -66,16 +74,17 @@ const studentSchema = z.object({
     .refine((val) => !isNaN(Date.parse(val)), {
       message: "Invalid date format for Admission Date",
     })
-    .transform((val) => new Date(val)),
+    .transform((val) => new Date(val))
+    .optional(),
   graduateDate: z
     .string()
     .optional()
     .transform((val) => (val ? new Date(val) : undefined)),
-  permanentAddress: z.string(),
-  permanentCountry: z.string(),
-  permanentState: z.string(),
-  permanentCity: z.string(),
-  permanentPincode: z.string(),
+  permanentAddress: z.string().optional(),
+  permanentCountry: z.string().optional(),
+  permanentState: z.string().optional(),
+  permanentCity: z.string().optional(),
+  permanentPincode: z.string().optional(),
   guardianName: z.string().optional(),
   guardianGender: z.string().optional(),
   guardianEmail: z.string().email().optional(),
@@ -389,12 +398,10 @@ export async function POST(req: NextRequest) {
           where: { name: rowData.program },
           take: 1, // Limit to one result
         });
-        console.log("this is program", program);
         programId = program.length > 0 ? program[0].id : null;
         if (!programId) {
           missingProgramRows.push(row.number);
         }
-        console.log("this is programID", programId);
       } else {
         missingProgramRows.push(row.number);
       }
@@ -460,11 +467,11 @@ export async function POST(req: NextRequest) {
           termId: rowTermId,
           // userId: undefined, // User ID will be set after user creation
         });
-        console.log("Validated Student", validatedStudent);
+        // console.log("Validated Student", validatedStudent);
 
         jsonData.push({ user: validatedUser, student: validatedStudent });
 
-        console.log("JSON Data", jsonData);
+        // console.log("JSON Data", jsonData);
         // jsonData.push({ ...validatedUser, ...validatedStudent });
       } catch (validationError) {
         console.error("Validation error:", validationError);
@@ -525,7 +532,7 @@ export async function POST(req: NextRequest) {
 
     // Now check for existing emails in the database
     const emailList = Array.from(emailMap.keys());
-    console.log("EmailList:", emailList);
+    // console.log("EmailList:", emailList);
     const existingUsers = await prisma.user.findMany({
       where: {
         email: {
@@ -536,10 +543,10 @@ export async function POST(req: NextRequest) {
         email: true,
       },
     });
-    console.log("ExistingUsers:", existingUsers);
+    // console.log("ExistingUsers:", existingUsers);
 
     existingEmails.push(...existingUsers.map((user) => user.email)); // Collect existing emails
-    console.log("ExistingEmails:", existingEmails);
+    // console.log("ExistingEmails:", existingEmails);
 
     // Check against the database for existing personalEmails
     const uniquePersonalEmails = Array.from(personalEmailMap.keys());
@@ -552,9 +559,11 @@ export async function POST(req: NextRequest) {
     //   existingPersonalEmails.push(dbEntry.personalEmail);
     // }
     existingPersonalEmails.push(
-      ...dbPersonalEmails.map((entry) => entry.personalEmail)
+      ...dbPersonalEmails
+        .map((entry) => entry.personalEmail)
+        .filter((email): email is string => email !== null)
     );
-    console.log("ExistingPersonalEmails:", existingPersonalEmails);
+    // console.log("ExistingPersonalEmails:", existingPersonalEmails);
 
     // const duplicates = [];
     // for (const email of existingEmails) {
@@ -674,72 +683,110 @@ export async function POST(req: NextRequest) {
     // });
 
     // Prepare for batch insertions
-    const createUserAndStudentPromises = jsonData.map(({ user, student }) => {
-      return prisma.$transaction(async (prisma) => {
-        const newUser = await prisma.user.create({
-          data: user,
-        });
-        console.log("userId", newUser.id);
+    const CHUNK_SIZE = 10;
+    const dataChunks = chunkArray(jsonData, CHUNK_SIZE);
 
-        // Create corresponding student record
-        await prisma.student.create({
-          data: {
-            // ...student,
+    let successCount = 0;
+    let errors: any[] = [];
 
-            name: student.name,
-            enrollmentNo: student.enrollmentNo,
-            dob: student.dob,
-            personalEmail: student.personalEmail,
-            phoneNo: student.phoneNo,
-            studentAvatar: student.studentAvatar,
-            abcId: student.abcId,
-            lastCollegeAttended: student.lastCollegeAttended,
-            gender: student.gender,
-            isLocalStudent: student.isLocalStudent,
-            isDifferentlyAbled: student.isDifferentlyAbled,
-            motherName: student.motherName,
-            fatherName: student.fatherName,
-            bloodGroup: student.bloodGroup,
-            religion: student.religion,
-            nationality: student.nationality,
-            caste: student.caste,
-            admissionCategory: student.admissionCategory,
-            resident: student.resident,
-            admissionDate: student.admissionDate,
-            graduateDate: student.graduateDate,
-            permanentAddress: student.permanentAddress,
-            permanentCountry: student.permanentCountry,
-            permanentState: student.permanentState,
-            permanentCity: student.permanentCity,
-            permanentPincode: student.permanentPincode,
-            guardianName: student.guardianName,
-            guardianGender: student.guardianGender,
-            guardianEmail: student.guardianEmail,
-            guardianMobileNo: student.guardianMobileNo,
-            guardianRelation: student.guardianRelation,
-            user: { connect: { id: newUser.id } }, // Link the new user to the student record
-            batchYear: { connect: { id: student.batchYearId } },
-            admissionYear: { connect: { id: student.admissionYearId } },
-            academicYear: { connect: { id: student.academicYearId } },
-            term: { connect: { id: student.termId } },
-            program: { connect: { id: student.programId } },
-            department: { connect: { id: student.departmentId } },
-            college: { connect: { id: collegeId } },
-          },
-        });
-      });
-    });
+    for (const chunk of dataChunks) {
+      try {
+        // Process each chunk sequentially
+        await Promise.all(
+          chunk.map(async ({ user, student }) => {
+            try {
+              await prisma.$transaction(
+                async (tx) => {
+                  const newUser = await tx.user.create({
+                    data: user,
+                  });
 
-    await Promise.all(createUserAndStudentPromises);
+                  await tx.student.create({
+                    data: {
+                      name: student.name,
+                      enrollmentNo: student.enrollmentNo,
+                      dob: student.dob,
+                      personalEmail: student.personalEmail,
+                      phoneNo: student.phoneNo,
+                      studentAvatar: student.studentAvatar,
+                      abcId: student.abcId,
+                      lastCollegeAttended: student.lastCollegeAttended,
+                      gender: student.gender,
+                      isLocalStudent: student.isLocalStudent,
+                      isDifferentlyAbled: student.isDifferentlyAbled,
+                      motherName: student.motherName,
+                      fatherName: student.fatherName,
+                      bloodGroup: student.bloodGroup,
+                      religion: student.religion,
+                      nationality: student.nationality,
+                      caste: student.caste,
+                      admissionCategory: student.admissionCategory,
+                      resident: student.resident,
+                      admissionDate: student.admissionDate,
+                      graduateDate: student.graduateDate,
+                      permanentAddress: student.permanentAddress,
+                      permanentCountry: student.permanentCountry,
+                      permanentState: student.permanentState,
+                      permanentCity: student.permanentCity,
+                      permanentPincode: student.permanentPincode,
+                      guardianName: student.guardianName,
+                      guardianGender: student.guardianGender,
+                      guardianEmail: student.guardianEmail,
+                      guardianMobileNo: student.guardianMobileNo,
+                      guardianRelation: student.guardianRelation,
+                      user: { connect: { id: newUser.id } },
+                      batchYear: { connect: { id: student.batchYearId } },
+                      admissionYear: {
+                        connect: { id: student.admissionYearId },
+                      },
+                      academicYear: { connect: { id: student.academicYearId } },
+                      term: { connect: { id: student.termId } },
+                      program: { connect: { id: student.programId } },
+                      department: { connect: { id: student.departmentId } },
+                      college: { connect: { id: collegeId } },
+                    },
+                  });
+                },
+                {
+                  timeout: 20000, // 20 second timeout for each transaction
+                  maxWait: 5000, // 5 second maximum wait time
+                }
+              );
+              successCount++;
+            } catch (err) {
+              errors.push({
+                user: user.email,
+                error: err instanceof Error ? err.message : "Unknown error",
+              });
+            }
+          })
+        );
+      } catch (chunkError) {
+        console.error("Error processing chunk:", chunkError);
+      }
+    }
+
+    if (errors.length > 0) {
+      return NextResponse.json(
+        {
+          message: `Partially completed. Successfully created ${successCount} students.`,
+          errors: errors,
+        },
+        { status: 207 }
+      ); // 207 Multi-Status
+    }
 
     return NextResponse.json(
-      { message: "Students created successfully." },
+      { message: `Successfully created ${successCount} students.` },
       { status: 201 }
     );
   } catch (error) {
     console.error("Error in processing the uploaded file:", error);
     return NextResponse.json(
-      { error: "Failed to process the uploaded file" },
+      {
+        error: "Failed to process the uploaded file",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

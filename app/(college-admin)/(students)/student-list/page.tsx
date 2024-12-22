@@ -273,6 +273,44 @@ const StudentList = () => {
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = (currentPage - 1) * itemsPerPage;
 
+    // Calculate which page numbers to show
+    const getPageNumbers = () => {
+      const delta = 1; // Number of pages to show on each side of current page
+      let pages = [];
+
+      if (totalPages <= 3) {
+        // If total pages is 3 or less, show all pages
+        pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+      } else {
+        // Always include first page
+        pages.push(1);
+
+        if (currentPage > 2) {
+          pages.push(-1); // Add dots
+        }
+
+        // Add current page and surrounding pages
+        for (
+          let i = Math.max(2, currentPage - delta);
+          i <= Math.min(totalPages - 1, currentPage + delta);
+          i++
+        ) {
+          pages.push(i);
+        }
+
+        if (currentPage < totalPages - 1) {
+          pages.push(-1); // Add dots
+        }
+
+        // Always include last page
+        if (totalPages > 1) {
+          pages.push(totalPages);
+        }
+      }
+
+      return pages;
+    };
+
     return (
       <div className="flex items-center justify-between px-6 py-4 border-t">
         <div className="text-sm text-gray-500">
@@ -289,16 +327,22 @@ const StudentList = () => {
           >
             Previous
           </Button>
-          {Array.from({ length: totalPages }, (_, index) => (
-            <Button
-              key={index + 1}
-              variant={currentPage === index + 1 ? "default" : "outline"}
-              size="sm"
-              onClick={() => setCurrentPage(index + 1)}
-            >
-              {index + 1}
-            </Button>
-          ))}
+          {getPageNumbers().map((pageNum, index) =>
+            pageNum === -1 ? (
+              <span key={`dots-${index}`} className="px-2 py-1">
+                ...
+              </span>
+            ) : (
+              <Button
+                key={pageNum}
+                variant={currentPage === pageNum ? "default" : "outline"}
+                size="sm"
+                onClick={() => setCurrentPage(pageNum)}
+              >
+                {pageNum}
+              </Button>
+            )
+          )}
           <Button
             variant="outline"
             size="sm"

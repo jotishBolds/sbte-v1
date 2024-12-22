@@ -7,6 +7,14 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import { z } from "zod";
 
+const chunkArray = <T>(array: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
+
 const AttendanceSchema = z.object({
   enrollNo: z
     .string({
@@ -200,23 +208,70 @@ export async function POST(request: Request) {
       );
     }
 
-    // Batch insert attendance records
-    await prisma.$transaction(
-      jsonData.map((data) =>
-        prisma.monthlyBatchSubjectAttendance.create({
-          data,
-        })
-      )
-    );
+    // Process in smaller chunks
+    const CHUNK_SIZE = 10;
+    const dataChunks = chunkArray(jsonData, CHUNK_SIZE);
+
+    let successCount = 0;
+    let errors: any[] = [];
+
+    for (const chunk of dataChunks) {
+      try {
+        await prisma.$transaction(
+          async (tx) => {
+            for (const data of chunk) {
+              await tx.monthlyBatchSubjectAttendance.create({
+                data: {
+                  studentId: data.studentId,
+                  monthlyBatchSubjectClassesId:
+                    data.monthlyBatchSubjectClassesId,
+                  attendedTheoryClasses: data.attendedTheoryClasses,
+                  attendedPracticalClasses: data.attendedPracticalClasses,
+                },
+              });
+              successCount++;
+            }
+          },
+          {
+            timeout: 20000, // 20 second timeout
+            maxWait: 5000, // 5 second maximum wait time
+          }
+        );
+      } catch (chunkError) {
+        console.error("Error processing chunk:", chunkError);
+        errors.push({
+          error:
+            chunkError instanceof Error ? chunkError.message : "Unknown error",
+          affectedRecords: chunk.length,
+        });
+      }
+    }
+
+    if (errors.length > 0) {
+      return NextResponse.json(
+        {
+          message: `Partially completed. Successfully created ${successCount} attendance records.`,
+          errors: errors,
+          successCount,
+        },
+        { status: 207 }
+      ); // 207 Multi-Status
+    }
 
     return NextResponse.json(
-      { message: "Attendance records imported successfully." },
+      {
+        message: `Successfully imported ${successCount} attendance records.`,
+        successCount,
+      },
       { status: 201 }
     );
   } catch (error) {
     console.error("Error processing attendance import:", error);
     return NextResponse.json(
-      { error: "An unexpected error occurred while importing attendance." },
+      {
+        error: "An unexpected error occurred while importing attendance.",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }
