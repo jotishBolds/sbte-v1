@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL_LOCAL")
+  url      = env("NEON_URL")
 }
 
 enum Role {
@@ -84,9 +84,9 @@ model User {
   financeManager             FinanceManager?
   alumnus                    Alumnus?
   headOfDepartment           HeadOfDepartment?
-    otp              String?
-  otpExpiresAt     DateTime?
-  lastOtpRequestAt DateTime?
+  otp                        String?
+  otpExpiresAt               DateTime?
+  lastOtpRequestAt           DateTime?
   createdBatches             Batch[]               @relation("CreatedBy")
   updatedBatches             Batch[]               @relation("UpdatedBy")
   createdSubjects            Subject[]             @relation("SubjectCreatedBy")
@@ -129,6 +129,9 @@ model College {
   subjects          Subject[]
   NotifiedCollege   NotifiedCollege[]
   LoadBalancingPdf  LoadBalancingPdf[]
+  Infrastructures   Infrastructures[]
+  Eligibility Eligibility[]
+  Schedules Schedules[]
 }
 
 model Department {
@@ -402,21 +405,21 @@ model Subject {
   batchSubjects BatchSubject[]
 }
 
-  model BatchSubject {
-    id                 String                       @id @default(cuid())
-    batch              Batch                        @relation(fields: [batchId], references: [id])
-    batchId            String
-    subject            Subject                      @relation(fields: [subjectId], references: [id])
-    subjectId          String
-    subjectType        SubjectType                  @relation(fields: [subjectTypeId], references: [id])
-    subjectTypeId      String
-    creditScore        Float
-    classType          ClassType
-    teacherAssignments TeacherAssignedSubject[]
-    monthlyClasses     MonthlyBatchSubjectClasses[]
-    examMarks          ExamMark[]
-    Feedback           Feedback[] //newChange
-  }
+model BatchSubject {
+  id                 String                       @id @default(cuid())
+  batch              Batch                        @relation(fields: [batchId], references: [id])
+  batchId            String
+  subject            Subject                      @relation(fields: [subjectId], references: [id])
+  subjectId          String
+  subjectType        SubjectType                  @relation(fields: [subjectTypeId], references: [id])
+  subjectTypeId      String
+  creditScore        Float
+  classType          ClassType
+  teacherAssignments TeacherAssignedSubject[]
+  monthlyClasses     MonthlyBatchSubjectClasses[]
+  examMarks          ExamMark[]
+  Feedback           Feedback[] //newChange
+}
 
 model MonthlyBatchSubjectClasses {
   id                        String                          @id @default(cuid())
@@ -455,9 +458,8 @@ model StudentBatch {
   batchStatus         BatchStatus
   StudentBatchExamFee StudentBatchExamFee[]
   createdAt           DateTime              @default(now())
-  updatedAt           DateTime?              @updatedAt
+  updatedAt           DateTime?             @updatedAt
 }
-
 
 model Payment {
   id                   String                @id @default(cuid())
@@ -654,6 +656,34 @@ model NotifiedCollege {
   college        College      @relation(fields: [collegeId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+}
+
+model Infrastructures {
+  id        String   @id @default(cuid())
+  title     String
+  pdfPath   String
+  college   College  @relation(fields: [collegeId], references: [id])
+  collegeId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Eligibility {
+  id        String   @id @default(cuid())
+  title     String
+  pdfPath   String
+  college   College  @relation(fields: [collegeId], references: [id])
+  collegeId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+model Schedules {
+  id        String   @id @default(cuid())
+  title     String
+  pdfPath   String
+  college   College  @relation(fields: [collegeId], references: [id])
+  collegeId String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model LoadBalancingPdf {

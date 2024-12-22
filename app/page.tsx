@@ -1,348 +1,340 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import {
-  ArrowRight,
-  BookOpen,
-  Users,
-  Award,
-  ChevronDown,
-  GraduationCap,
-  Building,
-  FileText,
-  Bell,
-} from "lucide-react";
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight, MapPin, Bookmark } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
 import Footer from "@/components/navbar/footer";
 
-// Sample latest results data
-const latestResults = [
-  {
-    title: "Diploma in Civil Engineering - Final Semester Results",
-    date: "March 15, 2024",
-    status: "Published",
-  },
-  {
-    title: "Diploma in Mechanical Engineering - Mid Semester Results",
-    date: "March 10, 2024",
-    status: "Published",
-  },
-  {
-    title: "Diploma in Electronics - Practical Examination Results",
-    date: "March 5, 2024",
-    status: "Published",
-  },
-];
-
-// Expanded features list
-const features = [
-  {
-    icon: BookOpen,
-    title: "Course Management",
-    description:
-      "Comprehensive management of technical courses, curricula, and academic schedules across all affiliated institutions.",
-  },
-  {
-    icon: Users,
-    title: "Student Portal",
-    description:
-      "Centralized student information system with easy access to attendance, results, and course materials.",
-  },
-  {
-    icon: Award,
-    title: "Performance Analytics",
-    description:
-      "Advanced tracking and analysis of student performance metrics and institutional achievements.",
-  },
-  {
-    icon: Building,
-    title: "Institution Management",
-    description:
-      "Streamlined oversight of affiliated technical institutions and their compliance with standards.",
-  },
-  {
-    icon: FileText,
-    title: "Digital Documentation",
-    description:
-      "Paperless processing of certificates, marksheets, and other important academic documents.",
-  },
-  {
-    icon: GraduationCap,
-    title: "Faculty Development",
-    description:
-      "Continuous professional development programs and resources for teaching staff.",
-  },
-];
-
-// Department information
-const departments = [
-  {
-    title: "Civil Engineering",
-    description: "Focusing on infrastructure development and structural design",
-    studentCount: "2,500+",
-    image: "/civil.jpg",
-  },
-  {
-    title: "Mechanical Engineering",
-    description: "Excellence in manufacturing and industrial automation",
-    studentCount: "2,800+",
-    image: "/mec.jpg",
-  },
-  {
-    title: "Electronics Engineering",
-    description: "Leading innovation in electronic systems and communication",
-    studentCount: "2,300+",
-    image: "/elec.jpg",
-  },
-];
-
-const FeatureCard = ({ icon: Icon, title, description }: any) => {
-  const [ref, inView] = useInView({
-    threshold: 0.1,
-    triggerOnce: true,
-  });
-
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 50 }}
-      animate={inView ? { opacity: 1, y: 0 } : { opacity: 0, y: 50 }}
-      transition={{ duration: 0.5 }}
-      className="h-full"
-    >
-      <Card className="h-full transition-all hover:shadow-lg hover:scale-105">
-        <CardHeader>
-          <CardTitle className="flex flex-col items-center space-y-4">
-            <Icon className="h-12 w-12 text-primary" />
-            <span className="text-xl font-semibold text-center">{title}</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground text-center">{description}</p>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
-const NotificationBanner = () => (
-  <div className="bg-primary/10 p-3 text-sm flex items-center justify-center space-x-2">
-    <Bell className="h-4 w-4" />
-    <span>
-      New Results Announced: Diploma in Civil Engineering Final Semester
-    </span>
-    <Link href="/results" className="underline font-medium">
-      View Now
-    </Link>
-  </div>
-);
-
 export default function HomePage() {
-  const [isScrolled, setIsScrolled] = useState(false);
+  const [currentSlide, setCurrentSlide] = useState(0);
 
-  useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 50);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const slides = [
+    {
+      image: "/Convocation1/selected5.jpg",
+    },
+    {
+      image: "/Convocation1/selected4.jpg",
+    },
+  ];
+
+  const officials = [
+    {
+      name: "Shri Om Prakash Mathur",
+      role: "Hon'ble Governor",
+      image: "/home/governor-150x150.jpg",
+      description: "Leading with vision and dedication",
+    },
+    {
+      name: "Shri Prem Singh Tamang",
+      role: "Hon'ble Chief Minister",
+      image: "/home/cm-150x150.jpg",
+      description: "Driving progress and innovation",
+    },
+    {
+      name: "Shri Raju Basnet",
+      role: "Hon'ble Education Minister",
+      image: "/home/RajuBasnet.jpg",
+      description: "Shaping the future of education",
+    },
+  ];
+
+  const institutes = [
+    {
+      name: "Advanced Technical Training Centre (ATTC)",
+      location: "Bardang, Pakyong District",
+      courses: [
+        "Diploma In Mechanical Engineering",
+        "Diploma In Mechatronics",
+        "Diploma in Civil Engineering",
+        "Diploma In Computer Engineering",
+        "Diploma In Manufacturing Engineering",
+      ],
+    },
+    {
+      name: "Centre for Computers and Communication Technology (CCCT)",
+      location: "Chisopani, Namchi District",
+      courses: [
+        "Diploma In Mechanical Engineering",
+        "Diploma In Electrical and Electronics Engineering",
+        "Diploma in Civil Engineering",
+        "Diploma In Computer Science and Technology",
+        "Diploma In Electronics and Communication Engineering",
+      ],
+    },
+  ];
+
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % slides.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+  };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
-      <NotificationBanner />
-
-      {/* Hero Section */}
-      <section className="relative min-h-[80vh] flex items-center justify-center overflow-hidden">
-        <motion.div
-          className="absolute inset-0 z-0 bg-gradient-to-b from-primary/5 to-background"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1 }}
-        />
-        <div className="relative z-10 text-center max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="space-y-6"
-          >
-            <h1 className="text-4xl sm:text-6xl md:text-7xl font-extrabold mb-6 leading-tight">
-              State Board of Technical Education
-              <span className="block text-2xl sm:text-3xl text-primary mt-4">
-                Shaping Tomorrow&apos;s Technical Leaders
-              </span>
-            </h1>
-            <p className="text-lg sm:text-xl text-muted-foreground mb-8 max-w-3xl mx-auto">
-              Empowering students through quality technical education and
-              innovative learning approaches. Join us in building a skilled
-              workforce for the future.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Button size="lg" className="w-full sm:w-auto">
-                Student Portal <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button size="lg" variant="outline" className="w-full sm:w-auto">
-                Institution Login
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Features Grid */}
-      <section className="py-20 px-4 md:px-8 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Comprehensive Technical Education Management
-            </h2>
-            <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Our integrated platform provides everything needed for modern
-              technical education administration
-            </p>
-          </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <FeatureCard key={index} {...feature} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Departments Section */}
-      <section className="py-20 px-4 md:px-8">
-        <div className="max-w-7xl mx-auto">
-          <motion.h2
-            className="text-3xl sm:text-4xl font-bold text-center mb-16"
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-          >
-            Our Technical Departments
-          </motion.h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {departments.map((dept, index) => (
+    <>
+      <ScrollArea className="h-screen">
+        <div className="min-h-screen bg-background">
+          {/* Hero Section */}
+          <div className="relative w-full h-[70vh] overflow-hidden">
+            <AnimatePresence mode="wait">
               <motion.div
-                key={index}
-                initial={{ opacity: 0, y: 50 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.2 }}
-                className="group"
+                key={currentSlide}
+                className="absolute inset-0"
+                initial={{ opacity: 0, x: 300 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -300 }}
+                transition={{ duration: 0.5 }}
               >
-                <div className="relative overflow-hidden rounded-lg">
-                  <img
-                    src={dept.image}
-                    alt={dept.title}
-                    className="w-full h-64 object-cover transition-transform group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <div className="absolute bottom-0 p-6 text-white">
-                    <h3 className="text-xl font-bold mb-2">{dept.title}</h3>
-                    <p className="text-sm opacity-90 mb-2">
-                      {dept.description}
-                    </p>
-                    <p className="text-sm font-semibold">
-                      Current Students: {dept.studentCount}
-                    </p>
+                <div
+                  className="relative w-full h-full bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url(${slides[currentSlide].image})`,
+                  }}
+                >
+                  <div className="absolute inset-0">
+                    <div className="container mx-auto h-full flex items-center justify-between px-4">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-white hover:bg-white/10"
+                        onClick={prevSlide}
+                      >
+                        <ChevronLeft className="h-8 w-8" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-white hover:bg-white/10"
+                        onClick={nextSlide}
+                      >
+                        <ChevronRight className="h-8 w-8" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
+            </AnimatePresence>
 
-      {/* Latest Results Section */}
-      <section className="py-20 px-4 md:px-8 bg-muted/30">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0 }}
-            whileInView={{ opacity: 1 }}
-            viewport={{ once: true }}
-            className="text-center mb-12"
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-              Latest Results
-            </h2>
-            <p className="text-muted-foreground">
-              Stay updated with the most recent examination results and
-              announcements
-            </p>
-          </motion.div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {latestResults.map((result, index) => (
-              <motion.div
-                key={index}
-                initial={{ opacity: 0, x: -50 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
-              >
-                <Card className="cursor-pointer hover:shadow-lg transition-all">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <h3 className="font-semibold mb-2">{result.title}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Published on {result.date}
-                        </p>
-                      </div>
-                      <span className="px-3 py-1 bg-primary/10 text-primary rounded-full text-sm">
-                        {result.status}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-          <div className="text-center mt-10">
-            <Button variant="outline" size="lg">
-              View All Results
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="py-20 px-4 md:px-8 bg-primary text-primary-foreground">
-        <div className="max-w-7xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="space-y-6"
-          >
-            <h2 className="text-3xl sm:text-4xl font-bold">
-              Begin Your Technical Education Journey
-            </h2>
-            <p className="text-lg max-w-2xl mx-auto opacity-90">
-              Join thousands of students already pursuing their dreams through
-              our accredited technical education programs.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Button size="lg" variant="secondary">
-                Explore Programs
-                <ArrowRight className="ml-2 h-5 w-5" />
-              </Button>
-              <Button size="lg" variant="outline" className="bg-transparent">
-                Contact Us
-              </Button>
+            {/* Slide Indicators */}
+            <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex space-x-3">
+              {slides.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentSlide(index)}
+                  className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                    currentSlide === index ? "w-6 bg-white" : "bg-white/40"
+                  }`}
+                />
+              ))}
             </div>
-          </motion.div>
-        </div>
-      </section>
+          </div>
 
-      <Footer />
-    </div>
+          {/* Rest of the sections remain unchanged */}
+          {/* Leadership Section */}
+          <section className="py-16">
+            <div className="container mx-auto px-4">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold text-primary">
+                  Our Leadership
+                </h2>
+                <p className="mt-2 text-muted-foreground">
+                  Guiding Sikkim&apos;s Technical Education
+                </p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                {officials.map((profile, index) => (
+                  <motion.div
+                    key={index}
+                    whileHover={{ y: -5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Card className="relative overflow-hidden border-0 shadow-lg">
+                      <CardContent className="p-6">
+                        <div className="flex flex-col items-center">
+                          <div className="w-40 h-40 rounded-full overflow-hidden mb-6 border-4 border-primary/10">
+                            <img
+                              src={profile.image}
+                              alt={profile.name}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                          <h3 className="text-xl font-bold text-primary mb-2">
+                            {profile.name}
+                          </h3>
+                          <Badge variant="secondary" className="mb-3">
+                            {profile.role}
+                          </Badge>
+                          <p className="text-muted-foreground text-center">
+                            {profile.description}
+                          </p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Institutes Section */}
+          <section className="py-16">
+            <div className="container mx-auto px-4">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl font-bold text-primary">
+                  Technical Institutes
+                </h2>
+                <p className="mt-2 text-muted-foreground">
+                  Excellence in Technical Education
+                </p>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {institutes.map((institute, index) => (
+                  <motion.div
+                    key={index}
+                    whileHover={{ y: -5 }}
+                    transition={{ type: "spring", stiffness: 300 }}
+                  >
+                    <Card className="h-full">
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <Bookmark className="h-5 w-5 text-primary" />
+                          {institute.name}
+                        </CardTitle>
+                        <CardDescription className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4" />
+                          {institute.location}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-2">
+                          {institute.courses.map((course, idx) => (
+                            <div
+                              key={idx}
+                              className="flex items-center gap-2 text-gray-600"
+                            >
+                              <div className="h-1.5 w-1.5 rounded-full bg-primary" />
+                              {course}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* About Section */}
+          <section className="py-16">
+            <div className="container mx-auto px-4">
+              <Tabs defaultValue="about" className="max-w-auto mx-auto">
+                <TabsList className="grid w-full grid-cols-3 mb-8">
+                  <TabsTrigger value="about">About SBTE</TabsTrigger>
+                  <TabsTrigger value="achievements">Achievements</TabsTrigger>
+                  <TabsTrigger value="vision">Vision</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="about">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>About SBTE</CardTitle>
+                    </CardHeader>
+                    <CardContent className="prose max-w-none">
+                      <p className="text-muted-foreground leading-relaxed">
+                        The State Board of Technical Education (SBTE) was
+                        constituted in 2002 to advise the Government in all
+                        matters relating to technical education in the State. It
+                        started functioning from 2017 onwards with a creation of
+                        small working cell in the top floor of Education
+                        Department with few members posted here. The board has
+                        embarked on a mission to elevate the standards of
+                        technical education, ensuring a holistic development
+                        approach.
+                      </p>
+                      <p className="text-muted-foreground leading-relaxed mt-4">
+                        Since its inception in 2002, the State Board of
+                        Technical Education (SBTE) has emerged as a pivotal
+                        board, driving the advancement of technical education
+                        across the state. This report delineates the
+                        comprehensive policies, noteworthy achievements, and
+                        visionary goals that underscore the SBTE&apos;s
+                        dedication to fostering a robust technical education
+                        framework.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="achievements">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Key Achievements</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-4">
+                        {[
+                          "First and Second-Ever Convocations in 2023 and 2024",
+                          "Implementation of Uniform Grading System",
+                          "Amended Curriculum aligned with NEP 20 and AICTE guidelines",
+                          "Regular Awarding of Diploma Certificates",
+                        ].map((achievement, index) => (
+                          <li
+                            key={index}
+                            className="flex items-center gap-3 text-muted-foreground"
+                          >
+                            <div className="h-2 w-2 rounded-full bg-primary" />
+                            {achievement}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                <TabsContent value="vision">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Vision for the Future</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ul className="space-y-4">
+                        {[
+                          "Innovation and Technological advancement through Management Information System",
+                          "Industry collaboration and workforce readiness",
+                          "Accessibility and inclusivity for economically backward students",
+                          "Promotion of Technical Institutes through various media channels",
+                          "Regular Convocations to celebrate student achievements",
+                        ].map((vision, index) => (
+                          <li
+                            key={index}
+                            className="flex items-center gap-3 text-muted-foreground"
+                          >
+                            <div className="h-2 w-2 rounded-full bg-primary" />
+                            {vision}
+                          </li>
+                        ))}
+                      </ul>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </section>
+        </div>
+        <Footer />
+      </ScrollArea>
+    </>
   );
 }

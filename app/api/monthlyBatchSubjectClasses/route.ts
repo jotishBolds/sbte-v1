@@ -139,6 +139,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const collegeId = session.user.collegeId;
+
+    const college = await prisma.college.findUnique({
+      where: {
+        id: collegeId,
+      },
+    });
+    if (!college) {
+      return NextResponse.json({ error: "Invalid collegeId" }, { status: 404 });
+    }
     const batchSubjectId = request.nextUrl.searchParams.get("batchSubjectId");
     const month = request.nextUrl.searchParams.get("month");
 
@@ -146,6 +156,16 @@ export async function GET(request: NextRequest) {
     const filter: any = {};
     if (batchSubjectId) filter.batchSubjectId = batchSubjectId;
     if (month) filter.month = month;
+    // Use relation filtering if collegeId is part of a related model
+    filter.batchSubject = {
+      batch: {
+        program: {
+          department: {
+            collegeId: collegeId,
+          },
+        },
+      },
+    };
 
     // Fetch records based on filters
     const monthlyBatchSubjectClasses =

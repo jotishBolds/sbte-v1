@@ -54,6 +54,12 @@ interface ProfileData {
     qualification?: string;
     experience?: string;
   };
+  alumnus?: {
+    jobStatus?: string;
+    currentEmployer?: string;
+    currentPosition?: string;
+    industry?: string;
+  };
 }
 
 type EmployeeCategory = {
@@ -102,6 +108,7 @@ export default function ProfilePage() {
             email: profileData.user.email || "",
             teacher: profileData.user.teacher || {},
             headOfDepartment: profileData.user.headOfDepartment || {},
+            alumnus: profileData.user.alumnus || {},
           }));
 
           setDesignations(designationsData);
@@ -171,7 +178,18 @@ export default function ProfilePage() {
       },
     }));
   };
-
+  const handleAlumnusChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target;
+    setProfile((prevProfile) => ({
+      ...prevProfile,
+      alumnus: {
+        ...prevProfile.alumnus,
+        [name]: value,
+      },
+    }));
+  };
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -210,6 +228,9 @@ export default function ProfilePage() {
             )}
             {session?.user?.role === "HOD" && (
               <TabsTrigger value="hod">HOD Information</TabsTrigger>
+            )}
+            {session?.user?.role === "ALUMNUS" && (
+              <TabsTrigger value="alumnus">Alumni Information</TabsTrigger>
             )}
           </TabsList>
 
@@ -286,7 +307,63 @@ export default function ProfilePage() {
               </CardContent>
             </Card>
           </TabsContent>
-
+          {/* Alumnus Information Tab */}
+          {session?.user?.role === "ALUMNUS" && (
+            <TabsContent value="alumnus">
+              <Card>
+                <CardHeader>
+                  <h2 className="text-2xl font-semibold">Alumni Information</h2>
+                </CardHeader>
+                <CardContent>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="jobStatus">Job Status</Label>
+                      <Input
+                        id="jobStatus"
+                        name="jobStatus"
+                        value={profile.alumnus?.jobStatus || ""}
+                        onChange={handleAlumnusChange}
+                        placeholder="Enter your current job status"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currentEmployer">Current Employer</Label>
+                      <Input
+                        id="currentEmployer"
+                        name="currentEmployer"
+                        value={profile.alumnus?.currentEmployer || ""}
+                        onChange={handleAlumnusChange}
+                        placeholder="Enter your current employer"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="currentPosition">Current Position</Label>
+                      <Input
+                        id="currentPosition"
+                        name="currentPosition"
+                        value={profile.alumnus?.currentPosition || ""}
+                        onChange={handleAlumnusChange}
+                        placeholder="Enter your current position"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="industry">Industry</Label>
+                      <Input
+                        id="industry"
+                        name="industry"
+                        value={profile.alumnus?.industry || ""}
+                        onChange={handleAlumnusChange}
+                        placeholder="Enter your industry"
+                      />
+                    </div>
+                    <CardFooter className="flex justify-end pt-4">
+                      <Button type="submit">Update Alumni Information</Button>
+                    </CardFooter>
+                  </form>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
           {/* Teacher Information Tab */}
           {session?.user?.role === "TEACHER" && (
             <TabsContent value="teacher">

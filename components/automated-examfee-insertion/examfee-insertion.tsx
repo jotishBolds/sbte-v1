@@ -131,7 +131,7 @@ export function AutoBaseExamFeeInsertion({
           </DialogTitle>
           <DialogDescription className="text-muted-foreground">
             This will automatically create or update exam fees for all students
-            in the selected batch based on the batch's base exam fee.
+            in the selected batch based on the batch&apos;s base exam fee.
           </DialogDescription>
           <DialogClose
             className="absolute top-0 right-0 p-2 hover:bg-secondary rounded-full"

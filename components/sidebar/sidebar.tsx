@@ -79,6 +79,10 @@ import {
   Check,
   User2Icon,
   ChartArea,
+  Building2,
+  Timer,
+  CheckCheck,
+  TimerIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -148,6 +152,11 @@ export const Sidebar: React.FC = () => {
             icon: <ChartArea size={18} />,
             label: "College/Student Stats",
           },
+          {
+            href: "/college-stats/departments-stats",
+            icon: <TimerIcon size={18} />,
+            label: "Department Stats",
+          },
         ];
       case "SBTE_ADMIN":
         return [
@@ -165,6 +174,21 @@ export const Sidebar: React.FC = () => {
             href: "/departments",
             icon: <GraduationCapIcon size={18} />,
             label: "Departments",
+          },
+          {
+            href: "/view-infrastructure",
+            icon: <Building2 size={18} />,
+            label: "Infrastructures",
+          },
+          {
+            href: "/view-eligibility",
+            icon: <CheckCheck size={18} />,
+            label: "Eligibility",
+          },
+          {
+            href: "/view-schedules",
+            icon: <Timer size={18} />,
+            label: "Schedules",
           },
           {
             href: "/user-creation",
@@ -380,6 +404,21 @@ export const Sidebar: React.FC = () => {
             href: "/admission-year",
             icon: <TableCellsSplit size={18} />,
             label: "Admission Year",
+          },
+          {
+            href: "/infrastructures",
+            icon: <Building2 size={18} />,
+            label: "Infrastructure",
+          },
+          {
+            href: "/schedules-upload",
+            icon: <Timer size={18} />,
+            label: "Upload Schedules",
+          },
+          {
+            href: "/eligibility-upload",
+            icon: <CheckCheck size={18} />,
+            label: "Upload Eligibility",
           },
         ];
       case "ADM":

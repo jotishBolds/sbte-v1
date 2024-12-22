@@ -129,7 +129,7 @@ export default function ProgramForm() {
       setIsLoading(true);
       try {
         const [deptResponse, typeResponse, semResponse] = await Promise.all([
-          fetch("/api/departments"),
+          fetch("/api/fetchActiveDepartments"),
           fetch("/api/programs/programTypes"),
           fetch("/api/semesters"),
         ]);

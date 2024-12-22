@@ -6,6 +6,7 @@ import { z } from "zod";
 import { hash, compare } from "bcrypt";
 import prisma from "@/src/lib/prisma";
 import { authOptions } from "../auth/[...nextauth]/auth";
+import { log } from "console";
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -62,6 +63,14 @@ const updateProfileSchema = z.object({
       experience: z.string().optional(),
     })
     .optional(), // Optional HOD data
+  alumnus: z
+    .object({
+      jobStatus: z.string().optional(),
+      currentEmployer: z.string().optional(),
+      currentPosition: z.string().optional(),
+      industry: z.string().optional(),
+    })
+    .optional(), // Optional HOD data
   teacher: z
     .object({
       name: z.string().optional(),
@@ -92,6 +101,7 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
+
     const result = updateProfileSchema.safeParse(body);
 
     if (!result.success) {
@@ -109,6 +119,7 @@ export async function PUT(request: NextRequest) {
       confirmPassword,
       headOfDepartment,
       teacher,
+      alumnus,
     } = result.data;
 
     const user = await prisma.user.findUnique({
@@ -116,6 +127,7 @@ export async function PUT(request: NextRequest) {
       include: {
         headOfDepartment: true,
         teacher: true,
+        alumnus:true,
       },
     });
 
@@ -149,6 +161,7 @@ export async function PUT(request: NextRequest) {
       const updatedUser = await prisma.user.update({
         where: { id: user.id },
         data: updateData,
+
       });
 
       // Only update HOD if the user is HOD
@@ -188,6 +201,18 @@ export async function PUT(request: NextRequest) {
               joiningDate: teacher.joiningDate
                 ? new Date(teacher.joiningDate)
                 : undefined,
+            },
+          });
+        }
+      }
+
+      // Only update teacher if the user is TEACHER
+      if (session.user.role === "ALUMNUS" && alumnus) {
+        if (user.alumnus) {
+          await prisma.alumnus.update({
+            where: { id: user.alumnus.id },
+            data: {
+              ...alumnus,
             },
           });
         }

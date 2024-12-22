@@ -619,9 +619,9 @@ async function getFinanceManagerStatistics(userId: string) {
   // });
 
   return {
-    totalFeePayments,
-    totalPendingPayments,
-    totalCompletedPayments,
+    totalPaymentsMade: totalFeePayments,
+    totalPendingFees: totalPendingPayments,
+    totalPaidFees: totalCompletedPayments,
     // totalRevenue: totalRevenue._sum.amount || 0,
     totalExamFees: totalExamFees || 0,
   };

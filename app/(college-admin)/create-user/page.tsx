@@ -119,7 +119,7 @@ const UserRegistrationForm: React.FC = () => {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await fetch("/api/departments");
+        const response = await fetch("/api/fetchHodCreationDepartment");
         if (!response.ok) {
           throw new Error("Failed to fetch departments");
         }

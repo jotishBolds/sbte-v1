@@ -18,42 +18,132 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { ModeToggle } from "../theme-toggle";
 import LogoText from "./logo";
 
-interface NavLinkProps {
-  href: string;
-  label: string;
-  mobile?: boolean;
-}
+// Navigation Data Structure
+const navigationItems = [
+  {
+    label: "Home",
+    href: "/",
+  },
+  {
+    label: "About",
+    items: [
+      { label: "About SBTE", href: "/about-us" },
+      { label: "Organization Chart", href: "/organization-chart" },
+      { label: "Who is Who", href: "/who-is-who" },
+    ],
+  },
+  {
+    label: "Affiliated College",
+    href: "/affiliated-collages",
+  },
+  {
+    label: "Notification",
+    items: [
+      { label: "Circular and Notification", href: "/notification-circulation" },
+    ],
+  },
+  {
+    label: "Convocation",
+    href: "/convocations",
+  },
+  {
+    label: "Gallery",
+    href: "/gallery",
+  },
+  {
+    label: "Contact Us",
+    href: "/contact",
+  },
+];
 
-const NavLink: React.FC<NavLinkProps> = ({ href, label, mobile = false }) => (
-  <Link href={href} passHref legacyBehavior>
-    <motion.a
-      className={cn(
-        "text-sm font-medium transition-colors hover:text-primary",
-        "dark:text-gray-300 dark:hover:text-primary",
-        mobile && "py-2"
-      )}
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
-    >
-      {label}
-    </motion.a>
-  </Link>
-);
+const NavLink: React.FC<{ item: any; mobile?: boolean }> = ({
+  item,
+  mobile = false,
+}) => {
+  if (item.items) {
+    return mobile ? (
+      <DropdownMenu>
+        <DropdownMenuTrigger className="text-sm font-medium w-full text-left">
+          {" "}
+          {/* Added w-full and text-left */}
+          {item.label}
+          <ChevronDown className="ml-1 h-4 w-4 inline float-right" />{" "}
+          {/* Added float-right */}
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-full min-w-[200px]">
+          {" "}
+          {/* Added min-width */}
+          {item.items.map((subItem: any) => (
+            <DropdownMenuItem key={subItem.href} asChild>
+              <Link href={subItem.href} className="w-full">
+                {subItem.label}
+              </Link>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    ) : (
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <motion.button
+            className="inline-flex items-center text-sm font-medium transition-colors hover:text-primary dark:text-gray-300 dark:hover:text-primary"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            {item.label}
+            <ChevronDown className="ml-1 h-4 w-4" />
+          </motion.button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" alignOffset={-4}>
+          {item.items.map((subItem: any) => (
+            <DropdownMenuItem key={subItem.href} asChild>
+              <Link href={subItem.href} className="w-full">
+                {subItem.label}
+              </Link>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    );
+  }
 
-interface NavItemsProps {
-  mobile?: boolean;
-}
+  return (
+    <Link href={item.href} passHref legacyBehavior>
+      <motion.a
+        className={cn(
+          "text-sm font-medium transition-colors hover:text-primary",
+          "dark:text-gray-300 dark:hover:text-primary",
+          mobile && "py-2 w-full text-left" // Added w-full and text-left
+        )}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        {item.label}
+      </motion.a>
+    </Link>
+  );
+};
 
-const NavItems: React.FC<NavItemsProps> = ({ mobile = false }) => {
+const NavItems: React.FC<{ mobile?: boolean }> = ({ mobile = false }) => {
   const { data: session } = useSession();
 
   return (
-    <>
-      <NavLink href="/" label="Home" mobile={mobile} />
-      {session && (
-        <NavLink href="/dashboard" label="Dashboard" mobile={mobile} />
+    <div
+      className={cn(
+        "flex gap-6",
+        mobile ? "flex-col w-full items-start" : "flex-row items-center" // Added w-full and items-start
       )}
-    </>
+    >
+      {navigationItems.map((item) => (
+        <NavLink key={item.label} item={item} mobile={mobile} />
+      ))}
+      {session && (
+        <NavLink
+          item={{ label: "Dashboard", href: "/dashboard" }}
+          mobile={mobile}
+        />
+      )}
+    </div>
   );
 };
 
@@ -182,7 +272,10 @@ export const Navbar: React.FC = () => {
                 <NavItems mobile />
                 {session ? (
                   <>
-                    <NavLink href="/profile" label="Profile Dashboard" mobile />
+                    <NavLink
+                      item={{ label: "Profile Dashboard", href: "/profile" }}
+                      mobile
+                    />
                     <Button
                       onClick={() => signOut({ callbackUrl: "/" })}
                       variant="outline"

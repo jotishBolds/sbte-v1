@@ -60,6 +60,20 @@ export async function POST(request: Request) {
       );
     }
 
+    const monthlyBatchSubjectClasses =
+      await prisma.monthlyBatchSubjectClasses.findUnique({
+        where: {
+          id: monthlyBatchSubjectClassesId.toString(),
+        },
+      });
+
+    if (!monthlyBatchSubjectClasses) {
+      return NextResponse.json(
+        { error: "Monthly Batch Subject Class not found." },
+        { status: 400 }
+      );
+    }
+
     const workbook = new ExcelJS.Workbook();
     const buffer = await file.arrayBuffer();
     await workbook.xlsx.load(buffer);
@@ -119,6 +133,19 @@ export async function POST(request: Request) {
 
       if (!student) {
         missingStudents.push(row.number);
+        continue;
+      }
+
+      // Check if attended classes exceed completed classes
+      if (
+        rowData.attendedTheoryClasses >
+          (monthlyBatchSubjectClasses.completedTheoryClasses || 0) ||
+        rowData.attendedPracticalClasses >
+          (monthlyBatchSubjectClasses.completedPracticalClasses || 0)
+      ) {
+        errorMessages.push(
+          `Row ${row.number}: Attended theory/practical classes exceed the completed classes for this batch subject.`
+        );
         continue;
       }
 

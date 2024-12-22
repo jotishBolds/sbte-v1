@@ -183,8 +183,9 @@ const EmptyState = () => (
       <School className="w-12 h-12 text-muted-foreground mb-4" />
       <h3 className="text-lg font-semibold mb-2">No Student Data Available</h3>
       <p className="text-sm text-muted-foreground max-w-md">
-        The student record you're looking for doesn't exist or hasn't been
-        loaded properly. Please check the student ID and try again.
+        The student record you&apos;re looking for doesn&apos;t exist or
+        hasn&apos;t been loaded properly. Please check the student ID and try
+        again.
       </p>
     </CardContent>
   </Card>

@@ -1,15 +1,80 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { useSession } from "next-auth/react";
 import { toast } from "@/components/ui/use-toast";
 import { ExtendedNotification } from "@/types/types";
+import { PrismaClient } from "@prisma/client";
 
-// Type definitions for clarity
+// Connection management singleton
+const prismaManager = {
+  client: null as PrismaClient | null,
+  connectionsInUse: 0,
+  MAX_CONNECTIONS: 10,
+  COOLDOWN_PERIOD: 5000, // 5 seconds
+
+  async getClient() {
+    if (!this.client) {
+      this.client = new PrismaClient({
+        datasources: {
+          db: {
+            url: process.env.DATABASE_URL,
+          },
+        },
+        log: ["error"],
+      });
+    }
+    return this.client;
+  },
+
+  async acquire() {
+    if (this.connectionsInUse >= this.MAX_CONNECTIONS) {
+      throw new Error("Connection pool exhausted");
+    }
+    this.connectionsInUse++;
+    return await this.getClient();
+  },
+
+  release() {
+    if (this.connectionsInUse > 0) {
+      this.connectionsInUse--;
+    }
+  },
+
+  async disconnect() {
+    if (this.client) {
+      await this.client.$disconnect();
+      this.client = null;
+      this.connectionsInUse = 0;
+    }
+  },
+};
+
 interface NotificationDownloadProps {
   id: string;
   title: string;
 }
 
-export const useNotificationManager = () => {
+class NotificationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NotificationError";
+  }
+}
+
+interface NotificationManagerReturn {
+  notifications: ExtendedNotification[];
+  notificationCount: number;
+  loading: boolean;
+  fetchNotifications: () => Promise<void>;
+  downloadNotification: (props: NotificationDownloadProps) => Promise<void>;
+}
+
+export const useNotificationManager = (): NotificationManagerReturn => {
   const { data: session } = useSession();
   const [notifications, setNotifications] = useState<ExtendedNotification[]>(
     []
@@ -17,27 +82,58 @@ export const useNotificationManager = () => {
   const [notificationCount, setNotificationCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Memoize notification-enabled roles to prevent unnecessary re-creation
+  const lastFetchTime = useRef<number>(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const FETCH_COOLDOWN = 30000;
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY = 1000;
+
   const notificationEnabledRoles = useMemo(
-    () => ["SBTE_ADMIN", "COLLEGE_SUPER_ADMIN"],
+    () => ["SBTE_ADMIN", "COLLEGE_SUPER_ADMIN"] as const,
     []
   );
 
-  // Optimize fetch notifications with useCallback
-  const fetchNotifications = useCallback(async () => {
-    // Early return if role is not permitted
-    if (
-      !session?.user?.role ||
-      !notificationEnabledRoles.includes(session.user.role)
-    ) {
-      setLoading(false);
-      return;
-    }
+  type NotificationRole = (typeof notificationEnabledRoles)[number];
 
+  const isRoleEnabled = useMemo(() => {
+    return (
+      session?.user?.role &&
+      notificationEnabledRoles.includes(session.user.role as NotificationRole)
+    );
+  }, [session?.user?.role, notificationEnabledRoles]);
+
+  const computeNotificationCount = useCallback(
+    (data: ExtendedNotification[]): number => {
+      if (!session?.user?.role) return 0;
+
+      const role = session.user.role as NotificationRole;
+
+      if (role === "SBTE_ADMIN") {
+        return data.length || 0;
+      }
+
+      if (role === "COLLEGE_SUPER_ADMIN" && session.user.collegeId) {
+        return data.filter((notif) =>
+          notif.notifiedColleges?.some(
+            (college) =>
+              college.collegeId === session.user.collegeId && !college.isRead
+          )
+        ).length;
+      }
+
+      return 0;
+    },
+    [session?.user?.role, session?.user?.collegeId]
+  );
+
+  const fetchNotificationsWithRetry = async (
+    retryCount = 0
+  ): Promise<ExtendedNotification[]> => {
     try {
-      setLoading(true);
       const response = await fetch("/api/notification", {
-        // Add cache-busting to prevent over-caching
+        signal: abortControllerRef.current?.signal,
         headers: {
           "Cache-Control": "no-cache",
           Pragma: "no-cache",
@@ -46,67 +142,95 @@ export const useNotificationManager = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to fetch notifications");
+        throw new NotificationError(
+          `Failed to fetch notifications: ${response.statusText}`
+        );
       }
 
-      const data = await response.json();
-
-      // Use functional state update to ensure latest state
-      setNotifications((prevNotifications) => {
-        // Only update if data has changed to prevent unnecessary re-renders
-        const hasChanged =
-          JSON.stringify(prevNotifications) !== JSON.stringify(data);
-        return hasChanged ? data : prevNotifications;
-      });
-
-      // Optimize notification count calculation
-      const computeNotificationCount = () => {
-        if (session.user.role === "SBTE_ADMIN") {
-          return data.length || 0;
-        }
-
-        if (session.user.role === "COLLEGE_SUPER_ADMIN") {
-          if (data.message == "No notifications found.") {
-            return;
-          } else {
-            return data.filter((notif: ExtendedNotification) =>
-              notif.notifiedColleges.some(
-                (college) =>
-                  college.collegeId === session.user.collegeId &&
-                  !college.isRead
-              )
-            ).length;
-          }
-        }
-
-        return 0;
-      };
-
-      setNotificationCount((prevCount) => {
-        const newCount = computeNotificationCount();
-        return prevCount !== newCount ? newCount : prevCount;
-      });
+      return await response.json();
     } catch (error) {
-      console.error("Error fetching notifications:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load notifications",
-        variant: "destructive",
-      });
-      setNotificationCount(0);
-    } finally {
-      setLoading(false);
+      if (
+        error instanceof Error &&
+        error.message.includes("too many clients") &&
+        retryCount < MAX_RETRIES
+      ) {
+        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+        return fetchNotificationsWithRetry(retryCount + 1);
+      }
+      throw error;
     }
-  }, [session, notificationEnabledRoles]);
+  };
 
-  // Optimize download notification with useCallback
+  const fetchNotifications = useCallback(
+    async (force = false): Promise<void> => {
+      if (!isRoleEnabled) {
+        setLoading(false);
+        return;
+      }
+
+      const now = Date.now();
+      if (!force && now - lastFetchTime.current < FETCH_COOLDOWN) {
+        return;
+      }
+
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+
+      abortControllerRef.current = new AbortController();
+
+      try {
+        setLoading(true);
+        lastFetchTime.current = now;
+
+        const data = await fetchNotificationsWithRetry();
+
+        setNotifications((prev) => {
+          const hasChanged = JSON.stringify(prev) !== JSON.stringify(data);
+          return hasChanged ? data : prev;
+        });
+
+        const newCount = computeNotificationCount(data);
+        setNotificationCount((prev) => (prev !== newCount ? newCount : prev));
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          return;
+        }
+
+        const errorMessage =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        console.error("Error fetching notifications:", errorMessage);
+
+        toast({
+          title: "Error",
+          description: "Failed to load notifications. Retrying...",
+          variant: "destructive",
+        });
+
+        // Schedule retry
+        retryTimeoutRef.current = setTimeout(() => {
+          void fetchNotifications(true);
+        }, RETRY_DELAY);
+
+        setNotificationCount(0);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [isRoleEnabled, computeNotificationCount]
+  );
+
   const downloadNotification = useCallback(
-    async ({ id, title }: NotificationDownloadProps) => {
+    async ({ id, title }: NotificationDownloadProps): Promise<void> => {
       try {
         const response = await fetch(`/api/notification/${id}`);
 
         if (!response.ok) {
-          throw new Error("Failed to download notification");
+          throw new NotificationError("Failed to download notification");
         }
 
         const blob = await response.blob();
@@ -117,16 +241,19 @@ export const useNotificationManager = () => {
         document.body.appendChild(a);
         a.click();
         a.remove();
+        window.URL.revokeObjectURL(url);
 
-        // Refresh notifications to update count
-        await fetchNotifications();
+        await fetchNotifications(true);
 
         toast({
           title: "Success",
           description: "Notification downloaded successfully",
         });
       } catch (error) {
-        console.error("Error downloading notification:", error);
+        const errorMessage =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        console.error("Error downloading notification:", errorMessage);
+
         toast({
           title: "Error",
           description: "Failed to download notification",
@@ -137,30 +264,32 @@ export const useNotificationManager = () => {
     [fetchNotifications]
   );
 
-  // Optimize initial fetch and polling with useEffect
   useEffect(() => {
-    // Only set up polling if a valid session exists
-    if (
-      session?.user?.role &&
-      notificationEnabledRoles.includes(session.user.role)
-    ) {
-      // Fetch immediately
-      fetchNotifications();
+    if (isRoleEnabled) {
+      void fetchNotifications(true);
 
-      // Set up polling every 5 minutes
-      const intervalId = setInterval(fetchNotifications, 5 * 60 * 1000);
+      const intervalId = setInterval(() => {
+        void fetchNotifications();
+      }, 5 * 60 * 1000);
 
-      // Cleanup interval on component unmount
-      return () => clearInterval(intervalId);
+      return () => {
+        clearInterval(intervalId);
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+        }
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort();
+        }
+        void prismaManager.disconnect();
+      };
     }
-  }, [session, notificationEnabledRoles, fetchNotifications]);
+  }, [isRoleEnabled, fetchNotifications]);
 
-  // Return hook values and methods
   return {
     notifications,
     notificationCount,
     loading,
-    fetchNotifications,
+    fetchNotifications: () => fetchNotifications(true),
     downloadNotification,
   };
 };
