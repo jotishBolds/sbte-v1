@@ -862,33 +862,98 @@ const UserManagement: React.FC = () => {
             {users.length > itemsPerPage && (
               <Pagination className="mt-4">
                 <PaginationContent>
-                  {currentPage > 1 && (
-                    <PaginationItem>
-                      <PaginationPrevious
-                        onClick={() => handlePageChange(currentPage - 1)}
-                      />
-                    </PaginationItem>
-                  )}
-                  {Array.from({ length: totalPages }).map((_, index) => (
-                    <PaginationItem
-                      key={index}
-                      className="hidden md:inline-block"
-                    >
-                      <PaginationLink
-                        onClick={() => handlePageChange(index + 1)}
-                        isActive={currentPage === index + 1}
-                      >
-                        {index + 1}
-                      </PaginationLink>
-                    </PaginationItem>
-                  ))}
-                  {currentPage < totalPages && (
-                    <PaginationItem>
-                      <PaginationNext
-                        onClick={() => handlePageChange(currentPage + 1)}
-                      />
-                    </PaginationItem>
-                  )}
+                  <PaginationItem>
+                    <PaginationPrevious
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      aria-disabled={currentPage === 1}
+                      className={
+                        currentPage === 1
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
+
+                  {(() => {
+                    const pages = [];
+                    const delta = 1; // Pages to show before and after current page
+
+                    // Always show first page
+                    pages.push(
+                      <PaginationItem key={1}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(1)}
+                          isActive={currentPage === 1}
+                        >
+                          1
+                        </PaginationLink>
+                      </PaginationItem>
+                    );
+
+                    // Add dots after first page if needed
+                    if (currentPage > 2 + delta) {
+                      pages.push(
+                        <PaginationItem key="dots-1">
+                          <div className="px-4">...</div>
+                        </PaginationItem>
+                      );
+                    }
+
+                    // Add pages around current page
+                    for (
+                      let i = Math.max(2, currentPage - delta);
+                      i <= Math.min(totalPages - 1, currentPage + delta);
+                      i++
+                    ) {
+                      pages.push(
+                        <PaginationItem key={i}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(i)}
+                            isActive={currentPage === i}
+                          >
+                            {i}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+
+                    // Add dots before last page if needed
+                    if (currentPage < totalPages - (1 + delta)) {
+                      pages.push(
+                        <PaginationItem key="dots-2">
+                          <div className="px-4">...</div>
+                        </PaginationItem>
+                      );
+                    }
+
+                    // Always show last page if there is more than one page
+                    if (totalPages > 1) {
+                      pages.push(
+                        <PaginationItem key={totalPages}>
+                          <PaginationLink
+                            onClick={() => handlePageChange(totalPages)}
+                            isActive={currentPage === totalPages}
+                          >
+                            {totalPages}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    }
+
+                    return pages;
+                  })()}
+
+                  <PaginationItem>
+                    <PaginationNext
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      aria-disabled={currentPage === totalPages}
+                      className={
+                        currentPage === totalPages
+                          ? "pointer-events-none opacity-50"
+                          : ""
+                      }
+                    />
+                  </PaginationItem>
                 </PaginationContent>
               </Pagination>
             )}
