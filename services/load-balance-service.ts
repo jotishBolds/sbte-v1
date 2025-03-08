@@ -1,4 +1,4 @@
-import { LoadBalancingPdf } from "@/types/load-balace-types";
+import { LoadBalancingPdf, UserSession } from "@/types/load-balace-types";
 
 export const loadBalancingService = {
   async getPdfs(): Promise<LoadBalancingPdf[]> {
@@ -38,19 +38,21 @@ export const loadBalancingService = {
     try {
       const response = await fetch(`/api/loadBalancing/${id}`);
       if (!response.ok) {
-        throw new Error("Download failed");
+        throw new Error("Failed to download PDF");
       }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${title}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${title}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
       console.error("PDF download error:", error);
-      // Optional: show user-friendly error toast/notification
+      throw new Error("Failed to download PDF");
     }
   },
 
@@ -62,9 +64,10 @@ export const loadBalancingService = {
       if (!response.ok) {
         throw new Error("Delete failed");
       }
+      return true;
     } catch (error) {
       console.error("PDF delete error:", error);
-      // Optional: show user-friendly error toast/notification
+      throw new Error("Failed to delete PDF");
     }
   },
 };

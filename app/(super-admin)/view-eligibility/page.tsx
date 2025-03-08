@@ -18,7 +18,7 @@ import SideBarLayout from "@/components/sidebar/layout";
 interface Eligibility {
   id: string;
   title: string;
-  pdfPath: string;
+  pdfPath: string; // This now stores the S3 URL
   collegeId: string;
   createdAt: string;
   updatedAt: string;
@@ -34,7 +34,7 @@ const EligibilityCard = ({
   onDownload,
 }: {
   eligibility: Eligibility;
-  onDownload: (id: string) => Promise<void>;
+  onDownload: (pdfPath: string) => Promise<void>;
 }) => (
   <div className="bg-card rounded-lg shadow p-4 mb-4">
     <div className="flex flex-col space-y-2">
@@ -49,7 +49,7 @@ const EligibilityCard = ({
         size="sm"
         variant="outline"
         className="w-full mt-2"
-        onClick={() => onDownload(eligibility.id)}
+        onClick={() => onDownload(eligibility.pdfPath)}
       >
         <Download className="h-4 w-4 mr-2" />
         Download PDF
@@ -107,9 +107,9 @@ export default function AdminEligibilityView() {
     }
   };
 
-  const handleDownload = async (id: string) => {
+  const handleDownload = async (pdfPath: string) => {
     try {
-      const response = await fetch(`/api/eligibilityList/${id}`);
+      const response = await fetch(pdfPath);
       if (!response.ok)
         throw new Error("Failed to download eligibility document");
 
@@ -175,7 +175,7 @@ export default function AdminEligibilityView() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDownload(eligibility.id)}
+                          onClick={() => handleDownload(eligibility.pdfPath)}
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download

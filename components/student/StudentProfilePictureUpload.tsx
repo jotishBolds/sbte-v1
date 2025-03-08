@@ -85,7 +85,7 @@ const StudentProfilePictureUpload: React.FC<
     }
 
     try {
-      // First upload the file
+      // First upload the file to S3
       const uploadResponse = await fetch("/api/student/upload-profile-pic", {
         method: "POST",
         body: formData,
@@ -98,7 +98,7 @@ const StudentProfilePictureUpload: React.FC<
 
       const uploadData = await uploadResponse.json();
 
-      // Then update the student record with the new profile picture path
+      // Then update the student record with the new profile picture URL
       if (studentId) {
         const updateResponse = await fetch("/api/student", {
           method: "PATCH",

@@ -35,7 +35,6 @@ import { Download, FileUp, Trash2, FolderUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import SideBarLayout from "@/components/sidebar/layout";
 
-// Types remain the same
 interface Infrastructure {
   id: string;
   title: string;
@@ -64,7 +63,6 @@ const infrastructureSchema = z.object({
 
 type FormData = z.infer<typeof infrastructureSchema>;
 
-// Mobile-friendly card view component
 const InfrastructureCard = ({
   infrastructure,
   onDelete,
@@ -73,7 +71,7 @@ const InfrastructureCard = ({
 }: {
   infrastructure: Infrastructure;
   onDelete: (id: string) => Promise<void>;
-  onDownload: (id: string) => Promise<void>;
+  onDownload: (pdfPath: string) => Promise<void>;
   isDeleting: string | null;
 }) => (
   <div className="bg-card rounded-lg shadow p-4 mb-4">
@@ -90,7 +88,7 @@ const InfrastructureCard = ({
           size="sm"
           variant="outline"
           className="flex-1"
-          onClick={() => onDownload(infrastructure.id)}
+          onClick={() => onDownload(infrastructure.pdfPath)}
         >
           <Download className="h-4 w-4 mr-2" />
           Download
@@ -116,7 +114,6 @@ const InfrastructureCard = ({
   </div>
 );
 
-// Upload Form Component (mostly unchanged)
 const UploadForm = ({
   isOpen,
   setIsOpen,
@@ -136,7 +133,7 @@ const UploadForm = ({
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogContent className="w-[90vw] max-w-md mx-auto">
         <DialogHeader>
-          <DialogTitle>Upload Infrastructure</DialogTitle>
+          <DialogTitle>Upload Infrastructure Document</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -184,13 +181,13 @@ const UploadForm = ({
 const EmptyState = ({ onUploadClick }: { onUploadClick: () => void }) => (
   <div className="text-center py-8 px-4">
     <FolderUp className="mx-auto h-12 w-12 text-primary" />
-    <h3 className="mt-4 text-lg font-medium">No infrastructure files</h3>
+    <h3 className="mt-4 text-lg font-medium">No infrastructure documents</h3>
     <p className="mt-2 text-sm text-gray-500 px-4">
-      Get started by uploading your first infrastructure file
+      Get started by uploading your first infrastructure document
     </p>
     <Button onClick={onUploadClick} className="mt-4">
       <FileUp className="mr-2 h-4 w-4" />
-      Upload Infrastructure
+      Upload Infrastructure Document
     </Button>
   </div>
 );
@@ -217,7 +214,8 @@ export default function InfrastructureManager() {
   const fetchInfrastructures = async () => {
     try {
       const response = await fetch("/api/infrastructures");
-      if (!response.ok) throw new Error("Failed to fetch infrastructures");
+      if (!response.ok)
+        throw new Error("Failed to fetch infrastructure documents");
 
       const data = await response.json();
       if (!Array.isArray(data)) throw new Error("Invalid data format");
@@ -227,7 +225,7 @@ export default function InfrastructureManager() {
       setInfrastructures([]);
       toast({
         title: "Error",
-        description: "Failed to fetch infrastructures",
+        description: "Failed to fetch infrastructure documents",
         variant: "destructive",
       });
     }
@@ -245,18 +243,19 @@ export default function InfrastructureManager() {
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Failed to upload infrastructure");
+      if (!response.ok)
+        throw new Error("Failed to upload infrastructure document");
 
       await fetchInfrastructures();
       setIsOpen(false);
       toast({
         title: "Success",
-        description: "Infrastructure uploaded successfully",
+        description: "Infrastructure document uploaded successfully",
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to upload infrastructure",
+        description: "Failed to upload infrastructure document",
         variant: "destructive",
       });
     } finally {
@@ -271,18 +270,19 @@ export default function InfrastructureManager() {
         method: "DELETE",
       });
 
-      if (!response.ok) throw new Error("Failed to delete infrastructure");
+      if (!response.ok)
+        throw new Error("Failed to delete infrastructure document");
 
       setInfrastructures((prev) => prev.filter((item) => item.id !== id));
 
       toast({
         title: "Success",
-        description: "Infrastructure deleted successfully",
+        description: "Infrastructure document deleted successfully",
       });
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete infrastructure",
+        description: "Failed to delete infrastructure document",
         variant: "destructive",
       });
     } finally {
@@ -290,10 +290,11 @@ export default function InfrastructureManager() {
     }
   };
 
-  const handleDownload = async (id: string) => {
+  const handleDownload = async (pdfPath: string) => {
     try {
-      const response = await fetch(`/api/infrastructures/${id}`);
-      if (!response.ok) throw new Error("Failed to download infrastructure");
+      const response = await fetch(pdfPath);
+      if (!response.ok)
+        throw new Error("Failed to download infrastructure document");
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -307,7 +308,7 @@ export default function InfrastructureManager() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to download infrastructure",
+        description: "Failed to download infrastructure document",
         variant: "destructive",
       });
     }
@@ -318,14 +319,14 @@ export default function InfrastructureManager() {
       <Card className="w-full max-w-7xl mx-auto p-2 sm:p-4 mt-4 sm:mt-10">
         <CardHeader>
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-            <CardTitle>Infrastructure Management</CardTitle>
+            <CardTitle>Infrastructure Document Management</CardTitle>
             {infrastructures.length > 0 && (
               <Button
                 onClick={() => setIsOpen(true)}
                 className="w-full sm:w-auto"
               >
                 <FileUp className="mr-2 h-4 w-4" />
-                Upload Infrastructure
+                Upload Infrastructure Document
               </Button>
             )}
           </div>
@@ -371,7 +372,9 @@ export default function InfrastructureManager() {
                           <Button
                             size="icon"
                             variant="outline"
-                            onClick={() => handleDownload(infrastructure.id)}
+                            onClick={() =>
+                              handleDownload(infrastructure.pdfPath)
+                            }
                           >
                             <Download className="h-4 w-4" />
                           </Button>

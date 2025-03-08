@@ -4,10 +4,24 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
-import fs from "fs";
-import path from "path";
+import {
+  S3Client,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 
 const prisma = new PrismaClient();
+
+// Configure AWS S3 client
+const createS3Client = () => {
+  return new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
+  });
+};
 
 export async function DELETE(
   request: Request,
@@ -24,7 +38,7 @@ export async function DELETE(
 
     if (userRole !== "HOD" && userRole !== "COLLEGE_SUPER_ADMIN") {
       return NextResponse.json(
-        { error: "You are not authorized to delete this file." },
+        { error: "You are not authorized to delete this infrastructure." },
         { status: 403 }
       );
     }
@@ -44,29 +58,31 @@ export async function DELETE(
 
     if (!infrastructure) {
       return NextResponse.json(
-        { error: "Infrastructure file not found." },
+        { error: "Infrastructure not found." },
         { status: 404 }
       );
     }
 
-    const pdfFilePath = infrastructure.pdfPath;
+    const s3Client = createS3Client();
 
+    // Delete the file from S3
+    const deleteParams = {
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: infrastructure.pdfPath.split("/").pop(), // Extract the key from the S3 URL
+    };
+
+    await s3Client.send(new DeleteObjectCommand(deleteParams));
+
+    // Delete the record from the database
     await prisma.infrastructures.delete({
       where: { id: infrastructureId },
     });
 
-    const uploadDir = path.join(process.cwd(), "uploads", "infrastructures");
-    const absoluteFilePath = path.join(uploadDir, pdfFilePath);
-
-    if (fs.existsSync(absoluteFilePath)) {
-      fs.unlinkSync(absoluteFilePath);
-    }
-
     return NextResponse.json({
-      message: "Infrastructure file deleted successfully.",
+      message: "Infrastructure deleted successfully.",
     });
   } catch (error) {
-    console.error("Error deleting Infrastructure file:", error);
+    console.error("Error deleting infrastructure:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred." },
       { status: 500 }
@@ -94,7 +110,7 @@ export async function GET(
       userRole !== "HOD"
     ) {
       return NextResponse.json(
-        { error: "You are not authorized to download this file." },
+        { error: "You are not authorized to access this infrastructure." },
         { status: 403 }
       );
     }
@@ -108,7 +124,7 @@ export async function GET(
 
     if (!infrastructure) {
       return NextResponse.json(
-        { error: "Infrastructure file not found." },
+        { error: "Infrastructure not found." },
         { status: 404 }
       );
     }
@@ -118,35 +134,53 @@ export async function GET(
       infrastructure.collegeId !== userCollegeId
     ) {
       return NextResponse.json(
-        { error: "You are not authorized to download this file." },
+        { error: "You are not authorized to access this infrastructure." },
         { status: 403 }
       );
     }
 
-    const uploadDir = path.join(process.cwd(), "uploads", "infrastructures");
-    const filePath = path.join(uploadDir, infrastructure.pdfPath);
+    const s3Client = createS3Client();
 
-    if (!fs.existsSync(filePath)) {
+    // Fetch the file from S3
+    const getParams = {
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: infrastructure.pdfPath.split("/").pop(), // Extract the key from the S3 URL
+    };
+
+    const { Body } = await s3Client.send(new GetObjectCommand(getParams));
+
+    if (!Body) {
       return NextResponse.json(
-        { error: "File not found on the server." },
+        { error: "File not found on S3." },
         { status: 404 }
       );
     }
 
-    const fileBuffer = fs.readFileSync(filePath);
+    // Convert the file stream to a buffer
+    const fileBuffer = await streamToBuffer(Body);
 
     return new Response(fileBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${infrastructure.title}"`,
+        "Content-Disposition": `attachment; filename="${infrastructure.title}.pdf"`,
       },
     });
   } catch (error) {
-    console.error("Error downloading Infrastructure file:", error);
+    console.error("Error fetching infrastructure file:", error);
     return NextResponse.json(
       { error: "An unexpected error occurred." },
       { status: 500 }
     );
   }
 }
+
+// Helper function to convert a stream to a buffer
+const streamToBuffer = (stream: any): Promise<Buffer> => {
+  return new Promise((resolve, reject) => {
+    const chunks: any[] = [];
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("error", reject);
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+  });
+};

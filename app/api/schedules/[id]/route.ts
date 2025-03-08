@@ -4,10 +4,24 @@ import { NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
-import fs from "fs";
-import path from "path";
+import {
+  S3Client,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 
 const prisma = new PrismaClient();
+
+// Configure AWS S3 client
+const createS3Client = () => {
+  return new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
+  });
+};
 
 export async function DELETE(
   request: Request,
@@ -49,18 +63,20 @@ export async function DELETE(
       );
     }
 
-    const pdfFilePath = schedule.pdfPath;
+    const s3Client = createS3Client();
 
+    // Delete the file from S3
+    const deleteParams = {
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: schedule.pdfPath.split("/").pop(), // Extract the key from the S3 URL
+    };
+
+    await s3Client.send(new DeleteObjectCommand(deleteParams));
+
+    // Delete the record from the database
     await prisma.schedules.delete({
       where: { id: scheduleId },
     });
-
-    const uploadDir = path.join(process.cwd(), "uploads", "schedules");
-    const absoluteFilePath = path.join(uploadDir, pdfFilePath);
-
-    if (fs.existsSync(absoluteFilePath)) {
-      fs.unlinkSync(absoluteFilePath);
-    }
 
     return NextResponse.json({
       message: "Schedule deleted successfully.",
@@ -124,23 +140,31 @@ export async function GET(
       );
     }
 
-    const uploadDir = path.join(process.cwd(), "uploads", "schedules");
-    const filePath = path.join(uploadDir, schedule.pdfPath);
+    const s3Client = createS3Client();
 
-    if (!fs.existsSync(filePath)) {
+    // Fetch the file from S3
+    const getParams = {
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: schedule.pdfPath.split("/").pop(), // Extract the key from the S3 URL
+    };
+
+    const { Body } = await s3Client.send(new GetObjectCommand(getParams));
+
+    if (!Body) {
       return NextResponse.json(
-        { error: "File not found on the server." },
+        { error: "File not found on S3." },
         { status: 404 }
       );
     }
 
-    const fileBuffer = fs.readFileSync(filePath);
+    // Convert the file stream to a buffer
+    const fileBuffer = await streamToBuffer(Body);
 
     return new Response(fileBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${schedule.title}"`,
+        "Content-Disposition": `attachment; filename="${schedule.title}.pdf"`,
       },
     });
   } catch (error) {
@@ -151,3 +175,13 @@ export async function GET(
     );
   }
 }
+
+// Helper function to convert a stream to a buffer
+const streamToBuffer = (stream: any): Promise<Buffer> => {
+  return new Promise((resolve, reject) => {
+    const chunks: any[] = [];
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("error", reject);
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+  });
+};

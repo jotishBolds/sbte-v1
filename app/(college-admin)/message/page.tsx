@@ -103,12 +103,12 @@ export default function CollegeAdminNotifications() {
     }
   };
 
-  const handleDownload = async (id: string, title: string) => {
+  // Updated handleDownload function to match InfrastructureManager implementation
+  const handleDownload = async (pdfPath: string, title: string) => {
     try {
-      const response = await fetch(`/api/notification/${id}`);
-
+      const response = await fetch(pdfPath);
       if (!response.ok) {
-        throw new Error("Download failed");
+        throw new Error("Failed to download notification");
       }
 
       const blob = await response.blob();
@@ -118,7 +118,8 @@ export default function CollegeAdminNotifications() {
       a.download = `${title}-notification.pdf`;
       document.body.appendChild(a);
       a.click();
-      a.remove();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
 
       toast({
         title: "Download Success",
@@ -250,7 +251,10 @@ export default function CollegeAdminNotifications() {
                         variant="ghost"
                         size="icon"
                         onClick={() =>
-                          handleDownload(notification.id, notification.title)
+                          handleDownload(
+                            notification.pdfPath,
+                            notification.title
+                          )
                         }
                         aria-label="Download Notification"
                       >

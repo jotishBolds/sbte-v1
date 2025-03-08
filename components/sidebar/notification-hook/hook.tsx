@@ -72,6 +72,7 @@ interface NotificationManagerReturn {
   loading: boolean;
   fetchNotifications: () => Promise<void>;
   downloadNotification: (props: NotificationDownloadProps) => Promise<void>;
+  markAsRead: (id: string) => Promise<void>;
 }
 
 export const useNotificationManager = (): NotificationManagerReturn => {
@@ -98,15 +99,14 @@ export const useNotificationManager = (): NotificationManagerReturn => {
   type NotificationRole = (typeof notificationEnabledRoles)[number];
 
   const isRoleEnabled = useMemo(() => {
-    return (
-      session?.user?.role &&
-      notificationEnabledRoles.includes(session.user.role as NotificationRole)
-    );
+    const userRole = session?.user?.role as NotificationRole | undefined;
+    return userRole && notificationEnabledRoles.includes(userRole);
   }, [session?.user?.role, notificationEnabledRoles]);
 
   const computeNotificationCount = useCallback(
     (data: ExtendedNotification[]): number => {
       if (!session?.user?.role) return 0;
+      if (!data || data.length === 0) return 0;
 
       const role = session.user.role as NotificationRole;
 
@@ -147,7 +147,19 @@ export const useNotificationManager = (): NotificationManagerReturn => {
         );
       }
 
-      return await response.json();
+      const data = await response.json();
+
+      // Handle the case where the API returns a message instead of an array
+      if (!Array.isArray(data)) {
+        if (data && data.message === "No notifications found.") {
+          console.log("No notifications found");
+          return []; // Return an empty array for the message response
+        }
+        console.warn("Unexpected notification response format:", data);
+        return [];
+      }
+
+      return data;
     } catch (error) {
       if (
         error instanceof Error &&
@@ -189,13 +201,14 @@ export const useNotificationManager = (): NotificationManagerReturn => {
 
         const data = await fetchNotificationsWithRetry();
 
-        setNotifications((prev) => {
-          const hasChanged = JSON.stringify(prev) !== JSON.stringify(data);
-          return hasChanged ? data : prev;
-        });
+        // Always update the state with the fetched data, even if it's an empty array
+        setNotifications(data);
 
+        // Compute notification count based on the fetched data
         const newCount = computeNotificationCount(data);
-        setNotificationCount((prev) => (prev !== newCount ? newCount : prev));
+        setNotificationCount(newCount);
+
+        console.log("Fetched notifications:", data.length, "Count:", newCount);
       } catch (error) {
         if (error instanceof Error && error.name === "AbortError") {
           return;
@@ -212,6 +225,9 @@ export const useNotificationManager = (): NotificationManagerReturn => {
         });
 
         // Schedule retry
+        if (retryTimeoutRef.current) {
+          clearTimeout(retryTimeoutRef.current);
+        }
         retryTimeoutRef.current = setTimeout(() => {
           void fetchNotifications(true);
         }, RETRY_DELAY);
@@ -227,7 +243,14 @@ export const useNotificationManager = (): NotificationManagerReturn => {
   const downloadNotification = useCallback(
     async ({ id, title }: NotificationDownloadProps): Promise<void> => {
       try {
-        const response = await fetch(`/api/notification/${id}`);
+        const response = await fetch(`/api/notification/${id}`, {
+          method: "GET",
+          headers: {
+            "Cache-Control": "no-cache",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+        });
 
         if (!response.ok) {
           throw new NotificationError("Failed to download notification");
@@ -242,6 +265,14 @@ export const useNotificationManager = (): NotificationManagerReturn => {
         a.click();
         a.remove();
         window.URL.revokeObjectURL(url);
+
+        // If the user is COLLEGE_SUPER_ADMIN, mark notification as read
+        if (
+          session?.user?.role === "COLLEGE_SUPER_ADMIN" &&
+          session.user.collegeId
+        ) {
+          await markAsRead(id);
+        }
 
         await fetchNotifications(true);
 
@@ -261,7 +292,57 @@ export const useNotificationManager = (): NotificationManagerReturn => {
         });
       }
     },
-    [fetchNotifications]
+    [fetchNotifications, session]
+  );
+
+  const markAsRead = useCallback(
+    async (id: string): Promise<void> => {
+      if (
+        session?.user?.role !== "COLLEGE_SUPER_ADMIN" ||
+        !session?.user?.collegeId
+      ) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/notification/${id}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        });
+
+        if (!response.ok) {
+          throw new NotificationError("Failed to mark notification as read");
+        }
+
+        // Update the local state to reflect the notification was read
+        setNotifications((prevNotifications) =>
+          prevNotifications.map((notif) => {
+            if (notif.id === id) {
+              return {
+                ...notif,
+                notifiedColleges: notif.notifiedColleges?.map((college) => {
+                  if (college.collegeId === session.user?.collegeId) {
+                    return { ...college, isRead: true };
+                  }
+                  return college;
+                }),
+              };
+            }
+            return notif;
+          })
+        );
+
+        // Recalculate notification count
+        setNotificationCount((prev) => (prev > 0 ? prev - 1 : 0));
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "An unknown error occurred";
+        console.error("Error marking notification as read:", errorMessage);
+      }
+    },
+    [session]
   );
 
   useEffect(() => {
@@ -291,5 +372,6 @@ export const useNotificationManager = (): NotificationManagerReturn => {
     loading,
     fetchNotifications: () => fetchNotifications(true),
     downloadNotification,
+    markAsRead,
   };
 };

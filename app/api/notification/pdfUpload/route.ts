@@ -1,12 +1,24 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import { z } from "zod";
-import fs from "fs";
-import path from "path";
+import {
+  S3Client,
+  PutObjectCommand,
+  ObjectCannedACL,
+} from "@aws-sdk/client-s3";
 
-const prisma = new PrismaClient();
+// Configure AWS S3 client
+const createS3Client = () => {
+  return new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
+  });
+};
 
 // Zod schema for form data validation
 const NotificationSchema = z.object({
@@ -61,20 +73,29 @@ export async function POST(request: Request) {
       );
     }
 
-    // Save file to the public/notifications directory
-    const uploadDir = path.join(process.cwd(), "uploads", "notifications");
-    if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+    // Generate a unique filename
+    const fileName = `notifications/${Date.now()}-${file.name}`;
 
-    const fileName = `${Date.now()}-${file.name}`;
-    const absoluteFilePath = path.join(uploadDir, fileName);
-    fs.writeFileSync(absoluteFilePath, fileBuffer);
+    // Upload file to S3
+    const s3Client = createS3Client();
+    const uploadParams = {
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: fileName,
+      Body: fileBuffer,
+      ContentType: "application/pdf",
+      ACL: ObjectCannedACL.public_read,
+    };
 
-    // Save notification in the database
+    await s3Client.send(new PutObjectCommand(uploadParams));
+
+    // Construct the full S3 URL
+    const pdfUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+
+    // Save notification in the database with the full URL
     const notification = await prisma.notification.create({
       data: {
         title,
-        // Use a path relative to the public folder
-        pdfPath: `/notifications/${fileName}`,
+        pdfPath: pdfUrl, // Store the full S3 URL
       },
     });
 

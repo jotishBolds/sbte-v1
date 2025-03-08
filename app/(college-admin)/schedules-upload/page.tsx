@@ -39,7 +39,7 @@ import SideBarLayout from "@/components/sidebar/layout";
 interface Schedules {
   id: string;
   title: string;
-  pdfPath: string;
+  pdfPath: string; // This now stores the S3 URL
   collegeId: string;
   createdAt: string;
   updatedAt: string;
@@ -73,7 +73,7 @@ const ScheduleCard = ({
 }: {
   schedule: Schedules;
   onDelete: (id: string) => Promise<void>;
-  onDownload: (id: string) => Promise<void>;
+  onDownload: (pdfPath: string) => Promise<void>;
   isDeleting: string | null;
 }) => (
   <div className="bg-card rounded-lg shadow p-4 mb-4">
@@ -88,7 +88,7 @@ const ScheduleCard = ({
           size="sm"
           variant="outline"
           className="flex-1"
-          onClick={() => onDownload(schedule.id)}
+          onClick={() => onDownload(schedule.pdfPath)}
         >
           <Download className="h-4 w-4 mr-2" />
           Download
@@ -114,7 +114,7 @@ const ScheduleCard = ({
   </div>
 );
 
-// Upload Form Component (mostly unchanged)
+// Upload Form Component
 const UploadForm = ({
   isOpen,
   setIsOpen,
@@ -288,9 +288,9 @@ export default function SchedulesManager() {
     }
   };
 
-  const handleDownload = async (id: string) => {
+  const handleDownload = async (pdfPath: string) => {
     try {
-      const response = await fetch(`/api/schedules/${id}`);
+      const response = await fetch(pdfPath);
       if (!response.ok) throw new Error("Failed to download schedule document");
 
       const blob = await response.blob();
@@ -369,7 +369,7 @@ export default function SchedulesManager() {
                           <Button
                             size="icon"
                             variant="outline"
-                            onClick={() => handleDownload(schedule.id)}
+                            onClick={() => handleDownload(schedule.pdfPath)}
                           >
                             <Download className="h-4 w-4" />
                           </Button>

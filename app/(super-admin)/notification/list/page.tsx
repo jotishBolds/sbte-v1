@@ -50,6 +50,7 @@ export default function SBTEAdminNotifications() {
     []
   );
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,12 +92,13 @@ export default function SBTEAdminNotifications() {
     }
   };
 
-  const handleDownload = async (id: string, title: string) => {
+  const handleDownload = async (pdfPath: string, title: string) => {
     try {
-      const response = await fetch(`/api/notification/${id}`);
+      const response = await fetch(pdfPath);
       if (!response.ok) {
         throw new Error("Failed to download notification");
       }
+
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -104,7 +106,8 @@ export default function SBTEAdminNotifications() {
       a.download = `${title}.pdf`;
       document.body.appendChild(a);
       a.click();
-      a.remove();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
     } catch (error) {
       toast({
         title: "Error",
@@ -116,6 +119,7 @@ export default function SBTEAdminNotifications() {
 
   const handleDelete = async (id: string) => {
     try {
+      setIsDeleting(id);
       const response = await fetch(`/api/notification/${id}`, {
         method: "DELETE",
       });
@@ -137,6 +141,8 @@ export default function SBTEAdminNotifications() {
         description: "Failed to delete notification",
         variant: "destructive",
       });
+    } finally {
+      setIsDeleting(null);
     }
   };
 
@@ -230,7 +236,10 @@ export default function SBTEAdminNotifications() {
                         variant="outline"
                         size="icon"
                         onClick={() =>
-                          handleDownload(notification.id, notification.title)
+                          handleDownload(
+                            notification.pdfPath,
+                            notification.title
+                          )
                         }
                         title="Download"
                       >
@@ -242,8 +251,13 @@ export default function SBTEAdminNotifications() {
                             variant="destructive"
                             size="icon"
                             title="Delete"
+                            disabled={isDeleting === notification.id}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            {isDeleting === notification.id ? (
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </Button>
                         </DialogTrigger>
                         <DialogContent>
@@ -261,8 +275,11 @@ export default function SBTEAdminNotifications() {
                             <Button
                               variant="destructive"
                               onClick={() => handleDelete(notification.id)}
+                              disabled={isDeleting === notification.id}
                             >
-                              Delete
+                              {isDeleting === notification.id
+                                ? "Deleting..."
+                                : "Delete"}
                             </Button>
                           </div>
                         </DialogContent>

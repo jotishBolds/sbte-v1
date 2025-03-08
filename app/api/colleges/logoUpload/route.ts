@@ -1,11 +1,48 @@
-//File  : /api/colleges/logoUpload/route.ts
+//File : app/api/colleges/logoUpload/route.ts
 
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import {
+  S3Client,
+  PutObjectCommand,
+  ObjectCannedACL,
+} from "@aws-sdk/client-s3";
+import { v4 as uuidv4 } from "uuid";
 
-const prisma = new PrismaClient();
+// Validate environment variables
+function validateEnvVariables() {
+  const requiredVars = [
+    "AWS_REGION",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_SECRET_ACCESS_KEY",
+    "AWS_BUCKET_NAME",
+  ];
+
+  const missingVars = requiredVars.filter((varName) => !process.env[varName]);
+
+  if (missingVars.length > 0) {
+    throw new Error(
+      `Missing required environment variables: ${missingVars.join(", ")}`
+    );
+  }
+}
+
+// Configure AWS S3 client
+const createS3Client = () => {
+  try {
+    validateEnvVariables();
+
+    return new S3Client({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+      },
+    });
+  } catch (error) {
+    console.error("S3 Client Configuration Error:", error);
+    throw error;
+  }
+};
 
 // Helper function to validate file type
 function isValidFileType(file: File) {
@@ -13,18 +50,20 @@ function isValidFileType(file: File) {
   return validTypes.includes(file.type);
 }
 
-// Helper function to ensure upload directory exists
-async function ensureUploadDirectory(uploadDir: string) {
-  try {
-    await mkdir(uploadDir, { recursive: true });
-  } catch (error: any) {
-    if (error.code !== "EEXIST") {
-      throw error;
-    }
-  }
-}
-
 export async function POST(request: NextRequest) {
+  let s3Client: S3Client;
+  try {
+    s3Client = createS3Client();
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: "Failed to initialize S3 Client",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 }
+    );
+  }
+
   try {
     const formData = await request.formData();
 
@@ -59,26 +98,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get file bytes
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes); // Explicitly create a Buffer
+    const buffer = Buffer.from(bytes);
 
+    // Create unique filename
+    const fileExtension = file.name.split(".").pop();
     const timestamp = Date.now();
-    const fileExtension = path.extname(file.name);
-    const uniqueFilename = `${abbreviation}-${timestamp}${fileExtension}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads", "logos");
+    const uniqueFilename = `college-logos/${abbreviation}-${timestamp}-${uuidv4()}.${fileExtension}`;
 
-    await ensureUploadDirectory(uploadDir);
-    const filePath = path.join(uploadDir, uniqueFilename);
+    // S3 upload parameters
+    const uploadParams = {
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: uniqueFilename,
+      Body: buffer,
+      ContentType: file.type,
+      ACL: ObjectCannedACL.public_read,
+    };
 
-    // Ensure compatibility with writeFile
-    await writeFile(filePath, buffer as Uint8Array); // Cast to Uint8Array
-    const logoPath = `/uploads/logos/${uniqueFilename}`;
+    // Upload to S3
+    const command = new PutObjectCommand(uploadParams);
+    await s3Client.send(command);
+
+    // Construct public URL
+    const logoPath = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${uniqueFilename}`;
 
     return NextResponse.json({ logoPath }, { status: 200 });
   } catch (error) {
     console.error("Error uploading logo:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      {
+        error: "Internal Server Error",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

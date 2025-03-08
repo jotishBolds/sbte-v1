@@ -1,14 +1,46 @@
-//File : /api/notification/[id]/route.ts
-
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import { z } from "zod";
-import fs from "fs";
-import path from "path";
+import {
+  S3Client,
+  GetObjectCommand,
+  DeleteObjectCommand,
+} from "@aws-sdk/client-s3";
 
-const prisma = new PrismaClient();
+// Configure AWS S3 client
+const createS3Client = () => {
+  return new S3Client({
+    region: process.env.AWS_REGION,
+    credentials: {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    },
+  });
+};
+
+// Helper function to convert a stream to a buffer
+const streamToBuffer = (stream: any): Promise<Buffer> => {
+  return new Promise((resolve, reject) => {
+    const chunks: any[] = [];
+    stream.on("data", (chunk: any) => chunks.push(chunk));
+    stream.on("error", reject);
+    stream.on("end", () => resolve(Buffer.concat(chunks)));
+  });
+};
+
+// Helper function to extract S3 key from a full URL
+const extractS3KeyFromUrl = (url: string): string => {
+  try {
+    const urlObj = new URL(url);
+    // The pathname will include the leading slash, so remove it
+    return urlObj.pathname.substring(1);
+  } catch (error) {
+    // If URL parsing fails, assume the value is already a key
+    return url;
+  }
+};
 
 export async function DELETE(
   request: Request,
@@ -54,7 +86,18 @@ export async function DELETE(
       );
     }
 
-    const pdfFilePath = notification.pdfPath;
+    const s3Client = createS3Client();
+
+    // Extract the S3 key from the full URL
+    const s3Key = extractS3KeyFromUrl(notification.pdfPath);
+
+    // Delete the file from S3
+    const deleteParams = {
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: s3Key,
+    };
+
+    await s3Client.send(new DeleteObjectCommand(deleteParams));
 
     // Delete the notification and its associated notifiedColleges records
     await prisma.$transaction([
@@ -65,14 +108,6 @@ export async function DELETE(
         where: { id: notificationId },
       }),
     ]);
-
-    // Delete the PDF file from the server
-    const uploadDir = path.join(process.cwd(), "uploads", "notifications");
-    const absoluteFilePath = path.join(uploadDir, pdfFilePath);
-
-    if (fs.existsSync(absoluteFilePath)) {
-      fs.unlinkSync(absoluteFilePath); // Deletes the file
-    }
 
     return NextResponse.json({ message: "Notification deleted successfully." });
   } catch (error) {
@@ -126,20 +161,42 @@ export async function GET(
       });
     }
 
-    // Rest of the existing download logic...
-    const uploadDir = path.join(process.cwd(), "uploads", "notifications");
-    const fileName = path.basename(notification.pdfPath);
-    const filePath = path.join(uploadDir, fileName);
+    // For direct URL approach, you can simply redirect to the S3 URL
+    // However, if you want to keep your access control and tracking logic,
+    // you should still proxy the file through your API
 
-    // Read and serve the file
-    const fileBuffer = fs.readFileSync(filePath);
+    // Option 1: Redirect to S3 URL (simplest, but loses tracking capabilities)
+    // return NextResponse.redirect(notification.pdfPath);
 
-    return new NextResponse(fileBuffer, {
+    // Option 2: Proxy the file through your API (keeps your access control)
+    const s3Client = createS3Client();
+
+    // Extract the S3 key from the full URL
+    const s3Key = extractS3KeyFromUrl(notification.pdfPath);
+
+    // Fetch the file from S3
+    const getParams = {
+      Bucket: process.env.AWS_BUCKET_NAME!,
+      Key: s3Key,
+    };
+
+    const { Body } = await s3Client.send(new GetObjectCommand(getParams));
+
+    if (!Body) {
+      return NextResponse.json(
+        { error: "File not found on S3." },
+        { status: 404 }
+      );
+    }
+
+    // Convert the file stream to a buffer
+    const fileBuffer = await streamToBuffer(Body);
+
+    return new Response(fileBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${notification.title}.pdf"`,
-        "Content-Length": fileBuffer.length.toString(),
       },
     });
   } catch (error) {
@@ -153,6 +210,7 @@ export async function GET(
     );
   }
 }
+
 export async function POST(
   request: Request,
   { params }: { params: { id: string } }

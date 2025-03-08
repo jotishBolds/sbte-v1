@@ -34,7 +34,7 @@ const InfrastructureCard = ({
   onDownload,
 }: {
   infrastructure: Infrastructure;
-  onDownload: (id: string) => Promise<void>;
+  onDownload: (pdfPath: string) => Promise<void>;
 }) => (
   <div className="bg-card rounded-lg shadow p-4 mb-4">
     <div className="flex flex-col space-y-2">
@@ -49,7 +49,7 @@ const InfrastructureCard = ({
         size="sm"
         variant="outline"
         className="w-full mt-2"
-        onClick={() => onDownload(infrastructure.id)}
+        onClick={() => onDownload(infrastructure.pdfPath)}
       >
         <Download className="h-4 w-4 mr-2" />
         Download PDF
@@ -106,10 +106,11 @@ export default function AdminInfrastructureView() {
     }
   };
 
-  const handleDownload = async (id: string) => {
+  const handleDownload = async (pdfPath: string) => {
     try {
-      const response = await fetch(`/api/infrastructures/${id}`);
-      if (!response.ok) throw new Error("Failed to download infrastructure");
+      const response = await fetch(pdfPath);
+      if (!response.ok)
+        throw new Error("Failed to download infrastructure document");
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
@@ -173,7 +174,7 @@ export default function AdminInfrastructureView() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDownload(infrastructure.id)}
+                          onClick={() => handleDownload(infrastructure.pdfPath)}
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download

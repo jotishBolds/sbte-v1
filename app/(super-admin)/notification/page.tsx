@@ -60,6 +60,7 @@ type NotificationFormData = z.infer<typeof NotificationSchema>;
 export default function ProfessionalNotificationUpload() {
   const [colleges, setColleges] = useState<College[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
@@ -95,29 +96,35 @@ export default function ProfessionalNotificationUpload() {
   }, [toast]);
 
   const onSubmit = async (data: NotificationFormData) => {
-    const formData = new FormData();
-    formData.append("title", data.title);
-    formData.append("collegeIds", JSON.stringify(data.collegeIds));
-    formData.append("pdfFile", data.pdfFile);
-
+    setIsSubmitting(true);
     try {
+      // Create the FormData object for the file upload
+      const formData = new FormData();
+      formData.append("title", data.title);
+      formData.append("collegeIds", JSON.stringify(data.collegeIds));
+      formData.append("pdfFile", data.pdfFile);
+
+      // Call the API endpoint
       const response = await fetch("/api/notification/pdfUpload", {
         method: "POST",
         body: formData,
+        // Do not set Content-Type header - browser will set it with boundary for multipart/form-data
       });
 
       const result = await response.json();
 
-      if (response.ok) {
-        toast({
-          title: "Success!",
-          description: "Notification uploaded successfully",
-          variant: "default",
-        });
-        router.push("/notifications");
-      } else {
-        throw new Error(result.error || "Upload failed");
+      if (!response.ok) {
+        throw new Error(result.error || result.errors?.[0] || "Upload failed");
       }
+
+      toast({
+        title: "Success!",
+        description: "Notification uploaded successfully",
+        variant: "default",
+      });
+
+      // Redirect to notifications page
+      router.push("/notification");
     } catch (error) {
       toast({
         title: "Upload Failed",
@@ -125,6 +132,8 @@ export default function ProfessionalNotificationUpload() {
           error instanceof Error ? error.message : "An error occurred",
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -152,6 +161,8 @@ export default function ProfessionalNotificationUpload() {
       const file = e.dataTransfer.files?.[0];
       if (file && file.type === "application/pdf") {
         form.setValue("pdfFile", file);
+        // Trigger validation after setting value
+        form.trigger("pdfFile");
       } else {
         toast({
           title: "Invalid File",
@@ -168,6 +179,8 @@ export default function ProfessionalNotificationUpload() {
       const file = e.target.files?.[0];
       if (file) {
         form.setValue("pdfFile", file);
+        // Trigger validation after setting value
+        form.trigger("pdfFile");
       }
     },
     [form]
@@ -265,7 +278,7 @@ export default function ProfessionalNotificationUpload() {
                           <input
                             {...field}
                             type="file"
-                            accept=".pdf"
+                            accept=".pdf,application/pdf"
                             onChange={handleFileChange}
                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           />
@@ -312,9 +325,11 @@ export default function ProfessionalNotificationUpload() {
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isLoading || form.formState.isSubmitting}
+                  disabled={
+                    isLoading || isSubmitting || !form.formState.isValid
+                  }
                 >
-                  {isLoading || form.formState.isSubmitting ? (
+                  {isLoading || isSubmitting ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       {isLoading ? "Loading..." : "Uploading..."}
