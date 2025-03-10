@@ -20,6 +20,18 @@ export default function HomePage() {
 
   const slides = [
     {
+      image: "/Convocation3/convo1.jpg",
+    },
+    {
+      image: "/Convocation3/convo2.jpg",
+    },
+    {
+      image: "/Convocation3/convo3.jpg",
+    },
+    {
+      image: "/Convocation3/convo4.jpg",
+    },
+    {
       image: "/Convocation1/selected5.jpg",
     },
     {
@@ -221,7 +233,7 @@ export default function HomePage() {
                           {institute.courses.map((course, idx) => (
                             <div
                               key={idx}
-                              className="flex items-center gap-2 text-gray-600"
+                              className="flex items-center gap-2 text-gray-200"
                             >
                               <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                               {course}
@@ -254,24 +266,57 @@ export default function HomePage() {
                     <CardContent className="prose max-w-none">
                       <p className="text-muted-foreground leading-relaxed">
                         The State Board of Technical Education (SBTE) was
-                        constituted in 2002 to advise the Government in all
-                        matters relating to technical education in the State. It
-                        started functioning from 2017 onwards with a creation of
-                        small working cell in the top floor of Education
-                        Department with few members posted here. The board has
-                        embarked on a mission to elevate the standards of
-                        technical education, ensuring a holistic development
-                        approach.
+                        constituted in 2002 vide Notification No.
+                        GOS/DTE/2002/IV (2)/212, dated 24/8/2002, to advise the
+                        State Government on all matters related to technical
+                        education in the state. It became operational in 2017
+                        with the establishment of a small working office on the
+                        top floor of the Education Department, staffed by a few
+                        officials.
                       </p>
                       <p className="text-muted-foreground leading-relaxed mt-4">
-                        Since its inception in 2002, the State Board of
-                        Technical Education (SBTE) has emerged as a pivotal
-                        board, driving the advancement of technical education
-                        across the state. This report delineates the
-                        comprehensive policies, noteworthy achievements, and
-                        visionary goals that underscore the SBTE&apos;s
-                        dedication to fostering a robust technical education
-                        framework.
+                        Currently, the state has three government-run technical
+                        colleges: two polytechnics and one engineering college.
+                      </p>
+                      <div className="space-y-3 mt-4">
+                        <div className="flex items-start gap-3">
+                          <div className="h-2 w-2 rounded-full bg-primary mt-2.5"></div>
+                          <p className="text-muted-foreground leading-relaxed">
+                            <span className="font-medium">
+                              Advanced Technical Training Centre (ATTC):
+                            </span>
+                            Located in Bardang, Pakyong District.
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="h-2 w-2 rounded-full bg-primary mt-2.5"></div>
+                          <p className="text-muted-foreground leading-relaxed">
+                            <span className="font-medium">
+                              Centre for Computers and Communication Technology
+                              (CCCT):
+                            </span>
+                            Situated in Chisopani, Namchi District.
+                          </p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="h-2 w-2 rounded-full bg-primary mt-2.5"></div>
+                          <p className="text-muted-foreground leading-relaxed">
+                            <span className="font-medium">
+                              Sikkim Institute of Science and Technology (SIST):
+                            </span>
+                            A degree engineering college at Chisopani, Namchi
+                            District, which follows the academic curriculum
+                            guidelines of Sikkim University and AICTE norms.
+                            SIST offers B.Tech programs in Computer Engineering
+                            and Civil Engineering.
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-muted-foreground leading-relaxed mt-4">
+                        ATTC and CCCT are affiliated with SBTE, which oversees
+                        their academic activities and awards Diploma
+                        Certificates. SIST follows guidelines provided by Sikkim
+                        University.
                       </p>
                     </CardContent>
                   </Card>
@@ -311,11 +356,11 @@ export default function HomePage() {
                     <CardContent>
                       <ul className="space-y-4">
                         {[
-                          "Innovation and Technological advancement through Management Information System",
-                          "Industry collaboration and workforce readiness",
-                          "Accessibility and inclusivity for economically backward students",
-                          "Promotion of Technical Institutes through various media channels",
-                          "Regular Convocations to celebrate student achievements",
+                          "Technological Advancement and MIS Implementation",
+                          "Industry Collaboration and Workforce Readiness",
+                          "Accessibility and Inclusivity",
+                          "Promotion of State Technical Institutes",
+                          "Regular Convocations",
                         ].map((vision, index) => (
                           <li
                             key={index}
