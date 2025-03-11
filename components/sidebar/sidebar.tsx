@@ -376,7 +376,7 @@ export const Sidebar: React.FC = () => {
           {
             href: "/feedbacks-list",
             icon: <StarIcon size={18} />,
-            label: "Feebacks",
+            label: "Feedbacks",
           },
           {
             href: "/semester",

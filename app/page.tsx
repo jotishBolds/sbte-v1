@@ -231,10 +231,7 @@ export default function HomePage() {
                       <CardContent>
                         <div className="space-y-2">
                           {institute.courses.map((course, idx) => (
-                            <div
-                              key={idx}
-                              className="flex items-center gap-2 text-gray-200"
-                            >
+                            <div key={idx} className="flex items-center gap-2 ">
                               <div className="h-1.5 w-1.5 rounded-full bg-primary" />
                               {course}
                             </div>

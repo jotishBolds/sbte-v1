@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -11,7 +12,6 @@ interface GalleryItem {
   tags: string[];
 }
 
-// Sample gallery data
 const galleryData: GalleryItem[] = [
   {
     id: 1,
@@ -20,25 +20,25 @@ const galleryData: GalleryItem[] = [
     tags: ["ccct", "convocation", "2022-23"],
   },
   {
-    id: 3,
+    id: 2,
     title: "CCCT Convocation",
     imageUrl: "/Convocation1/selected2.jpg",
     tags: ["ccct", "convocation", "2022-23"],
   },
   {
-    id: 4,
+    id: 3,
     title: "CCCT Convocation",
     imageUrl: "/Convocation1/selected3.jpg",
     tags: ["ccct", "convocation", "2022-23"],
   },
   {
-    id: 5,
+    id: 4,
     title: "CCCT Convocation",
     imageUrl: "/Convocation1/selected4.jpg",
     tags: ["ccct", "convocation", "2022-23"],
   },
   {
-    id: 1,
+    id: 5,
     title: "CCCT Convocation",
     imageUrl: "/Convocation1/selected5.jpg",
     tags: ["ccct", "convocation", "2022-23"],
@@ -58,43 +58,43 @@ const galleryData: GalleryItem[] = [
   {
     id: 8,
     title: "ATTC Convocation",
-    imageUrl: "/Convocation2/cn1.jpg",
+    imageUrl: "/Convocation1/cn1.jpg",
     tags: ["attc", "convocation", "2019-22"],
   },
   {
     id: 9,
     title: "ATTC Convocation",
-    imageUrl: "/Convocation2/cn2.jpg",
+    imageUrl: "/Convocation1/cn2.jpg",
     tags: ["attc", "convocation", "2019-22"],
   },
   {
     id: 10,
     title: "ATTC Convocation",
-    imageUrl: "/Convocation2/cn3.jpg",
+    imageUrl: "/Convocation1/cn3.jpg",
     tags: ["attc", "convocation", "2019-22"],
   },
   {
     id: 11,
     title: "ATTC Convocation",
-    imageUrl: "/Convocation2/cn4.jpg",
+    imageUrl: "/Convocation1/cn4.jpg",
     tags: ["attc", "convocation", "2019-22"],
   },
   {
     id: 12,
     title: "ATTC Convocation",
-    imageUrl: "/Convocation2/cn5.jpg",
+    imageUrl: "/Convocation1/cn5.jpg",
     tags: ["attc", "convocation", "2019-22"],
   },
   {
     id: 13,
     title: "ATTC Convocation",
-    imageUrl: "/Convocation2/cn6.jpg",
+    imageUrl: "/Convocation1/cn6.jpg",
     tags: ["attc", "convocation", "2019-22"],
   },
   {
     id: 14,
     title: "ATTC Convocation",
-    imageUrl: "/Convocation2/cn7.jpg",
+    imageUrl: "/Convocation1/cn7.jpg",
     tags: ["attc", "convocation", "2019-22"],
   },
 ];
@@ -150,10 +150,14 @@ export default function GalleryPage() {
           <Card key={`${item.id}-${item.imageUrl}`} className="overflow-hidden">
             <CardContent className="p-0">
               <div className="relative aspect-video">
-                <img
+                <Image
                   src={item.imageUrl}
                   alt={item.title}
-                  className="object-cover w-full h-full"
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width:
+                  1024px) 50vw, 33vw"
+                  className="object-cover"
+                  priority={item.id <= 12} // Prioritize loading the first 6 images
                 />
               </div>
               <div className="p-4">

@@ -1,4 +1,5 @@
-import React from "react";
+"use client";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
@@ -15,14 +16,14 @@ const staffMembers: StaffMember[] = [
     position: "Director cum Member Secretary, SBTE",
     description:
       "Leading the board with strategic vision and administrative expertise, the Director ensures the effective governance and advancement of technical education in the region.",
-    imageUrl: "/api/placeholder/300/300",
+    imageUrl: "/user-default.png",
   },
   {
     name: "Shri Sonam Chopel Bhutia",
     position: "Controller of Examination",
     description:
       "Overseeing examination processes and upholding the integrity of assessments, Shri Bhutia plays a pivotal role in maintaining academic standards.",
-    imageUrl: "/api/placeholder/300/300",
+    imageUrl: "/user-default.png",
   },
   {
     name: "Mrs. Rita D. Dhakal",
@@ -34,6 +35,14 @@ const staffMembers: StaffMember[] = [
 ];
 
 export default function WhoIsWho() {
+  // Function to handle image error
+  const handleImageError = (
+    e: React.SyntheticEvent<HTMLImageElement, Event>
+  ) => {
+    e.currentTarget.style.display = "none";
+    // This will make the AvatarFallback show up
+  };
+
   return (
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-12 max-w-7xl">
@@ -62,6 +71,7 @@ export default function WhoIsWho() {
                         src={member.imageUrl}
                         alt={member.name}
                         className="object-cover"
+                        onError={handleImageError}
                       />
                       <AvatarFallback className="text-2xl text-primary">
                         {member.name
