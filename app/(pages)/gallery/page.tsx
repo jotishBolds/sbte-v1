@@ -49,12 +49,7 @@ const galleryData: GalleryItem[] = [
     imageUrl: "/Convocation1/selected6.jpg",
     tags: ["ccct", "convocation", "2022-23"],
   },
-  {
-    id: 7,
-    title: "CCCT Convocation",
-    imageUrl: "/Convocation1/selected7.jpg",
-    tags: ["ccct", "convocation", "2022-23"],
-  },
+
   {
     id: 8,
     title: "ATTC Convocation",
@@ -89,12 +84,6 @@ const galleryData: GalleryItem[] = [
     id: 13,
     title: "ATTC Convocation",
     imageUrl: "/Convocation1/cn6.jpg",
-    tags: ["attc", "convocation", "2019-22"],
-  },
-  {
-    id: 14,
-    title: "ATTC Convocation",
-    imageUrl: "/Convocation1/cn7.jpg",
     tags: ["attc", "convocation", "2019-22"],
   },
 ];
