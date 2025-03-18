@@ -942,7 +942,7 @@ const UserManagement: React.FC = () => {
               <div className="mt-4 flex items-center justify-between">
                 <div className="text-sm">
                   Showing {totalItems} results
-                  {searchTerm && <span> for "{searchTerm}"</span>}
+                  {searchTerm && <span> for &quot;{searchTerm}&quot;</span>}
                   {roleFilter !== "ALL" && (
                     <span> with role {roleFilter.replace("_", " ")}</span>
                   )}
