@@ -179,7 +179,41 @@ const UserManagement: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // State for delete modal
   const [userToDelete, setUserToDelete] = useState<string | null>(null); // User ID to delete
   const [isLoading, setIsLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState("ALL");
+  const [sortBy, setSortBy] = useState("username");
+  const [sortOrder, setSortOrder] = useState("asc");
   const itemsPerPage = 10;
+
+  const getFilteredAndSortedUsers = () => {
+    let filtered = [...users];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (user) =>
+          user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply role filter
+    if (roleFilter !== "ALL") {
+      filtered = filtered.filter((user) => user.role === roleFilter);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      const aValue = a[sortBy as keyof User];
+      const bValue = b[sortBy as keyof User];
+
+      if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+      if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+      return 0;
+    });
+
+    return filtered;
+  };
 
   const {
     control,
@@ -766,10 +800,18 @@ const UserManagement: React.FC = () => {
   };
 
   // Pagination calculation
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentUsers = users.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(users.length / itemsPerPage);
+  const filteredUsers = getFilteredAndSortedUsers();
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const currentUsers = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
+  // Reset currentPage when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter, sortBy, sortOrder]);
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -777,8 +819,149 @@ const UserManagement: React.FC = () => {
 
   return (
     <SideBarLayout>
-      <div className="container mx-auto px-4">
+      <div className="container mx-auto px-4 mt-6">
         <Card>
+          <div className="px-6 py-4 border-b">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Search Input */}
+              <div className="flex items-center space-x-2">
+                <Input
+                  placeholder="Search by username or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full"
+                />
+                {searchTerm && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setSearchTerm("")}
+                    aria-label="Clear search"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </Button>
+                )}
+              </div>
+
+              {/* Role Filter */}
+              <div>
+                <Select value={roleFilter} onValueChange={setRoleFilter}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">All Roles</SelectItem>
+                    {roleSchema.options.map((role) => (
+                      <SelectItem key={role} value={role}>
+                        {role.replace("_", " ")}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sort Options */}
+              <div className="flex items-center space-x-2">
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-[130px]">
+                    <SelectValue placeholder="Sort by" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="username">Username</SelectItem>
+                    <SelectItem value="email">Email</SelectItem>
+                    <SelectItem value="role">Role</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() =>
+                    setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                  }
+                  aria-label={
+                    sortOrder === "asc" ? "Sort descending" : "Sort ascending"
+                  }
+                >
+                  {sortOrder === "asc" ? (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m3 8 4-4 4 4" />
+                      <path d="M7 4v16" />
+                      <path d="M11 12h4" />
+                      <path d="M11 16h7" />
+                      <path d="M11 20h10" />
+                    </svg>
+                  ) : (
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="24"
+                      height="24"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="m3 16 4 4 4-4" />
+                      <path d="M7 20V4" />
+                      <path d="M11 4h10" />
+                      <path d="M11 8h7" />
+                      <path d="M11 12h4" />
+                    </svg>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Filters summary and reset */}
+            {(searchTerm || roleFilter !== "ALL") && (
+              <div className="mt-4 flex items-center justify-between">
+                <div className="text-sm">
+                  Showing {totalItems} results
+                  {searchTerm && <span> for "{searchTerm}"</span>}
+                  {roleFilter !== "ALL" && (
+                    <span> with role {roleFilter.replace("_", " ")}</span>
+                  )}
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setRoleFilter("ALL");
+                    setSortBy("username");
+                    setSortOrder("asc");
+                  }}
+                >
+                  Reset Filters
+                </Button>
+              </div>
+            )}
+          </div>
           <CardHeader className="flex flex-col md:flex-row items-start gap-2 md:gap-0 md:items-center justify-between">
             <CardTitle className="text-2xl font-bold">
               User Management
