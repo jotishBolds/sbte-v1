@@ -166,6 +166,11 @@ export const Sidebar: React.FC = () => {
             label: "Dashboard",
           },
           {
+            href: "/college-stats",
+            icon: <ChartArea size={18} />,
+            label: "College/Student Stats",
+          },
+          {
             href: "/colleges",
             icon: <Building size={18} />,
             label: "Colleges",
