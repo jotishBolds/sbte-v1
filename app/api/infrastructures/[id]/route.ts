@@ -36,11 +36,7 @@ export async function DELETE(
 
     const userRole = session.user?.role;
 
-    if (
-      userRole !== "HOD" &&
-      userRole !== "COLLEGE_SUPER_ADMIN" &&
-      userRole !== "ADM"
-    ) {
+    if (userRole !== "HOD" && userRole !== "COLLEGE_SUPER_ADMIN") {
       return NextResponse.json(
         { error: "You are not authorized to delete this infrastructure." },
         { status: 403 }
@@ -111,8 +107,7 @@ export async function GET(
     if (
       userRole !== "SBTE_ADMIN" &&
       userRole !== "COLLEGE_SUPER_ADMIN" &&
-      userRole !== "HOD" &&
-      userRole !== "ADM"
+      userRole !== "HOD"
     ) {
       return NextResponse.json(
         { error: "You are not authorized to access this infrastructure." },
@@ -164,15 +159,11 @@ export async function GET(
     // Convert the file stream to a buffer
     const fileBuffer = await streamToBuffer(Body);
 
-    // Return the response with explicit CORS headers
     return new Response(fileBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${infrastructure.title}.pdf"`,
-        "Access-Control-Allow-Origin": "*", // Explicitly allow all origins
-        "Access-Control-Allow-Methods": "GET, OPTIONS", // Allow GET and OPTIONS
-        "Access-Control-Allow-Headers": "Content-Type, Authorization", // Allow specific headers
       },
     });
   } catch (error) {
