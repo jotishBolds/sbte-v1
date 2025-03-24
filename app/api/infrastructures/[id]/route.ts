@@ -164,11 +164,15 @@ export async function GET(
     // Convert the file stream to a buffer
     const fileBuffer = await streamToBuffer(Body);
 
+    // Return the response with explicit CORS headers
     return new Response(fileBuffer, {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${infrastructure.title}.pdf"`,
+        "Access-Control-Allow-Origin": "*", // Explicitly allow all origins
+        "Access-Control-Allow-Methods": "GET, OPTIONS", // Allow GET and OPTIONS
+        "Access-Control-Allow-Headers": "Content-Type, Authorization", // Allow specific headers
       },
     });
   } catch (error) {
