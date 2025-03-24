@@ -438,6 +438,11 @@ export const Sidebar: React.FC = () => {
             icon: <Users size={18} />,
             label: "Manage Users",
           },
+          {
+            href: "/infrastructures",
+            icon: <Building2 size={18} />,
+            label: "Infrastructure",
+          },
         ];
       case "HOD":
         return [
@@ -459,13 +464,13 @@ export const Sidebar: React.FC = () => {
             icon: <Home size={18} />,
             label: "Dashboard",
           },
-          { href: "/subjects", icon: <Book size={18} />, label: "Subjects" },
-          {
-            href: "/attendance",
-            icon: <Calendar size={18} />,
-            label: "Attendance",
-          },
-          { href: "/marks", icon: <Clipboard size={18} />, label: "Marks" },
+          // { href: "/subjects", icon: <Book size={18} />, label: "Subjects" },
+          // {
+          //   href: "/attendance",
+          //   icon: <Calendar size={18} />,
+          //   label: "Attendance",
+          // },
+          // { href: "/marks", icon: <Clipboard size={18} />, label: "Marks" },
         ];
       case "FINANCE_MANAGER":
         return [

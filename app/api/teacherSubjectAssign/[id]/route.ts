@@ -29,7 +29,11 @@ export async function POST(
     }
 
     // Only users with the role of "HOD" are allowed to perform this action
-    if (session.user?.role !== "HOD" && session.user?.role !== "COLLEGE_SUPER_ADMIN"  ) {
+    if (
+      session.user?.role !== "HOD" &&
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user?.role !== "TEACHER"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

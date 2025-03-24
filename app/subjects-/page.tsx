@@ -81,9 +81,7 @@ const Subjects = () => {
         const session = await getSession();
         if (session && session.user.collegeId) {
           const collegeId = session.user.collegeId;
-          const response = await fetch(
-            `http://localhost:3000/api/teacher/college/${collegeId}`
-          );
+          const response = await fetch(`/api/teacher/college/${collegeId}`);
 
           if (response.ok) {
             const data = await response.json();

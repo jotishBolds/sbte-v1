@@ -57,7 +57,10 @@ export default function CreateSubjectPage() {
   useEffect(() => {
     if (status === "unauthenticated") {
       router.push("/login");
-    } else if (session?.user?.role !== "HOD") {
+    } else if (
+      session?.user?.role !== "HOD" &&
+      session?.user?.role !== "TEACHER"
+    ) {
       router.push("/unauthorized");
     } else {
       fetchSubjects();

@@ -69,15 +69,17 @@ export default function LoadBalancingPdfView() {
   );
 
   const renderEmptyState = () => (
-    <Card className="text-center">
-      <CardContent className="p-4 sm:p-6 flex flex-col items-center justify-center space-y-3 sm:space-y-4">
-        <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
-        <p className="text-base sm:text-lg text-gray-600">No PDFs found</p>
-        <p className="text-xs sm:text-sm text-gray-500">
-          No load balancing PDFs are currently available
-        </p>
-      </CardContent>
-    </Card>
+    <SideBarLayout>
+      <Card className="text-center">
+        <CardContent className="p-4 sm:p-6 flex flex-col items-center justify-center space-y-3 sm:space-y-4">
+          <FileText className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400" />
+          <p className="text-base sm:text-lg text-gray-600">No PDFs found</p>
+          <p className="text-xs sm:text-sm text-gray-500">
+            No load balancing PDFs are currently available
+          </p>
+        </CardContent>
+      </Card>
+    </SideBarLayout>
   );
 
   const renderErrorState = () => (

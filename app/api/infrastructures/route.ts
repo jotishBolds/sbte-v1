@@ -182,7 +182,8 @@ export async function GET(request: Request) {
     if (
       userRole !== "SBTE_ADMIN" &&
       userRole !== "COLLEGE_SUPER_ADMIN" &&
-      userRole !== "HOD"
+      userRole !== "HOD" &&
+      userRole !== "ADM"
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -200,7 +201,11 @@ export async function GET(request: Request) {
           },
         },
       });
-    } else if (userRole === "COLLEGE_SUPER_ADMIN" || userRole === "HOD") {
+    } else if (
+      userRole === "COLLEGE_SUPER_ADMIN" ||
+      userRole === "HOD" ||
+      userRole === "ADM"
+    ) {
       infrastructures = await prisma.infrastructures.findMany({
         where: {
           collegeId: userCollegeId,

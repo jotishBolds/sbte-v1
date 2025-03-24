@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
     if (
       !session?.user ||
-      !["HOD", "COLLEGE_SUPER_ADMIN"].includes(session.user.role)
+      !["HOD", "COLLEGE_SUPER_ADMIN", "TEACHER"].includes(session.user.role)
     ) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
