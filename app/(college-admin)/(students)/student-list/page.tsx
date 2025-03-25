@@ -15,6 +15,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -74,6 +82,14 @@ interface Student {
     name: string;
   };
   department: {
+    id: string;
+    name: string;
+  };
+  batchYear?: {
+    id: string;
+    year: number;
+  };
+  academicYear?: {
     id: string;
     name: string;
   };
@@ -185,6 +201,20 @@ const StudentList = () => {
   const router = useRouter();
   const { toast } = useToast();
 
+  // Add new state for filters
+  const [filters, setFilters] = useState({
+    department: "",
+    program: "",
+    batchYear: "",
+    academicYear: "",
+    status: "",
+  });
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [programs, setPrograms] = useState<Program[]>([]);
+  const [batchYears, setBatchYears] = useState<BatchYear[]>([]);
+  const [academicYears, setAcademicYears] = useState<AcademicYear[]>([]);
+
   // Fetch students
   const fetchStudentsData = async () => {
     try {
@@ -201,9 +231,40 @@ const StudentList = () => {
     }
   };
 
+  // Fetch filter options
+  const fetchFilterOptions = async () => {
+    try {
+      const [deptRes, progRes, batchRes, academicRes] = await Promise.all([
+        fetch("/api/departments"),
+        fetch("/api/programs"),
+        fetch("/api/batchYear"),
+        fetch("/api/academicYear"),
+      ]);
+
+      const [deptData, progData, batchData, academicData] = await Promise.all([
+        deptRes.json(),
+        progRes.json(),
+        batchRes.json(),
+        academicRes.json(),
+      ]);
+
+      setDepartments(deptData);
+      setPrograms(progData);
+      setBatchYears(batchData);
+      setAcademicYears(academicData);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch filter options",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Use the function in useEffect
   useEffect(() => {
     fetchStudentsData();
+    fetchFilterOptions();
   }, []);
 
   // View student details
@@ -222,18 +283,28 @@ const StudentList = () => {
       });
     }
   };
-  // Filter students based on search query
+
+  // Update filtered students logic
   const filteredStudents = students.filter((student) => {
     const query = searchQuery.toLowerCase();
-    return (
+    const matchesSearch =
       (student.name?.toLowerCase() || "").includes(query) ||
       (student.enrollmentNo?.toLowerCase() || "").includes(query) ||
       (student.email?.toLowerCase() || "").includes(query) ||
       (student.phoneNo?.toLowerCase() || "").includes(query) ||
       (student.program?.name?.toLowerCase() || "").includes(query) ||
-      (student.department?.name?.toLowerCase() || "").includes(query)
-    );
+      (student.department?.name?.toLowerCase() || "").includes(query);
+
+    const matchesFilters =
+      (!filters.department || student.department?.id === filters.department) &&
+      (!filters.program || student.program?.id === filters.program) &&
+      (!filters.batchYear || student.batchYear?.id === filters.batchYear) &&
+      (!filters.academicYear ||
+        student.academicYear?.id === filters.academicYear);
+
+    return matchesSearch && matchesFilters;
   });
+
   // Delete student
   const handleDeleteStudent = async (id: string) => {
     try {
@@ -620,6 +691,169 @@ const StudentList = () => {
     );
   };
 
+  // Add Filter Panel Component
+  const FilterPanel = ({
+    filters,
+    setFilters,
+    departments,
+    programs,
+    batchYears,
+    academicYears,
+  }: {
+    filters: {
+      department: string;
+      program: string;
+      batchYear: string;
+      academicYear: string;
+      status: string;
+    };
+    setFilters: React.Dispatch<
+      React.SetStateAction<{
+        department: string;
+        program: string;
+        batchYear: string;
+        academicYear: string;
+        status: string;
+      }>
+    >;
+    departments: Department[];
+    programs: Program[];
+    batchYears: BatchYear[];
+    academicYears: AcademicYear[];
+  }) => (
+    <Card className="mb-6">
+      <CardContent className="p-4 space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div>
+            <Label htmlFor="department" className="mb-2 block">
+              Department
+            </Label>
+            <Select
+              value={filters.department || "all"}
+              onValueChange={(value: string) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  department: value === "all" ? "" : value,
+                }))
+              }
+            >
+              <SelectTrigger id="department" className="w-full">
+                <SelectValue placeholder="All Departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Departments</SelectItem>
+                {departments.map((dept) => (
+                  <SelectItem key={dept.id} value={dept.id}>
+                    {dept.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="program" className="mb-2 block">
+              Program
+            </Label>
+            <Select
+              value={filters.program || "all"}
+              onValueChange={(value: string) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  program: value === "all" ? "" : value,
+                }))
+              }
+            >
+              <SelectTrigger id="program" className="w-full">
+                <SelectValue placeholder="All Programs" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Programs</SelectItem>
+                {programs.map((prog) => (
+                  <SelectItem key={prog.id} value={prog.id}>
+                    {prog.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="batchYear" className="mb-2 block">
+              Batch Year
+            </Label>
+            <Select
+              value={filters.batchYear || "all"}
+              onValueChange={(value: string) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  batchYear: value === "all" ? "" : value,
+                }))
+              }
+            >
+              <SelectTrigger id="batchYear" className="w-full">
+                <SelectValue placeholder="All Batch Years" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Batch Years</SelectItem>
+                {batchYears.map((batch) => (
+                  <SelectItem key={batch.id} value={batch.id}>
+                    {batch.year.toString()}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <Label htmlFor="academicYear" className="mb-2 block">
+              Academic Year
+            </Label>
+            <Select
+              value={filters.academicYear || "all"}
+              onValueChange={(value: string) =>
+                setFilters((prev) => ({
+                  ...prev,
+                  academicYear: value === "all" ? "" : value,
+                }))
+              }
+            >
+              <SelectTrigger id="academicYear" className="w-full">
+                <SelectValue placeholder="All Academic Years" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Academic Years</SelectItem>
+                {academicYears.map((year) => (
+                  <SelectItem key={year.id} value={year.id}>
+                    {year.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            onClick={() =>
+              setFilters((prev) => ({
+                ...prev,
+                department: "",
+                program: "",
+                batchYear: "",
+                academicYear: "",
+                status: "",
+              }))
+            }
+          >
+            Clear Filters
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <SideBarLayout>
       {selectedStudent && (
@@ -633,15 +867,38 @@ const StudentList = () => {
         />
       )}
       <div className="space-y-6 p-6">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-bold">Students</h1>
             <p className="text-gray-500">Manage and view student information</p>
           </div>
-          <Button onClick={() => router.push("/student-register")}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add Student
-          </Button>
+          <div className="flex gap-2 w-full md:w-auto">
+            <Button
+              variant="outline"
+              className="md:hidden w-full"
+              onClick={() => setIsFilterOpen(!isFilterOpen)}
+            >
+              {isFilterOpen ? "Hide Filters" : "Show Filters"}
+            </Button>
+            <Button
+              onClick={() => router.push("/student-register")}
+              className="w-full md:w-auto"
+            >
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add Student
+            </Button>
+          </div>
+        </div>
+
+        <div className={`md:block ${isFilterOpen ? "block" : "hidden"}`}>
+          <FilterPanel
+            filters={filters}
+            setFilters={setFilters}
+            departments={departments}
+            programs={programs}
+            batchYears={batchYears}
+            academicYears={academicYears}
+          />
         </div>
 
         <div className="flex items-center space-x-2">
