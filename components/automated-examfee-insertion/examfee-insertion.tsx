@@ -137,9 +137,7 @@ export function AutoBaseExamFeeInsertion({
           <DialogClose
             className="absolute top-0 right-0 p-2 hover:bg-secondary rounded-full"
             aria-label="Close"
-          >
-            <X className="h-4 w-4" />
-          </DialogClose>
+          ></DialogClose>
         </DialogHeader>
 
         <div className="space-y-4 flex-grow overflow-auto">
