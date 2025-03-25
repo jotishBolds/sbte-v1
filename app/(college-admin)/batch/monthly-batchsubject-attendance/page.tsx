@@ -375,7 +375,6 @@ export default function MonthlyAttendanceDashboard() {
                             {subjectName} ({subjectCode}) -{" "}
                             {monthlyClass.batchSubject?.batch?.name ||
                               "Unnamed Batch"}
-                            {subjectAlias && ` (${subjectAlias})`}
                           </div>
                           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-2">
