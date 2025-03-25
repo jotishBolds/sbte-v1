@@ -454,7 +454,7 @@ const StudentList = () => {
     if (!value) return null;
 
     return (
-      <div className="flex items-start space-x-2 p-2 rounded-lg hover:bg-gray-50 transition-colors">
+      <div className="flex items-start space-x-2 p-2 rounded-lg  transition-colors">
         {Icon && <Icon className="h-4 w-4 text-gray-500 mt-0.5" />}
         <div>
           <p className="text-sm font-medium text-gray-500">{label}</p>
