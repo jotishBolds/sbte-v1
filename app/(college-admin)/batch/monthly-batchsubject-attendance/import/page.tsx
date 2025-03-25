@@ -65,7 +65,10 @@ export default function AttendanceImport() {
   });
 
   const getSubjectName = (monthlyClass: any) => {
-    return monthlyClass.batchSubject?.subject?.name || "Unnamed Subject";
+    const subjectName =
+      monthlyClass.batchSubject?.subject?.name || "Unnamed Subject";
+    const batchName = monthlyClass.batchSubject?.batch?.name || "Unnamed Batch";
+    return `${subjectName} (${batchName})`;
   };
 
   const form = useForm<ImportFormValues>({
@@ -162,7 +165,11 @@ export default function AttendanceImport() {
                             <div className="flex flex-col gap-2">
                               <div className="font-medium">
                                 {monthlyClass.batchSubject?.subject?.name ||
-                                  "Unnamed Subject"}
+                                  "Unnamed Subject"}{" "}
+                                (
+                                {monthlyClass.batchSubject?.batch?.name ||
+                                  "Unnamed Batch"}
+                                )
                               </div>
                               <div className="text-sm text-muted-foreground">
                                 Month: {monthlyClass.month} | Theory:{" "}

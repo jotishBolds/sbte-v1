@@ -95,6 +95,10 @@ interface BatchSubject {
   subject?: Subject; // Make subject optional
   classType?: string;
   creditScore?: number;
+  batch: {
+    id: string; // Added id to match the data structure
+    name: string; // This matches your requirement
+  };
 }
 
 interface MonthlyBatchSubjectClass {
@@ -166,7 +170,7 @@ export default function MonthlyAttendanceDashboard() {
       setLoading(true);
       const response = await fetch("/api/monthlyBatchSubjectClasses");
       const data = await response.json();
-      console.log("monthlyBatchSubjectClasses", data);
+      console.log("monthlyBatchSubjectClassessssss", data);
       if (!response.ok) {
         throw new Error(data.error || "Failed to load monthly classes");
       }
@@ -304,9 +308,11 @@ export default function MonthlyAttendanceDashboard() {
   const getSelectedSubjectName = (classId: any) => {
     const selectedMonthlyClass = monthlyClasses.find((mc) => mc.id === classId);
     if (!selectedMonthlyClass) return "";
-    return (
-      selectedMonthlyClass.batchSubject?.subject?.name || "Unnamed Subject"
-    );
+    const subjectName =
+      selectedMonthlyClass.batchSubject?.subject?.name || "Unnamed Subject";
+    const batchName =
+      selectedMonthlyClass.batchSubject?.batch?.name || "Unnamed Batch";
+    return `${subjectName} (${batchName})`;
   };
   const resetForm = () => {
     setFormData({
@@ -366,8 +372,10 @@ export default function MonthlyAttendanceDashboard() {
                       >
                         <div className="flex flex-col gap-2">
                           <div className="font-medium">
-                            {subjectName} ({subjectCode})
-                            {subjectAlias && ` - ${subjectAlias}`}
+                            {subjectName} ({subjectCode}) -{" "}
+                            {monthlyClass.batchSubject?.batch?.name ||
+                              "Unnamed Batch"}
+                            {subjectAlias && ` (${subjectAlias})`}
                           </div>
                           <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                             <span className="flex items-center gap-2">
