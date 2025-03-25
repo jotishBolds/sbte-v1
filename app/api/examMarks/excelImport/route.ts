@@ -94,13 +94,14 @@ export async function POST(request: Request) {
     const missingStudentIds = [];
     const existingRows = [];
     const exceededMarksRows = [];
+    const missingStudents: number[] = [];
 
     for (const row of worksheet.getRows(2, worksheet.rowCount - 1) || []) {
       if (!row.hasValues) continue; // Skip rows with no values
 
       const rowData = {
         studentName: row.getCell("B").value?.toString(),
-        enrollNo: row.getCell("C").value?.toString(),
+        enrollNo: row.getCell("C").value?.toString().trim(),
         achievedMarks: Number(row.getCell("D").value) || 0, // Safely convert to number
         wasAbsent: row.getCell("E").value?.toString().trim() === "Yes",
         debarred: row.getCell("F").value?.toString().trim() === "Yes",
@@ -115,7 +116,16 @@ export async function POST(request: Request) {
             .map((e) => e.message)
             .join(", ")}`
         );
-        // continue;
+        // Check if the error is specifically for enrollNo
+        const isEnrollmentError = parseResult.error.errors.some(
+          (e) => e.path[0] === "enrollNo"
+        );
+
+        // If it's an enrollment error, push the row number to the missingStudents array
+        if (isEnrollmentError) {
+          missingStudents.push(row.number);
+        }
+        continue;
       }
 
       // Fetch student ID by enrollment number
@@ -166,6 +176,14 @@ export async function POST(request: Request) {
       });
     }
 
+    if (missingStudents.length > 0) {
+      errorMessages.push(
+        `Missing or invalid enrollment numbers in rows: ${missingStudents.join(
+          ", "
+        )}`
+      );
+    }
+    
     if (missingStudentIds.length > 0) {
       errorMessages.push(
         `Missing or invalid student enrollment numbers in rows: ${missingStudentIds.join(
