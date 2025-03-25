@@ -203,7 +203,11 @@ export async function GET(request: Request) {
           },
         },
       });
-    } else if (userRole === "COLLEGE_SUPER_ADMIN" || userRole === "HOD") {
+    } else if (
+      userRole === "COLLEGE_SUPER_ADMIN" ||
+      userRole === "HOD" ||
+      userRole === "TEACHER"
+    ) {
       schedules = await prisma.schedules.findMany({
         where: {
           collegeId: userCollegeId,

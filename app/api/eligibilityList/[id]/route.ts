@@ -36,7 +36,11 @@ export async function DELETE(
 
     const userRole = session.user?.role;
 
-    if (userRole !== "HOD" && userRole !== "COLLEGE_SUPER_ADMIN") {
+    if (
+      userRole !== "HOD" &&
+      userRole !== "COLLEGE_SUPER_ADMIN" &&
+      userRole !== "TEACHER"
+    ) {
       return NextResponse.json(
         { error: "You are not authorized to delete this file." },
         { status: 403 }
@@ -107,7 +111,8 @@ export async function GET(
     if (
       userRole !== "SBTE_ADMIN" &&
       userRole !== "COLLEGE_SUPER_ADMIN" &&
-      userRole !== "HOD"
+      userRole !== "HOD" &&
+      userRole !== "TEACHER"
     ) {
       return NextResponse.json(
         { error: "You are not authorized to download this file." },
@@ -130,7 +135,7 @@ export async function GET(
     }
 
     if (
-      (userRole === "COLLEGE_SUPER_ADMIN" || userRole === "HOD") &&
+      (userRole === "COLLEGE_SUPER_ADMIN" || userRole === "HOD" || "TEACHER") &&
       eligibility.collegeId !== userCollegeId
     ) {
       return NextResponse.json(

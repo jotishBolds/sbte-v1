@@ -36,7 +36,11 @@ export async function DELETE(
 
     const userRole = session.user?.role;
 
-    if (userRole !== "HOD" && userRole !== "COLLEGE_SUPER_ADMIN") {
+    if (
+      userRole !== "HOD" &&
+      userRole !== "COLLEGE_SUPER_ADMIN" &&
+      userRole !== "TEACHER"
+    ) {
       return NextResponse.json(
         { error: "You are not authorized to delete this schedule." },
         { status: 403 }

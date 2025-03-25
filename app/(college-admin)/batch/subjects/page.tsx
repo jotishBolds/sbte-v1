@@ -57,6 +57,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import SideBarLayout from "@/components/sidebar/layout";
+import { useSession } from "next-auth/react";
 
 // Enums
 enum ClassType {
@@ -140,6 +141,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const BatchSubjectManagement = () => {
+  const { data: session } = useSession();
   const { toast } = useToast();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
@@ -316,17 +318,24 @@ const BatchSubjectManagement = () => {
   };
 
   const handleEdit = (subject: BatchSubject) => {
-    setEditingSubject(subject);
-    editForm.reset({
-      creditScore: Number(subject.creditScore),
-      subjectTypeId: subject.subjectType.id,
-      classType: subject.classType,
-    });
-    setIsEditDialogOpen(true);
+    // Only allow edit if not a teacher
+    if (
+      session?.user?.role === "COLLEGE_SUPER_ADMIN" ||
+      session?.user?.role === "TEACHER"
+    ) {
+      setEditingSubject(subject);
+      editForm.reset({
+        creditScore: Number(subject.creditScore),
+        subjectTypeId: subject.subjectType.id,
+        classType: subject.classType,
+      });
+      setIsEditDialogOpen(true);
+    }
   };
 
   const handleDelete = async (subjectId: string) => {
-    if (!selectedBatch) return;
+    // Only allow delete if not a teacher
+    if (session?.user?.role === "TEACHER" || !selectedBatch) return;
 
     try {
       const response = await fetch(
@@ -431,7 +440,9 @@ const BatchSubjectManagement = () => {
               Batch Subject Management
             </CardTitle>
             <CardDescription>
-              Manage and organize subjects for different batches
+              {session?.user?.role === "TEACHER"
+                ? "View and edit subjects for your batch"
+                : "Manage and organize subjects for different batches"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -471,157 +482,161 @@ const BatchSubjectManagement = () => {
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <h3 className="text-lg font-medium">Batch Subjects</h3>
-                  {selectedBatch && (
-                    <Dialog
-                      open={isAssignDialogOpen}
-                      onOpenChange={setIsAssignDialogOpen}
-                    >
-                      <DialogTrigger asChild>
-                        <Button>
-                          <Plus className="w-4 h-4 mr-2" />
-                          Assign Subject
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                          <DialogTitle>
-                            Assign Subject to {selectedBatch.name}
-                          </DialogTitle>
-                        </DialogHeader>
-                        <Form {...form}>
-                          <form
-                            onSubmit={form.handleSubmit(onSubmit)}
-                            className="space-y-4"
-                          >
-                            <FormField
-                              control={form.control}
-                              name="subjectId"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Subject</FormLabel>
-                                  <Select
-                                    onValueChange={(value) => {
-                                      field.onChange(value);
-                                      fetchSubjectDetails(value);
-                                    }}
-                                    defaultValue={field.value}
-                                  >
+                  {/* Only show Assign Subject button for admin */}
+                  {selectedBatch &&
+                    session?.user?.role === "COLLEGE_SUPER_ADMIN" && (
+                      <Dialog
+                        open={isAssignDialogOpen}
+                        onOpenChange={setIsAssignDialogOpen}
+                      >
+                        <DialogTrigger asChild>
+                          <Button>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Assign Subject
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-[425px]">
+                          <DialogHeader>
+                            <DialogTitle>
+                              Assign Subject to {selectedBatch.name}
+                            </DialogTitle>
+                          </DialogHeader>
+                          <Form {...form}>
+                            <form
+                              onSubmit={form.handleSubmit(onSubmit)}
+                              className="space-y-4"
+                            >
+                              <FormField
+                                control={form.control}
+                                name="subjectId"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Subject</FormLabel>
+                                    <Select
+                                      onValueChange={(value) => {
+                                        field.onChange(value);
+                                        fetchSubjectDetails(value);
+                                      }}
+                                      defaultValue={field.value}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select subject" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        {subjects.map((subject) => (
+                                          <SelectItem
+                                            key={subject.id}
+                                            value={subject.id}
+                                          >
+                                            {subject.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="subjectCode"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Subject Code</FormLabel>
                                     <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select subject" />
-                                      </SelectTrigger>
+                                      <Input {...field} />
                                     </FormControl>
-                                    <SelectContent>
-                                      {subjects.map((subject) => (
-                                        <SelectItem
-                                          key={subject.id}
-                                          value={subject.id}
-                                        >
-                                          {subject.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                            <FormField
-                              control={form.control}
-                              name="subjectCode"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Subject Code</FormLabel>
-                                  <FormControl>
-                                    <Input {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                              <FormField
+                                control={form.control}
+                                name="subjectTypeId"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Subject Type</FormLabel>
+                                    <Select
+                                      onValueChange={field.onChange}
+                                      defaultValue={field.value}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select subject type" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        {subjectTypes.map((type) => (
+                                          <SelectItem
+                                            key={type.id}
+                                            value={type.id}
+                                          >
+                                            {type.name}
+                                          </SelectItem>
+                                        ))}
+                                      </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                            <FormField
-                              control={form.control}
-                              name="subjectTypeId"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Subject Type</FormLabel>
-                                  <Select
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                  >
+                              <FormField
+                                control={form.control}
+                                name="classType"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Class Type</FormLabel>
+                                    <Select
+                                      onValueChange={field.onChange}
+                                      defaultValue={field.value}
+                                    >
+                                      <FormControl>
+                                        <SelectTrigger>
+                                          <SelectValue placeholder="Select class type" />
+                                        </SelectTrigger>
+                                      </FormControl>
+                                      <SelectContent>
+                                        {Object.values(ClassType).map(
+                                          (type) => (
+                                            <SelectItem key={type} value={type}>
+                                              {type}
+                                            </SelectItem>
+                                          )
+                                        )}
+                                      </SelectContent>
+                                    </Select>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="creditScore"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Credit Score</FormLabel>
                                     <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select subject type" />
-                                      </SelectTrigger>
+                                      <Input type="number" {...field} />
                                     </FormControl>
-                                    <SelectContent>
-                                      {subjectTypes.map((type) => (
-                                        <SelectItem
-                                          key={type.id}
-                                          value={type.id}
-                                        >
-                                          {type.name}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                            <FormField
-                              control={form.control}
-                              name="classType"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Class Type</FormLabel>
-                                  <Select
-                                    onValueChange={field.onChange}
-                                    defaultValue={field.value}
-                                  >
-                                    <FormControl>
-                                      <SelectTrigger>
-                                        <SelectValue placeholder="Select class type" />
-                                      </SelectTrigger>
-                                    </FormControl>
-                                    <SelectContent>
-                                      {Object.values(ClassType).map((type) => (
-                                        <SelectItem key={type} value={type}>
-                                          {type}
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <FormField
-                              control={form.control}
-                              name="creditScore"
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>Credit Score</FormLabel>
-                                  <FormControl>
-                                    <Input type="number" {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-
-                            <Button type="submit" className="w-full">
-                              Assign Subject
-                            </Button>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
-                  )}
+                              <Button type="submit" className="w-full">
+                                Assign Subject
+                              </Button>
+                            </form>
+                          </Form>
+                        </DialogContent>
+                      </Dialog>
+                    )}
                 </div>
 
                 {selectedBatch ? (
@@ -639,9 +654,12 @@ const BatchSubjectManagement = () => {
                             <TableHead>Type</TableHead>
                             <TableHead>Class Type</TableHead>
                             <TableHead>Credits</TableHead>
-                            <TableHead className="text-right">
-                              Actions
-                            </TableHead>
+                            {/* Only show Actions column for admin */}
+                            {session?.user?.role === "COLLEGE_SUPER_ADMIN" && (
+                              <TableHead className="text-right">
+                                Actions
+                              </TableHead>
+                            )}
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -660,8 +678,55 @@ const BatchSubjectManagement = () => {
                                 {subject.classType || "N/A"}
                               </TableCell>
                               <TableCell>{subject.creditScore || 0}</TableCell>
-                              <TableCell className="text-right">
-                                <div className="flex justify-end gap-2">
+                              {/* Show Actions for admin, edit for teacher */}
+                              {session?.user?.role ===
+                                "COLLEGE_SUPER_ADMIN" && (
+                                <TableCell className="text-right">
+                                  <div className="flex justify-end gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => handleEdit(subject)}
+                                    >
+                                      <Pencil className="w-4 h-4" />
+                                    </Button>
+                                    <AlertDialog>
+                                      <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" size="sm">
+                                          <Trash className="w-4 h-4" />
+                                        </Button>
+                                      </AlertDialogTrigger>
+                                      <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                          <AlertDialogTitle>
+                                            Delete Subject
+                                          </AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                            Are you sure you want to delete this
+                                            subject? This action cannot be
+                                            undone.
+                                          </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                          <AlertDialogCancel>
+                                            Cancel
+                                          </AlertDialogCancel>
+                                          <AlertDialogAction
+                                            onClick={() =>
+                                              handleDelete(subject.id)
+                                            }
+                                          >
+                                            Delete
+                                          </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                      </AlertDialogContent>
+                                    </AlertDialog>
+                                  </div>
+                                </TableCell>
+                              )}
+                              {/* Add edit button for teachers */}
+                              {session?.user?.role === "TEACHER" && (
+                                <TableCell className="text-right">
                                   <Button
                                     variant="outline"
                                     size="sm"
@@ -669,38 +734,8 @@ const BatchSubjectManagement = () => {
                                   >
                                     <Pencil className="w-4 h-4" />
                                   </Button>
-                                  <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                      <Button variant="destructive" size="sm">
-                                        <Trash className="w-4 h-4" />
-                                      </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                      <AlertDialogHeader>
-                                        <AlertDialogTitle>
-                                          Delete Subject
-                                        </AlertDialogTitle>
-                                        <AlertDialogDescription>
-                                          Are you sure you want to delete this
-                                          subject? This action cannot be undone.
-                                        </AlertDialogDescription>
-                                      </AlertDialogHeader>
-                                      <AlertDialogFooter>
-                                        <AlertDialogCancel>
-                                          Cancel
-                                        </AlertDialogCancel>
-                                        <AlertDialogAction
-                                          onClick={() =>
-                                            handleDelete(subject.id)
-                                          }
-                                        >
-                                          Delete
-                                        </AlertDialogAction>
-                                      </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                  </AlertDialog>
-                                </div>
-                              </TableCell>
+                                </TableCell>
+                              )}
                             </TableRow>
                           ))}
                         </TableBody>
@@ -713,7 +748,9 @@ const BatchSubjectManagement = () => {
                         No subjects assigned
                       </h4>
                       <p className="text-sm text-muted-foreground">
-                        This batch doesn&apos;t have any subjects assigned yet.
+                        {session?.user?.role === "TEACHER"
+                          ? "No subjects have been assigned to this batch yet."
+                          : "This batch doesn't have any subjects assigned yet."}
                       </p>
                     </div>
                   )
@@ -724,7 +761,7 @@ const BatchSubjectManagement = () => {
                       No batch selected
                     </h4>
                     <p className="text-sm text-muted-foreground">
-                      Select a batch to view and manage its subjects
+                      Select a batch to view its subjects
                     </p>
                   </div>
                 )}
@@ -734,99 +771,102 @@ const BatchSubjectManagement = () => {
         </Card>
 
         {/* Edit Dialog */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Subject</DialogTitle>
-            </DialogHeader>
-            <Form {...editForm}>
-              <form
-                onSubmit={editForm.handleSubmit(onEditSubmit)}
-                className="space-y-4"
-              >
-                <FormField
-                  control={editForm.control}
-                  name="subjectTypeId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Subject Type</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
+        {(session?.user?.role === "COLLEGE_SUPER_ADMIN" ||
+          session?.user?.role === "TEACHER") && (
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Subject</DialogTitle>
+              </DialogHeader>
+              <Form {...editForm}>
+                <form
+                  onSubmit={editForm.handleSubmit(onEditSubmit)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={editForm.control}
+                    name="subjectTypeId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Subject Type</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select subject type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {subjectTypes.map((type) => (
+                              <SelectItem key={type.id} value={type.id}>
+                                {type.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="classType"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Class Type</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select class type" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Object.values(ClassType).map((type) => (
+                              <SelectItem key={type} value={type}>
+                                {type}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={editForm.control}
+                    name="creditScore"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Credit Score</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select subject type" />
-                          </SelectTrigger>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(Number(e.target.value))
+                            }
+                          />
                         </FormControl>
-                        <SelectContent>
-                          {subjectTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id}>
-                              {type.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={editForm.control}
-                  name="classType"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Class Type</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select class type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {Object.values(ClassType).map((type) => (
-                            <SelectItem key={type} value={type}>
-                              {type}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={editForm.control}
-                  name="creditScore"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Credit Score</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(Number(e.target.value))
-                          }
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <Button type="submit" className="w-full">
-                  Update Subject
-                </Button>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+                  <Button type="submit" className="w-full">
+                    Update Subject
+                  </Button>
+                </form>
+              </Form>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </SideBarLayout>
   );

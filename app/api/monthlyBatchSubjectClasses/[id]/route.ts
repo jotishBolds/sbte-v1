@@ -50,7 +50,7 @@ export async function GET(
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
+    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && "TEACHER") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -103,7 +103,7 @@ export async function PUT(
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
+    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && "TEACHER") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -189,9 +189,9 @@ export async function DELETE(
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    // if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && "TEACHER") {
+    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // }
 
     const monthlyBatchSubjectClassId = params.id;
 

@@ -43,8 +43,15 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { FileSpreadsheet, Upload, AlertCircle, Info } from "lucide-react";
+import {
+  FileSpreadsheet,
+  Upload,
+  AlertCircle,
+  Info,
+  Download,
+} from "lucide-react";
 import SideBarLayout from "@/components/sidebar/layout";
+import Link from "next/link";
 
 interface Batch {
   id: string;
@@ -66,6 +73,15 @@ interface ExamType {
   passingMarks: number;
 }
 
+interface ErrorDetails {
+  errors?: string[];
+  missingRows?: number[];
+  existingRows?: number[];
+  exceededMarksRows?: number[];
+  message?: string;
+  details?: string;
+}
+
 const formSchema = z.object({
   examTypeId: z.string().min(1, "Exam type is required"),
   batchId: z.string().min(1, "Batch is required"),
@@ -81,12 +97,7 @@ export default function ExamMarksImport() {
   const [examTypes, setExamTypes] = useState<ExamType[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
-  const [errorDetails, setErrorDetails] = useState<{
-    errors: string[];
-    missingRows: number[];
-    existingRows: number[];
-    exceededMarksRows: number[];
-  } | null>(null);
+  const [errorDetails, setErrorDetails] = useState<ErrorDetails | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -180,14 +191,24 @@ export default function ExamMarksImport() {
       const data = await response.json();
 
       if (!response.ok) {
-        setErrorDetails(data);
+        // Standardize error details
+        const errorInfo: ErrorDetails = {
+          errors: data.errors || [data.error || "An unknown error occurred"],
+          missingRows: data.missingRows || [],
+          existingRows: data.existingRows || [],
+          exceededMarksRows: data.exceededMarksRows || [],
+          message: data.message,
+          details: data.details,
+        };
+
+        setErrorDetails(errorInfo);
         setShowErrorDialog(true);
         return;
       }
 
       toast({
         title: "Success",
-        description: "Exam marks imported successfully",
+        description: data.message || "Exam marks imported successfully",
         variant: "default",
       });
 
@@ -195,12 +216,79 @@ export default function ExamMarksImport() {
       resetFileInput();
       setUploadProgress(100);
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "An unexpected error occurred while importing exam marks",
-        variant: "destructive",
-      });
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
+
+      const errorInfo: ErrorDetails = {
+        errors: [errorMessage],
+      };
+
+      setErrorDetails(errorInfo);
+      setShowErrorDialog(true);
     }
+  };
+
+  // Render method for displaying error details
+  const renderErrorDetails = () => {
+    if (!errorDetails) return null;
+
+    return (
+      <div className="space-y-4">
+        {/* General Errors */}
+        {errorDetails.errors &&
+          errorDetails.errors.length > 0 &&
+          errorDetails.errors.map((error, index) => (
+            <Alert key={`error-${index}`} variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ))}
+
+        {/* Specific Error Categories */}
+        {errorDetails.missingRows && errorDetails.missingRows.length > 0 && (
+          <div className="bg-yellow-50 p-3 rounded-md">
+            <p className="font-semibold text-yellow-800">
+              Missing Enrollment Numbers
+            </p>
+            <p className="text-sm text-yellow-700">
+              Rows with missing or invalid enrollment numbers:{" "}
+              {errorDetails.missingRows.join(", ")}
+            </p>
+          </div>
+        )}
+
+        {errorDetails.existingRows && errorDetails.existingRows.length > 0 && (
+          <div className="bg-orange-50 p-3 rounded-md">
+            <p className="font-semibold text-orange-800">Duplicate Entries</p>
+            <p className="text-sm text-orange-700">
+              Rows with duplicate entries:{" "}
+              {errorDetails.existingRows.join(", ")}
+            </p>
+          </div>
+        )}
+
+        {errorDetails.exceededMarksRows &&
+          errorDetails.exceededMarksRows.length > 0 && (
+            <div className="bg-red-50 p-3 rounded-md">
+              <p className="font-semibold text-red-800">Marks Exceeded</p>
+              <p className="text-sm text-red-700">
+                Rows with marks exceeding total marks:{" "}
+                {errorDetails.exceededMarksRows.join(", ")}
+              </p>
+            </div>
+          )}
+
+        {/* Additional Details if Available */}
+        {errorDetails.message && (
+          <p className="text-sm italic text-gray-600">{errorDetails.message}</p>
+        )}
+        {errorDetails.details && (
+          <p className="text-xs text-gray-500">
+            Details: {errorDetails.details}
+          </p>
+        )}
+      </div>
+    );
   };
 
   return (
@@ -346,7 +434,17 @@ export default function ExamMarksImport() {
                     </p>
                   </div>
                 )}
-
+                <Button
+                  type="button"
+                  variant="outline"
+                  asChild
+                  className="flex-grow"
+                >
+                  <Link href="/templates/exam_marks_template.xlsx" download>
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Template
+                  </Link>
+                </Button>
                 <Button
                   type="submit"
                   className="w-full"
@@ -379,45 +477,11 @@ export default function ExamMarksImport() {
         </Card>
 
         <AlertDialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
-          <AlertDialogContent>
+          <AlertDialogContent className="max-h-[80vh] overflow-y-auto">
             <AlertDialogHeader>
               <AlertDialogTitle>Import Errors</AlertDialogTitle>
               <AlertDialogDescription>
-                <div className="space-y-4">
-                  {errorDetails?.errors.map((error, index) => (
-                    <Alert key={index} variant="destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>{error}</AlertDescription>
-                    </Alert>
-                  ))}
-
-                  {errorDetails?.missingRows.length ? (
-                    <div>
-                      <p className="font-medium">Missing Enrollment Numbers:</p>
-                      <p className="text-sm">
-                        Rows: {errorDetails.missingRows.join(", ")}
-                      </p>
-                    </div>
-                  ) : null}
-
-                  {errorDetails?.existingRows.length ? (
-                    <div>
-                      <p className="font-medium">Duplicate Entries:</p>
-                      <p className="text-sm">
-                        Rows: {errorDetails.existingRows.join(", ")}
-                      </p>
-                    </div>
-                  ) : null}
-
-                  {errorDetails?.exceededMarksRows.length ? (
-                    <div>
-                      <p className="font-medium">Marks Exceeded:</p>
-                      <p className="text-sm">
-                        Rows: {errorDetails.exceededMarksRows.join(", ")}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
+                {renderErrorDetails()}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>

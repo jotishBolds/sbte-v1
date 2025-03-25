@@ -147,14 +147,15 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions); // Fetch the session for authentication
+    const session = await getServerSession(authOptions);
 
-    // If no session, return an Unauthorized error
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const teacherId = params.id; // Get teacherId from the dynamic route
+    const teacherId = params.id;
+    const { searchParams } = new URL(request.url);
+    const batchId = searchParams.get("batchId"); // Fetch batchId from query parameters
 
     // Check if the teacher exists in the database
     const teacher = await prisma.teacher.findUnique({
@@ -162,44 +163,49 @@ export async function GET(
     });
 
     if (!teacher) {
-      // If teacher doesn't exist, return a 404 error
       return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
     }
 
-    // Fetch all the subjects that are assigned to the teacher
+    // Define query filter based on batchId presence
+    const whereCondition: any = { teacherId };
+
+    if (batchId) {
+      whereCondition.batchSubject = { batchId }; // Filter by batchId if provided
+    }
+
+    // Fetch teacherAssignedSubjects based on the conditions
     const assignedSubjects = await prisma.teacherAssignedSubject.findMany({
-      where: {
-        teacherId,
-      },
+      where: whereCondition,
       include: {
         batchSubject: {
           include: {
-            subject: true, // Include the subject details
-            subjectType: true, // Include subject type details
-            batch: true, // Include batch details
+            subject: true,
+            subjectType: true,
+            batch: true,
           },
         },
       },
     });
 
     if (assignedSubjects.length === 0) {
-      // If no subjects are found, return a 404 error with a message
       return NextResponse.json(
-        { error: "No subjects assigned to this teacher" },
+        {
+          error: batchId
+            ? "No subjects found for this batch"
+            : "No subjects assigned to this teacher",
+        },
         { status: 404 }
       );
     }
 
-    // Return the list of assigned subjects with a 200 status code
     return NextResponse.json(assignedSubjects, { status: 200 });
   } catch (error) {
-    // Catch any errors and return a 500 Internal Server Error response
     console.error("Error fetching assigned subjects:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
     );
   } finally {
-    await prisma.$disconnect(); // Ensure Prisma client is disconnected
+    await prisma.$disconnect();
   }
 }

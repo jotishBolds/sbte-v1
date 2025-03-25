@@ -83,6 +83,7 @@ import {
   Timer,
   CheckCheck,
   TimerIcon,
+  CalendarCheck2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -452,6 +453,21 @@ export const Sidebar: React.FC = () => {
             label: "Dashboard",
           },
           {
+            href: "/batchwisesubmarks",
+            icon: <UserRoundPlus size={18} />,
+            label: "Batchwise Subject Marks",
+          },
+          {
+            href: "/batchwisesubattendance",
+            icon: <CalendarCheck size={18} />,
+            label: "Batchwise Subject Attendance",
+          },
+          {
+            href: "/batch/teacher-assign",
+            icon: <CalendarCheck2 size={18} />,
+            label: "Teacher Assign",
+          },
+          {
             href: "/load-balance",
             icon: <ChartBar size={18} />,
             label: "Upload Load Balance",
@@ -464,13 +480,47 @@ export const Sidebar: React.FC = () => {
             icon: <Home size={18} />,
             label: "Dashboard",
           },
-          // { href: "/subjects", icon: <Book size={18} />, label: "Subjects" },
-          // {
-          //   href: "/attendance",
-          //   icon: <Calendar size={18} />,
-          //   label: "Attendance",
-          // },
-          // { href: "/marks", icon: <Clipboard size={18} />, label: "Marks" },
+          {
+            href: "/batch/monthly-batchsubject-classes",
+            icon: <CalendarCheck size={18} />,
+            label: "Monthly Batch Classes",
+          },
+          {
+            href: "/batch/monthly-batchsubject-attendance",
+            icon: <CalendarClock size={18} />,
+            label: "Monthly Batch Attendance",
+          },
+          {
+            href: "/batch/monthly-batchsubject-attendance/import",
+            icon: <Check size={18} />,
+            label: "Import Monthly Batch Attendance",
+          },
+          {
+            href: "/exam-marks",
+            icon: <BookType size={18} />,
+            label: "Exam Marks ",
+          },
+
+          {
+            href: "/exam-marks/import",
+            icon: <BookDashed size={18} />,
+            label: "Import Exam Marks ",
+          },
+          {
+            href: "/batch/subjects",
+            icon: <BookA size={18} />,
+            label: "Assigned Subject",
+          },
+          {
+            href: "/schedules-upload",
+            icon: <Timer size={18} />,
+            label: "Upload Schedules",
+          },
+          {
+            href: "/eligibility-upload",
+            icon: <CheckCheck size={18} />,
+            label: "Upload Eligibility",
+          },
         ];
       case "FINANCE_MANAGER":
         return [

@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    // if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && "TEACHER") {
+    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // }
 
     const body = await request.json();
     const validationResult =
@@ -178,9 +178,9 @@ export async function GET(
     }
 
     // Check if the user has the required role
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    // if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && "TEACHER") {
+    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // }
 
     // Extract `id` from params
     const monthlyBatchSubjectClassesId = params.id;

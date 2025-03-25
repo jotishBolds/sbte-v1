@@ -54,9 +54,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
+    // if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && "TEACHER") {
+    //   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // }
 
     const body = await request.json();
     const validationResult = monthlyBatchSubjectClassesSchema.safeParse(body);
@@ -135,28 +135,61 @@ export async function GET(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
 
     const collegeId = session.user.collegeId;
 
     const college = await prisma.college.findUnique({
-      where: {
-        id: collegeId,
-      },
+      where: { id: collegeId },
     });
+
     if (!college) {
       return NextResponse.json({ error: "Invalid collegeId" }, { status: 404 });
     }
+
     const batchSubjectId = request.nextUrl.searchParams.get("batchSubjectId");
     const month = request.nextUrl.searchParams.get("month");
 
-    // Define the base filter based on batchSubjectId, and add the month filter if provided
-    const filter: any = {};
+    let filter: any = {};
+
+    if (session.user.role === "TEACHER") {
+      // Fetch the teacher using userId
+      const teacher = await prisma.teacher.findUnique({
+        where: { userId: session.user.id },
+      });
+
+      if (!teacher) {
+        return NextResponse.json(
+          { error: "Teacher not found" },
+          { status: 404 }
+        );
+      }
+
+      // Fetch batch subjects assigned to the teacher
+      const assignedBatchSubjects =
+        await prisma.teacherAssignedSubject.findMany({
+          where: { teacherId: teacher.id },
+          select: { batchSubjectId: true },
+        });
+
+      const assignedBatchSubjectIds = assignedBatchSubjects.map(
+        (bs) => bs.batchSubjectId
+      );
+
+      if (assignedBatchSubjectIds.length === 0) {
+        return NextResponse.json(
+          { message: "No assigned subjects found for this teacher" },
+          { status: 200 }
+        );
+      }
+
+      // Filter records where batchSubjectId is in the assigned batch subjects
+      filter.batchSubjectId = { in: assignedBatchSubjectIds };
+    }
+
     if (batchSubjectId) filter.batchSubjectId = batchSubjectId;
     if (month) filter.month = month;
-    // Use relation filtering if collegeId is part of a related model
+
+    // Ensure only classes related to the college are fetched
     filter.batchSubject = {
       batch: {
         program: {
@@ -182,6 +215,7 @@ export async function GET(request: NextRequest) {
         },
         orderBy: { month: "asc" },
       });
+
     if (monthlyBatchSubjectClasses.length === 0) {
       return NextResponse.json(
         { message: "No records found for MonthlyBatchSubjectClasses" },

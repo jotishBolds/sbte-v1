@@ -67,27 +67,39 @@ export async function GET(request: NextRequest) {
   // Determine the collegeId based on the user's role
   let collegeId;
 
-  if (
-    session.user.role === "SBTE" ||
-    session.user.role === "EDUCATION_DEPARTMENT"
-  ) {
-    if (!collegeIdParam) {
-      return NextResponse.json(
-        {
-          error:
-            "collegeId is required for SBTE and EDUCATION_DEPARTMENT roles",
-        },
-        { status: 400 }
-      );
-    }
-    collegeId = collegeIdParam; // Use collegeId from query parameter
-  } else if (
-    session.user.role === "COLLEGE_SUPER_ADMIN" ||
-    session.user.role === "HOD"
-  ) {
-    collegeId = session.user.collegeId; // Use collegeId from session
-  } else {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  switch (session.user.role) {
+    case "SBTE":
+    case "EDUCATION_DEPARTMENT":
+      // For these roles, collegeId is mandatory from query parameter
+      if (!collegeIdParam) {
+        return NextResponse.json(
+          {
+            error:
+              "collegeId is required for SBTE and EDUCATION_DEPARTMENT roles",
+          },
+          { status: 400 }
+        );
+      }
+      collegeId = collegeIdParam;
+      break;
+
+    case "COLLEGE_SUPER_ADMIN":
+    case "HOD":
+    case "TEACHER":
+      // For these roles, use the collegeId from session if not provided
+      collegeId = collegeIdParam || session.user.collegeId;
+
+      // Ensure collegeId is available
+      if (!collegeId) {
+        return NextResponse.json(
+          { error: "No college associated with the user" },
+          { status: 403 }
+        );
+      }
+      break;
+
+    default:
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
@@ -129,9 +141,9 @@ export async function GET(request: NextRequest) {
         ...(programIdParam && { programId: programIdParam }),
       },
       include: {
-        user: true, // Include user details if needed
-        program: true, // Include program details if needed
-        department: true, // Include department details if needed
+        user: true,
+        program: true,
+        department: true,
         batchYear: true,
         academicYear: true,
       },

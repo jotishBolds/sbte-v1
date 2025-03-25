@@ -22,7 +22,8 @@ export async function GET(
 
   if (
     session.user.role !== "COLLEGE_SUPER_ADMIN" &&
-    session.user.role !== "HOD"
+    session.user.role !== "HOD" &&
+    session.user.role !== "TEACHER"
   ) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

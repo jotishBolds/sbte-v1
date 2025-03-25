@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
     if (
       !session ||
       (session.user?.role !== "SBTE_ADMIN" &&
-        session.user?.role !== "COLLEGE_SUPER_ADMIN")
+        session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+        session.user?.role !== "HOD")
     ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
@@ -141,7 +142,9 @@ export async function GET(request: NextRequest) {
       (session.user?.role !== "SBTE_ADMIN" &&
         session.user.role !== "COLLEGE_SUPER_ADMIN" &&
         session.user.role !== "ADM" &&
-        session.user.role !== "EDUCATION_DEPARTMENT")
+        session.user.role !== "EDUCATION_DEPARTMENT" &&
+        session.user?.role !== "HOD" &&
+        session.user?.role !== "TEACHER")
     ) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }

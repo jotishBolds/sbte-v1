@@ -174,7 +174,8 @@ export async function GET(request: NextRequest) {
       session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
       session.user?.role !== "HOD" &&
       session.user.role !== "STUDENT" &&
-      session.user.role !== "FINANCE_MANAGER"
+      session.user.role !== "FINANCE_MANAGER" &&
+      session.user?.role !== "TEACHER"
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
