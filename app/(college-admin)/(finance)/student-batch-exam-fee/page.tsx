@@ -143,11 +143,7 @@ export default function StudentBatchExamFeeManagement() {
       setStudentBatches(data);
       console.log(data);
     } catch (error: any) {
-      toast({
-        title: "Student Batch Retrieval Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.log(error);
     } finally {
       setLoading((prev) => ({ ...prev, students: false }));
     }
@@ -163,11 +159,7 @@ export default function StudentBatchExamFeeManagement() {
       const data = await response.json();
       setExamFees(data);
     } catch (error: any) {
-      toast({
-        title: "Exam Fee Retrieval Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      console.log(error);
     } finally {
       setLoading((prev) => ({ ...prev, examFees: false }));
     }
@@ -387,6 +379,9 @@ export default function StudentBatchExamFeeManagement() {
                 <Select
                   onValueChange={(value) => {
                     setSelectedBatch(value);
+                    // Clear all related states
+                    setStudentBatches([]); // Clear student batches
+                    setExamFees([]); // Clear exam fees
                     setSelectedStudentBatch(null);
                     resetForm();
                   }}
@@ -411,37 +406,49 @@ export default function StudentBatchExamFeeManagement() {
               {selectedBatch && (
                 <div className="space-y-2">
                   <Label className="text-sm font-medium ">Select Student</Label>
-                  <Select
-                    onValueChange={(studentBatchId) => {
-                      const student = studentBatches.find(
-                        (sb) => sb.id === studentBatchId
-                      );
-                      setSelectedStudentBatch(student || null);
-                    }}
-                  >
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Choose a student" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {studentBatches.map((studentBatch) => (
-                        <SelectItem
-                          key={studentBatch.id}
-                          value={studentBatch.id}
-                          className=""
-                        >
-                          <div className="flex flex-col">
-                            <span className="font-semibold">
-                              {studentBatch.student.name}
-                            </span>
-                            <span className="text-xs ">
-                              Enrollment No :{" "}
-                              {studentBatch.student.enrollmentNo}
-                            </span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {studentBatches.length === 0 ? (
+                    <div className="text-center py-4   rounded-md border ">
+                      <p className="font-medium">
+                        No students found in this batch
+                      </p>
+                      <p className="text-sm">
+                        Please check the batch selection or contact
+                        administrator
+                      </p>
+                    </div>
+                  ) : (
+                    <Select
+                      onValueChange={(studentBatchId) => {
+                        const student = studentBatches.find(
+                          (sb) => sb.id === studentBatchId
+                        );
+                        setSelectedStudentBatch(student || null);
+                      }}
+                    >
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Choose a student" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {studentBatches.map((studentBatch) => (
+                          <SelectItem
+                            key={studentBatch.id}
+                            value={studentBatch.id}
+                            className=""
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-semibold">
+                                {studentBatch.student.name}
+                              </span>
+                              <span className="text-xs ">
+                                Enrollment No :{" "}
+                                {studentBatch.student.enrollmentNo}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               )}
             </div>
@@ -560,96 +567,106 @@ export default function StudentBatchExamFeeManagement() {
             )}
 
             {/* Exam Fees Table */}
-            {selectedBatch && examFees.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-lg font-semibold">
-                    Exam Fees Overview
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead className="w-1/4">Student</TableHead>
-                          <TableHead className="w-1/6">Reason</TableHead>
-                          <TableHead className="w-1/6">Exam Fee</TableHead>
-                          <TableHead className="w-1/6">Due Date</TableHead>
-                          <TableHead className="w-1/6">
-                            Payment Status
-                          </TableHead>
-                          <TableHead className="w-1/6 text-right">
-                            Actions
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {examFees.map((fee) => (
-                          <TableRow key={fee.id}>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span className="font-medium">
-                                  {fee.student.name}
-                                </span>
-                                <span className="text-xs">
-                                  {fee.student.enrollmentNo}
-                                </span>
-                              </div>
-                            </TableCell>
-                            <TableCell>{fee.reason}</TableCell>
-                            <TableCell className="font-semibold text-green-600">
-                              ₹{fee.examFee.toFixed(2)}
-                            </TableCell>
-                            <TableCell>
-                              {fee.dueDate
-                                ? new Date(fee.dueDate).toLocaleDateString()
-                                : "Not Set"}
-                            </TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={
-                                  fee.paymentStatus === "COMPLETED"
-                                    ? "default"
-                                    : fee.paymentStatus === "FAILED"
-                                    ? "destructive"
-                                    : "secondary"
-                                }
-                              >
-                                {fee.paymentStatus}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <div className="flex justify-end space-x-2">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={() => openEditModal(fee)}
-                                >
-                                  <Edit className="h-4 w-4 mr-2" /> Edit
-                                </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() =>
-                                    setDeleteConfirmDialog({
-                                      isOpen: true,
-                                      feeId: fee.id,
-                                    })
+            {selectedBatch &&
+              (examFees.length > 0 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg font-semibold">
+                      Exam Fees Overview
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-1/4">Student</TableHead>
+                            <TableHead className="w-1/6">Reason</TableHead>
+                            <TableHead className="w-1/6">Exam Fee</TableHead>
+                            <TableHead className="w-1/6">Due Date</TableHead>
+                            <TableHead className="w-1/6">
+                              Payment Status
+                            </TableHead>
+                            <TableHead className="w-1/6 text-right">
+                              Actions
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {examFees.map((fee) => (
+                            <TableRow key={fee.id}>
+                              <TableCell>
+                                <div className="flex flex-col">
+                                  <span className="font-medium">
+                                    {fee.student.name}
+                                  </span>
+                                  <span className="text-xs">
+                                    {fee.student.enrollmentNo}
+                                  </span>
+                                </div>
+                              </TableCell>
+                              <TableCell>{fee.reason}</TableCell>
+                              <TableCell className="font-semibold text-green-600">
+                                ₹{fee.examFee.toFixed(2)}
+                              </TableCell>
+                              <TableCell>
+                                {fee.dueDate
+                                  ? new Date(fee.dueDate).toLocaleDateString()
+                                  : "Not Set"}
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant={
+                                    fee.paymentStatus === "COMPLETED"
+                                      ? "default"
+                                      : fee.paymentStatus === "FAILED"
+                                      ? "destructive"
+                                      : "secondary"
                                   }
                                 >
-                                  <Trash2 className="h-4 w-4 mr-2" /> Delete
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
+                                  {fee.paymentStatus}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end space-x-2">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openEditModal(fee)}
+                                  >
+                                    <Edit className="h-4 w-4 mr-2" /> Edit
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() =>
+                                      setDeleteConfirmDialog({
+                                        isOpen: true,
+                                        feeId: fee.id,
+                                      })
+                                    }
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" /> Delete
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="text-center py-8  rounded-md border">
+                  <p className="text-lg font-semibold  mb-2">
+                    No Exam Fees Found
+                  </p>
+                  <p className="text-sm ">
+                    There are no exam fees recorded for the selected batch.
+                  </p>
+                </div>
+              ))}
             {/* Edit Fee Modal */}
             <Dialog
               open={editModalOpen}
