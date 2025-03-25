@@ -15,6 +15,7 @@ import { Loader2, FileSpreadsheet, X, Calendar } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { ScrollArea } from "../ui/scroll-area"; // Assuming you have a ScrollArea component
 
 interface AutoBaseExamFeeInsertionProps {
   batchId: string | null;
@@ -124,7 +125,7 @@ export function AutoBaseExamFeeInsertion({
           Auto Insert Base Exam Fees
         </Button>
       </DialogTrigger>
-      <DialogContent className="w-[95%] max-w-[500px] rounded-lg">
+      <DialogContent className="w-[95%] max-w-[500px] rounded-lg max-h-[90vh] flex flex-col">
         <DialogHeader className="relative">
           <DialogTitle className="text-lg font-semibold">
             Auto Insert Base Exam Fees
@@ -136,10 +137,12 @@ export function AutoBaseExamFeeInsertion({
           <DialogClose
             className="absolute top-0 right-0 p-2 hover:bg-secondary rounded-full"
             aria-label="Close"
-          ></DialogClose>
+          >
+            <X className="h-4 w-4" />
+          </DialogClose>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 flex-grow overflow-auto">
           {/* Due Date Input */}
           <div className="space-y-2">
             <Label htmlFor="dueDate" className="flex items-center gap-2">
@@ -164,26 +167,28 @@ export function AutoBaseExamFeeInsertion({
           )}
 
           {insertionResult && (
-            <div className="bg-secondary/50 p-4 rounded-lg space-y-3">
+            <div className="bg-secondary/50 p-4 rounded-lg space-y-3 max-h-[50vh]">
               <h3 className="text-base font-semibold">Insertion Summary</h3>
-              <div className="space-y-2">
-                <p className="flex items-center">
-                  <span className="font-medium mr-2">Updated Students:</span>
-                  <span className="text-muted-foreground">
-                    {insertionResult.updatedStudents.length > 0
-                      ? insertionResult.updatedStudents.join(", ")
-                      : "None"}
-                  </span>
-                </p>
-                <p className="flex items-center">
-                  <span className="font-medium mr-2">Created Students:</span>
-                  <span className="text-muted-foreground">
-                    {insertionResult.createdStudents.length > 0
-                      ? insertionResult.createdStudents.join(", ")
-                      : "None"}
-                  </span>
-                </p>
-              </div>
+              <ScrollArea className="h-[300px] w-full pr-4">
+                <div className="space-y-2">
+                  <p className="flex items-center">
+                    <span className="font-medium mr-2">Updated Students:</span>
+                    <span className="text-muted-foreground">
+                      {insertionResult.updatedStudents.length > 0
+                        ? insertionResult.updatedStudents.join(", ")
+                        : "None"}
+                    </span>
+                  </p>
+                  <p className="flex items-center">
+                    <span className="font-medium mr-2">Created Students:</span>
+                    <span className="text-muted-foreground">
+                      {insertionResult.createdStudents.length > 0
+                        ? insertionResult.createdStudents.join(", ")
+                        : "None"}
+                    </span>
+                  </p>
+                </div>
+              </ScrollArea>
             </div>
           )}
         </div>

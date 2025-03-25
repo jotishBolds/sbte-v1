@@ -40,6 +40,9 @@ import { Loader2, Trash2, Edit, Plus } from "lucide-react";
 import { AutoBaseExamFeeInsertion } from "@/components/automated-examfee-insertion/examfee-insertion";
 import { Badge } from "@/components/ui/badge";
 import SideBarLayout from "@/components/sidebar/layout";
+import * as z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 // Comprehensive Type Definitions for Strong Typing
 interface Batch {
@@ -82,6 +85,16 @@ interface StudentBatchExamFee {
   };
 }
 
+// Add this validation schema after the interface definitions
+const examFeeSchema = z.object({
+  reason: z.string().min(1, "Reason is required"),
+  examFee: z.string().min(1, "Exam fee is required"),
+  dueDate: z.string().min(1, "Due date is required"),
+  paymentStatus: z.enum(["PENDING", "COMPLETED", "FAILED"]),
+});
+
+type ExamFeeFormData = z.infer<typeof examFeeSchema>;
+
 export default function StudentBatchExamFeeManagement() {
   // Advanced State Management for Complex Workflows
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -100,12 +113,14 @@ export default function StudentBatchExamFeeManagement() {
   // Sophisticated Form State Management
   const [selectedStudentBatch, setSelectedStudentBatch] =
     useState<StudentBatch | null>(null);
-  const [formData, setFormData] = useState({
-    reason: "",
-    examFee: "",
-    studentBatchId: "",
-    dueDate: "",
-    paymentStatus: "PENDING",
+  const form = useForm<ExamFeeFormData>({
+    resolver: zodResolver(examFeeSchema),
+    defaultValues: {
+      reason: "",
+      examFee: "",
+      dueDate: "",
+      paymentStatus: "PENDING",
+    },
   });
   const [editingFee, setEditingFee] = useState<StudentBatchExamFee | null>(
     null
@@ -274,16 +289,14 @@ export default function StudentBatchExamFeeManagement() {
   };
 
   // Form Submission Master Handler
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (data: ExamFeeFormData) => {
     setLoading((prev) => ({ ...prev, submission: true }));
 
     try {
-      // Comprehensive Validation
-      if (!selectedStudentBatch || !formData.reason || !formData.examFee) {
+      if (!selectedStudentBatch) {
         toast({
           title: "Validation Error",
-          description: "Please complete all required fields",
+          description: "Please select a student",
           variant: "destructive",
         });
         return;
@@ -291,10 +304,10 @@ export default function StudentBatchExamFeeManagement() {
 
       const payload = {
         studentBatchId: selectedStudentBatch.id,
-        reason: formData.reason,
-        examFee: parseFloat(formData.examFee),
-        paymentStatus: formData.paymentStatus,
-        dueDate: formData.dueDate,
+        reason: data.reason,
+        examFee: parseFloat(data.examFee),
+        paymentStatus: data.paymentStatus,
+        dueDate: data.dueDate,
       };
 
       if (editingFee) {
@@ -303,7 +316,6 @@ export default function StudentBatchExamFeeManagement() {
         await handleCreateFee(payload);
       }
 
-      // Close the edit modal after successful submission
       setEditModalOpen(false);
     } catch (error) {
       // Error handling is done in individual methods
@@ -314,23 +326,16 @@ export default function StudentBatchExamFeeManagement() {
 
   // Utility Method to Reset Form
   const resetForm = () => {
-    setFormData({
-      reason: "",
-      examFee: "",
-      studentBatchId: "",
-      dueDate: "",
-      paymentStatus: "PENDING",
-    });
+    form.reset();
     setSelectedStudentBatch(null);
     setEditingFee(null);
     setEditModalOpen(false);
   };
   const openEditModal = (fee: StudentBatchExamFee) => {
     setEditingFee(fee);
-    setFormData({
+    form.reset({
       reason: fee.reason,
       examFee: fee.examFee.toString(),
-      studentBatchId: fee.studentBatchId,
       dueDate: fee.dueDate
         ? new Date(fee.dueDate).toISOString().split("T")[0]
         : "",
@@ -457,23 +462,27 @@ export default function StudentBatchExamFeeManagement() {
             {selectedStudentBatch && (
               <Card>
                 <CardContent className="p-6 space-y-4">
-                  <form onSubmit={handleSubmit} className="space-y-4">
+                  <form
+                    onSubmit={form.handleSubmit(handleSubmit)}
+                    className="space-y-4"
+                  >
                     <div className="space-y-2">
                       <Label className="text-sm font-medium">
                         Reason for Exam Fee
                       </Label>
                       <Input
-                        value={formData.reason}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            reason: e.target.value,
-                          }))
-                        }
+                        {...form.register("reason")}
                         placeholder="Enter reason (e.g., Semester Exam 2024)"
-                        className="w-full"
+                        className={`w-full ${
+                          form.formState.errors.reason ? "border-red-500" : ""
+                        }`}
                         disabled={!!editingFee}
                       />
+                      {form.formState.errors.reason && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {form.formState.errors.reason.message}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label className="text-sm font-medium ">
@@ -481,13 +490,7 @@ export default function StudentBatchExamFeeManagement() {
                       </Label>
                       <Input
                         type="number"
-                        value={formData.examFee}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            examFee: e.target.value,
-                          }))
-                        }
+                        {...form.register("examFee")}
                         placeholder="Enter exam fee"
                         className="w-full"
                       />
@@ -497,18 +500,7 @@ export default function StudentBatchExamFeeManagement() {
                         Payment Status
                       </Label>
 
-                      <Select
-                        value={formData.paymentStatus}
-                        onValueChange={(value) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            paymentStatus: value as
-                              | "PENDING"
-                              | "COMPLETED"
-                              | "FAILED",
-                          }))
-                        }
-                      >
+                      <Select {...form.register("paymentStatus")}>
                         <SelectTrigger className="w-full">
                           <SelectValue placeholder="Select Payment Status" />
                         </SelectTrigger>
@@ -523,15 +515,16 @@ export default function StudentBatchExamFeeManagement() {
                       <Label className="text-sm font-medium">Due Date</Label>
                       <Input
                         type="date"
-                        value={formData.dueDate}
-                        onChange={(e) =>
-                          setFormData((prev) => ({
-                            ...prev,
-                            dueDate: e.target.value,
-                          }))
-                        }
-                        className="w-full"
+                        {...form.register("dueDate")}
+                        className={`w-full ${
+                          form.formState.errors.dueDate ? "border-red-500" : ""
+                        }`}
                       />
+                      {form.formState.errors.dueDate && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {form.formState.errors.dueDate.message}
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Button
@@ -686,57 +679,45 @@ export default function StudentBatchExamFeeManagement() {
                       : "Enter new exam fee details"}
                   </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form
+                  onSubmit={form.handleSubmit(handleSubmit)}
+                  className="space-y-4"
+                >
                   <div className="space-y-2">
                     <Label>Student</Label>
                     <Input
                       value={selectedStudentBatch?.student.name || ""}
                       readOnly
-                      className="bg-gray-100"
+                      className=""
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Reason for Exam Fee</Label>
                     <Input
-                      value={formData.reason}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          reason: e.target.value,
-                        }))
-                      }
+                      {...form.register("reason")}
                       placeholder="Enter reason (e.g., Semester Exam 2024)"
+                      className={`w-full ${
+                        form.formState.errors.reason ? "border-red-500" : ""
+                      }`}
                       disabled={!!editingFee}
                     />
+                    {form.formState.errors.reason && (
+                      <p className="text-sm text-red-500 mt-1">
+                        {form.formState.errors.reason.message}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label>Exam Fee Amount</Label>
                     <Input
                       type="number"
-                      value={formData.examFee}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          examFee: e.target.value,
-                        }))
-                      }
+                      {...form.register("examFee")}
                       placeholder="Enter exam fee"
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Payment Status</Label>
-                    <Select
-                      value={formData.paymentStatus}
-                      onValueChange={(value) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          paymentStatus: value as
-                            | "PENDING"
-                            | "COMPLETED"
-                            | "FAILED",
-                        }))
-                      }
-                    >
+                    <Select {...form.register("paymentStatus")}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Payment Status" />
                       </SelectTrigger>
@@ -751,14 +732,16 @@ export default function StudentBatchExamFeeManagement() {
                     <Label>Due Date</Label>
                     <Input
                       type="date"
-                      value={formData.dueDate}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          dueDate: e.target.value,
-                        }))
-                      }
+                      {...form.register("dueDate")}
+                      className={`w-full ${
+                        form.formState.errors.dueDate ? "border-red-500" : ""
+                      }`}
                     />
+                    {form.formState.errors.dueDate && (
+                      <p className="text-sm text-red-500 mt-1">
+                        {form.formState.errors.dueDate.message}
+                      </p>
+                    )}
                   </div>
                   <DialogFooter>
                     <Button type="button" variant="outline" onClick={resetForm}>
