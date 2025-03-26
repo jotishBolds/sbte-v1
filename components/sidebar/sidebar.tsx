@@ -599,11 +599,11 @@ export const Sidebar: React.FC = () => {
             icon: <Home size={18} />,
             label: "Dashboard",
           },
-          {
-            href: "/profile",
-            icon: <UserCheck size={18} />,
-            label: "Alumni Profile",
-          },
+          // {
+          //   href: "/profile",
+          //   icon: <UserCheck size={18} />,
+          //   label: "Alumni Profile",
+          // },
           // {
           //   href: "/events",
           //   icon: <Calendar size={18} />,

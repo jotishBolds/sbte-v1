@@ -32,9 +32,22 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, XCircle, Search, RefreshCw, User } from "lucide-react";
+import {
+  CheckCircle,
+  XCircle,
+  Search,
+  RefreshCw,
+  User,
+  Eye,
+} from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface Alumnus {
   id: string;
@@ -44,6 +57,26 @@ interface Alumnus {
   graduationYear: number;
   verified: boolean;
   profilePic: string | null;
+  phoneNo?: string;
+  dateOfBirth?: Date;
+  address?: string;
+  currentEmployer?: string;
+  currentPosition?: string;
+  industry?: string;
+  linkedInProfile?: string;
+  jobStatus?: string;
+  gpa?: number;
+  achievements?: string;
+  program?: {
+    name: string;
+    code: string;
+  };
+  batchYear?: {
+    year: number;
+  };
+  admissionYear?: {
+    year: number;
+  };
 }
 
 interface Department {
@@ -55,6 +88,12 @@ interface SearchInputProps {
   value: string;
   onChange: (event: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
+}
+
+interface AlumnusDetailsProps {
+  alumnus: Alumnus;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
@@ -73,6 +112,201 @@ const SearchInput: React.FC<SearchInputProps> = ({
   </div>
 );
 
+const AlumnusDetails: React.FC<AlumnusDetailsProps> = ({
+  alumnus,
+  open,
+  onOpenChange,
+}) => {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">Alumni Profile Details</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-6">
+          {/* Profile Header */}
+          <div className="flex flex-col items-center gap-4 pb-6 border-b">
+            <Avatar className="h-32 w-32">
+              {alumnus.profilePic ? (
+                <AvatarImage
+                  src={alumnus.profilePic}
+                  alt={alumnus.name}
+                  className="object-cover"
+                />
+              ) : (
+                <AvatarFallback>
+                  <User className="h-16 w-16 text-gray-400" />
+                </AvatarFallback>
+              )}
+            </Avatar>
+            <div className="text-center">
+              <h2 className="text-xl font-bold">{alumnus.name}</h2>
+              <p className="text-gray-500">{alumnus.email}</p>
+            </div>
+            <Badge
+              className={
+                alumnus.verified
+                  ? "bg-green-100 text-green-800"
+                  : "bg-yellow-100 text-yellow-800"
+              }
+            >
+              {alumnus.verified ? (
+                <>
+                  <CheckCircle className="h-4 w-4 mr-1" /> Verified
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-4 w-4 mr-1" /> Unverified
+                </>
+              )}
+            </Badge>
+          </div>
+
+          {/* Basic Information */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Basic Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">Department</p>
+                <p className="font-medium">{alumnus.department}</p>
+              </div>
+              {alumnus.program && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">Program</p>
+                  <p className="font-medium">{alumnus.program.name}</p>
+                </div>
+              )}
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">Graduation Year</p>
+                <p className="font-medium">{alumnus.graduationYear}</p>
+              </div>
+              {alumnus.batchYear && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">Batch Year</p>
+                  <p className="font-medium">{alumnus.batchYear.year}</p>
+                </div>
+              )}
+              {alumnus.admissionYear && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">Admission Year</p>
+                  <p className="font-medium">{alumnus.admissionYear.year}</p>
+                </div>
+              )}
+              {alumnus.gpa !== undefined && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">GPA</p>
+                  <p className="font-medium">{alumnus.gpa}</p>
+                </div>
+              )}
+              {alumnus.phoneNo && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">Phone Number</p>
+                  <p className="font-medium">{alumnus.phoneNo}</p>
+                </div>
+              )}
+              {alumnus.dateOfBirth && (
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-500">Date of Birth</p>
+                  <p className="font-medium">
+                    {new Date(alumnus.dateOfBirth).toLocaleDateString()}
+                  </p>
+                </div>
+              )}
+              {alumnus.address && (
+                <div className="space-y-2 md:col-span-2">
+                  <p className="text-sm text-gray-500">Address</p>
+                  <p className="font-medium">{alumnus.address}</p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Professional Information */}
+          {(alumnus.currentEmployer ||
+            alumnus.currentPosition ||
+            alumnus.industry ||
+            alumnus.jobStatus) && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4">
+                Professional Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {alumnus.jobStatus && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Job Status</p>
+                    <p className="font-medium">{alumnus.jobStatus}</p>
+                  </div>
+                )}
+                {alumnus.currentEmployer && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Current Employer</p>
+                    <p className="font-medium">{alumnus.currentEmployer}</p>
+                  </div>
+                )}
+                {alumnus.currentPosition && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Current Position</p>
+                    <p className="font-medium">{alumnus.currentPosition}</p>
+                  </div>
+                )}
+                {alumnus.industry && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500">Industry</p>
+                    <p className="font-medium">{alumnus.industry}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Achievements */}
+          {alumnus.achievements && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Achievements</h3>
+              <div className="space-y-2">
+                <p className="font-medium whitespace-pre-wrap">
+                  {alumnus.achievements}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Social Links */}
+          {alumnus.linkedInProfile && (
+            <div>
+              <h3 className="text-lg font-semibold mb-4">Social Links</h3>
+              <div className="space-y-2">
+                <p className="text-sm text-gray-500">LinkedIn Profile</p>
+                <a
+                  href={alumnus.linkedInProfile}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline flex items-center gap-2"
+                >
+                  <span>{alumnus.linkedInProfile}</span>
+                  <svg
+                    className="h-4 w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
+                  </svg>
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 export default function AlumniList() {
   const { data: session } = useSession();
   const [alumni, setAlumni] = useState<Alumnus[]>([]);
@@ -82,6 +316,7 @@ export default function AlumniList() {
   const [verificationStatus, setVerificationStatus] = useState<string>("all");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [selectedAlumnus, setSelectedAlumnus] = useState<Alumnus | null>(null);
 
   const { toast } = useToast();
 
@@ -120,6 +355,7 @@ export default function AlumniList() {
       if (response.ok) {
         const data = await response.json();
         setAlumni(data);
+        console.log("alumni", data);
       } else {
         throw new Error("Failed to fetch alumni");
       }
@@ -355,30 +591,39 @@ export default function AlumniList() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="destructive" size="sm">
-                            Delete
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              This action cannot be undone. This will
-                              permanently delete the alumnus account.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction
-                              onClick={() => handleDelete(alumnus.id)}
-                            >
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedAlumnus(alumnus)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="destructive" size="sm">
                               Delete
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                This action cannot be undone. This will
+                                permanently delete the alumnus account.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDelete(alumnus.id)}
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))
@@ -386,6 +631,13 @@ export default function AlumniList() {
             </TableBody>
           </Table>
         </div>
+        {selectedAlumnus && (
+          <AlumnusDetails
+            alumnus={selectedAlumnus}
+            open={!!selectedAlumnus}
+            onOpenChange={(open) => !open && setSelectedAlumnus(null)}
+          />
+        )}
       </CardContent>
     </Card>
   );

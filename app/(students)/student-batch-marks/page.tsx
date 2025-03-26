@@ -215,10 +215,7 @@ const BatchMarks: React.FC = () => {
                 </TableHeader>
                 <TableBody>
                   {batchMarks.map((mark) => (
-                    <TableRow
-                      key={mark.examMarkId}
-                      className="hover:bg-gray-50"
-                    >
+                    <TableRow key={mark.examMarkId} className="">
                       <TableCell className="font-medium">
                         {mark.subjectName} ({mark.subjectCode})
                       </TableCell>

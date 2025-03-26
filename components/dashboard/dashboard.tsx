@@ -7,7 +7,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as RechartsTooltip,
   Legend,
   ResponsiveContainer,
   PieChart,
@@ -26,26 +26,26 @@ import {
   FiBarChart2,
   FiDatabase,
   FiBell,
-  FiSettings,
 } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IconType } from "react-icons";
 import { useRouter } from "next/navigation";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const COLORS = [
-  "#2A9D8F", // Teal green
-  "#E76F51", // Persimmon
-  "#264653", // Dark slate blue
-  "#F4A261", // Sandy brown
-  "#9B5DE5", // Medium purple
-  "#00B4D8", // Bright sky blue
+  "#2A9D8F",
+  "#E76F51",
+  "#264653",
+  "#F4A261",
+  "#9B5DE5",
+  "#00B4D8",
 ];
-
-interface Statistics {
-  [key: string]: number;
-}
 
 interface StatCardProps {
   title: string;
@@ -54,27 +54,37 @@ interface StatCardProps {
   color: string;
 }
 
-interface ChartDataItem {
-  name: string;
-  value: number;
-}
-
 const StatCard: React.FC<StatCardProps> = ({
   title,
   value,
   icon: Icon,
   color,
 }) => (
-  <Card className="hover:shadow-md transition-shadow duration-300">
-    <CardContent className="flex items-center p-6">
-      <div className={`mr-4 rounded-full p-3 bg-${color}-100`}>
-        <Icon className={`h-6 w-6 text-${color}-600`} />
+  <Card className="hover:shadow-md transition-shadow duration-300 w-full">
+    <CardContent className="flex items-center p-4 sm:p-6">
+      <div
+        className={`mr-3 sm:mr-4 rounded-full p-2 sm:p-3 bg-${color}-100 flex-shrink-0`}
+      >
+        <Icon className={`h-5 w-5 sm:h-6 sm:w-6 text-${color}-600`} />
       </div>
-      <div>
-        <p className="text-sm font-medium text-gray-500">{title}</p>
-        <p className={`text-2xl font-bold text-${color}-600`}>
-          {title.includes("Payment") ? `₹${value}` : value}
+      <div className="min-w-0">
+        <p className="text-xs sm:text-sm font-medium text-gray-500 truncate">
+          {title}
         </p>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <p
+                className={`text-lg sm:text-2xl font-bold text-${color}-600 truncate`}
+              >
+                {title.includes("Payment") ? `₹${value}` : value}
+              </p>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{title.includes("Payment") ? `₹${value}` : value}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </CardContent>
   </Card>
@@ -85,17 +95,16 @@ const Dashboard: React.FC = () => {
   const [statistics, setStatistics] = useState<any>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const router = useRouter();
-  console.log("this is session", session);
+
   useEffect(() => {
     const fetchStatistics = async () => {
       try {
-        if (session?.user.role == "TEACHER") {
+        if (session?.user.role === "TEACHER") {
           const response = await fetch(`/api/statistics/${session?.user.id}`);
           if (!response.ok) throw new Error("Failed to fetch statistics");
           const data = await response.json();
           setStatistics(data);
         } else {
-          console.log("Entered here");
           const response = await fetch(`/api/statistics`);
           if (!response.ok) throw new Error("Failed to fetch statistics");
           const data = await response.json();
@@ -109,7 +118,7 @@ const Dashboard: React.FC = () => {
     };
 
     fetchStatistics();
-  }, []);
+  }, [session]);
 
   const renderCharts = () => {
     if (!statistics) return null;
@@ -128,15 +137,19 @@ const Dashboard: React.FC = () => {
 
     return (
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="details">Detailed Analysis</TabsTrigger>
+        <TabsList className="mb-4 flex flex-wrap justify-start gap-2">
+          <TabsTrigger value="overview" className="flex-1 min-w-[120px]">
+            Overview
+          </TabsTrigger>
+          <TabsTrigger value="details" className="flex-1 min-w-[120px]">
+            Detailed Analysis
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="overview">
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg font-semibold ">
+                <CardTitle className="text-base sm:text-lg font-semibold truncate">
                   Statistics Overview
                 </CardTitle>
               </CardHeader>
@@ -147,9 +160,13 @@ const Dashboard: React.FC = () => {
                     <XAxis
                       dataKey="name"
                       tick={{ fontSize: 12, fill: "#6B7280" }}
+                      interval="preserveStartEnd"
+                      tickFormatter={(value) =>
+                        value.slice(0, 15) + (value.length > 15 ? "..." : "")
+                      }
                     />
                     <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} />
-                    <Tooltip
+                    <RechartsTooltip
                       contentStyle={{
                         backgroundColor: "#ffffff",
                         border: "none",
@@ -164,7 +181,7 @@ const Dashboard: React.FC = () => {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg font-semibold ">
+                <CardTitle className="text-base sm:text-lg font-semibold truncate">
                   Distribution
                 </CardTitle>
               </CardHeader>
@@ -187,14 +204,19 @@ const Dashboard: React.FC = () => {
                         />
                       ))}
                     </Pie>
-                    <Tooltip
+                    <RechartsTooltip
                       contentStyle={{
                         backgroundColor: "#ffffff",
                         border: "none",
                         boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
                       }}
                     />
-                    <Legend wrapperStyle={{ fontSize: 12, color: "#6B7280" }} />
+                    <Legend
+                      wrapperStyle={{ fontSize: 12, color: "#6B7280" }}
+                      layout="vertical"
+                      align="right"
+                      verticalAlign="middle"
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -204,20 +226,24 @@ const Dashboard: React.FC = () => {
         <TabsContent value="details">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-semibold ">
+              <CardTitle className="text-base sm:text-lg font-semibold truncate">
                 Trend Analysis
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
+              <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                   <XAxis
                     dataKey="name"
                     tick={{ fontSize: 12, fill: "#6B7280" }}
+                    interval="preserveStartEnd"
+                    tickFormatter={(value) =>
+                      value.slice(0, 15) + (value.length > 15 ? "..." : "")
+                    }
                   />
                   <YAxis tick={{ fontSize: 12, fill: "#6B7280" }} />
-                  <Tooltip
+                  <RechartsTooltip
                     contentStyle={{
                       backgroundColor: "#ffffff",
                       border: "none",
@@ -245,7 +271,7 @@ const Dashboard: React.FC = () => {
 
     return (
       <>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 mb-8">
           <StatCard
             title="Total Subjects"
             value={statistics.totalSubjects || 0}
@@ -268,19 +294,30 @@ const Dashboard: React.FC = () => {
         {statistics.subjects && statistics.subjects.length > 0 && (
           <Card className="mb-8">
             <CardHeader>
-              <CardTitle>Subjects</CardTitle>
+              <CardTitle className="text-lg sm:text-xl">Subjects</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
                 {statistics.subjects.map((subject: any) => (
                   <li
                     key={subject.id}
-                    className="flex justify-between items-center"
+                    className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2"
                   >
-                    <span>
+                    <span className="text-sm sm:text-base truncate max-w-[200px] sm:max-w-none">
                       {subject.name} ({subject.code})
                     </span>
-                    <Badge>{subject.semester}</Badge>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Badge className="w-fit truncate max-w-[100px] sm:max-w-none">
+                            {subject.semester}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{subject.semester}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </li>
                 ))}
               </ul>
@@ -293,16 +330,16 @@ const Dashboard: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-10">
-        <Skeleton className="h-8 w-[200px] mb-6" />
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="container mx-auto px-4 py-6 sm:py-10">
+        <Skeleton className="h-6 sm:h-8 w-[150px] sm:w-[200px] mb-6" />
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8">
           {[...Array(4)].map((_, index) => (
-            <Skeleton key={index} className="h-[100px]" />
+            <Skeleton key={index} className="h-[80px] sm:h-[100px]" />
           ))}
         </div>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 md:grid-cols-2">
           {[...Array(2)].map((_, index) => (
-            <Skeleton key={index} className="h-[400px]" />
+            <Skeleton key={index} className="h-[300px] sm:h-[400px]" />
           ))}
         </div>
       </div>
@@ -310,34 +347,39 @@ const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold tracking-tight ">Dashboard</h1>
+    <div className="container mx-auto px-4 py-6 sm:py-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight">
+          Dashboard
+        </h1>
         <div className="flex items-center space-x-4">
           <Button variant="ghost" size="icon">
-            <FiBell className="h-5 w-5" />
+            <FiBell className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
       </div>
 
       <Card className="mb-8 hover:shadow-md transition-shadow duration-300">
         <CardContent className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between">
-            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
-              <Avatar className="h-16 w-16">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+              <Avatar className="h-12 w-12 sm:h-16 sm:w-16">
                 <AvatarImage
                   src={session?.user?.image || ""}
                   alt="User avatar"
                 />
-                <AvatarFallback className="text-lg bg-indigo-100 text-indigo-600">
+                <AvatarFallback className="text-base sm:text-lg bg-indigo-100 text-indigo-600">
                   {session?.user?.email?.[0].toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
-              <div className="text-center sm:text-left">
-                <p className="text-xl font-medium">
+              <div className="text-center sm:text-left min-w-0">
+                <p className="text-lg sm:text-xl font-medium truncate max-w-[200px] sm:max-w-none">
                   {session?.user?.username || session?.user?.email || "User"}
                 </p>
-                <Badge variant="secondary" className="mt-1">
+                <Badge
+                  variant="secondary"
+                  className="mt-1 truncate max-w-[200px] sm:max-w-none"
+                >
                   {session?.user.role === "COLLEGE_SUPER_ADMIN"
                     ? "COLLEGE ADMIN"
                     : session?.user.role === "FINANCE_MANAGER"
@@ -351,7 +393,7 @@ const Dashboard: React.FC = () => {
               </div>
             </div>
             <Button
-              className="mt-4 sm:mt-0 w-full sm:w-auto"
+              className="w-full sm:w-auto"
               onClick={() => router.push("/profile")}
             >
               View Profile
@@ -361,7 +403,7 @@ const Dashboard: React.FC = () => {
       </Card>
 
       {statistics && (session?.user as any)?.role !== "TEACHER" && (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="grid gap-4 sm:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8">
           {Object.entries(statistics).map(([key, value], index) => (
             <StatCard
               key={key}
