@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if ((session.user?.role !== "COLLEGE_SUPER_ADMIN", "TEACHER")) {
+    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && session.user?.role !==  "TEACHER") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
