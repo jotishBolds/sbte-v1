@@ -14,6 +14,16 @@ class Product extends Model
     }
     public function imageEffect()
     {
-        return $this->hasMany(ImageEffect::class);
+        return $this->hasOne(ImageEffect::class);
+    }
+
+    public function hangingMechanismBasePrice()
+    {
+        return $this->hasOne(HangingMechanismBasePrice::class);
+    }
+
+    public function edgeDesign()
+    {
+        return $this->hasOne(EdgeDesign::class);
     }
 }

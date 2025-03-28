@@ -23,9 +23,13 @@ class ProductVariation extends Model
         return $this->hasOne(ProductVariationImageEffect::class);
     }
 
+    public function edgeDesign()
+    {
+        return $this->hasOne(ProductVariationEdgeDesign::class);
+    }
+
     public function lengthUnit()
     {
         return $this->belongsTo(LengthUnit::class);
     }
-
 }

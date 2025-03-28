@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class ImageEffect extends Model
+class EdgeDesign extends Model
 {
     protected $guarded = [];
 
@@ -13,8 +13,8 @@ class ImageEffect extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function imageEffects()
+    public function edgeDesigns()
     {
-        return $this->hasMany(ProductVariationImageEffect::class);
+        return $this->hasMany(ProductVariationEdgeDesign::class);
     }
 }
