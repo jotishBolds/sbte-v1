@@ -36,7 +36,7 @@ export async function GET(
     }
 
     // Check if the user has the role "COLLEGE_SUPER_ADMIN"
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" || "TEACHER") {
+    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && session.user?.role !==  "TEACHER") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -87,7 +87,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" || "TEACHER") {
+    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && session.user?.role !==  "TEACHER") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -173,7 +173,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if ((session.user?.role !== "COLLEGE_SUPER_ADMIN", "TEACHER")) {
+    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && session.user?.role !==  "TEACHER") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
