@@ -1,0 +1,12 @@
+-- AlterTable
+ALTER TABLE "StudentGradeCard" ALTER COLUMN "totalQualityPoint" DROP NOT NULL,
+ALTER COLUMN "totalGradedCredit" DROP NOT NULL,
+ALTER COLUMN "gpa" DROP NOT NULL,
+ALTER COLUMN "cgpa" DROP NOT NULL;
+
+-- AlterTable
+ALTER TABLE "SubjectGradeDetail" ALTER COLUMN "grade" DROP NOT NULL,
+ALTER COLUMN "gradePoint" DROP NOT NULL,
+ALTER COLUMN "qualityPoint" DROP NOT NULL,
+ALTER COLUMN "internalMarks" DROP NOT NULL,
+ALTER COLUMN "externalMarks" DROP NOT NULL;
