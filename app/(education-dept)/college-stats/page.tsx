@@ -18,6 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 import {
   Users,
   Building2,
@@ -25,6 +26,8 @@ import {
   GraduationCap,
   Calculator,
   UserCog,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
@@ -39,6 +42,7 @@ import {
   Cell,
 } from "recharts";
 import SideBarLayout from "@/components/sidebar/layout";
+import { Button } from "@/components/ui/button";
 
 interface College {
   id: string;
@@ -93,7 +97,7 @@ interface ChartDataItem {
   name: string;
   value: number;
 }
-
+const ITEMS_PER_PAGE = 10;
 const COLORS = [
   "#0088FE",
   "#00C49F",
@@ -110,14 +114,75 @@ const EducationDashboard: React.FC = () => {
     null
   );
   const [students, setStudents] = useState<Student[]>([]);
+  const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Filter states
+  const [searchName, setSearchName] = useState<string>("");
+  const [filterDepartment, setFilterDepartment] = useState<string>("all");
+  const [filterProgram, setFilterProgram] = useState<string>("all");
+  const [filterSemester, setFilterSemester] = useState<string>("all");
+
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
   const router = useRouter();
 
   useEffect(() => {
     fetchColleges();
   }, []);
+
+  // Filter effect
+  useEffect(() => {
+    let result = [...students];
+
+    // Filter logic remains the same
+    if (searchName) {
+      result = result.filter((student) =>
+        student.name.toLowerCase().includes(searchName.toLowerCase())
+      );
+    }
+
+    if (filterDepartment !== "all") {
+      result = result.filter(
+        (student) => student.departmentName === filterDepartment
+      );
+    }
+
+    if (filterProgram !== "all") {
+      result = result.filter(
+        (student) => student.programName === filterProgram
+      );
+    }
+
+    if (filterSemester !== "all") {
+      result = result.filter(
+        (student) => student.semesterName === filterSemester
+      );
+    }
+
+    // Update total pages based on filtered results
+    setTotalPages(Math.ceil(result.length / ITEMS_PER_PAGE));
+
+    // Paginate the results
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const paginatedResult = result.slice(
+      startIndex,
+      startIndex + ITEMS_PER_PAGE
+    );
+
+    setFilteredStudents(paginatedResult);
+  }, [
+    students,
+    searchName,
+    filterDepartment,
+    filterProgram,
+    filterSemester,
+    currentPage,
+  ]);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchName, filterDepartment, filterProgram, filterSemester]);
 
   const fetchColleges = async () => {
     try {
@@ -168,6 +233,7 @@ const EducationDashboard: React.FC = () => {
       );
       const data: Student[] = await response.json();
       setStudents(data);
+      setFilteredStudents(data); // Initialize filtered students
     } catch (error) {
       console.error("Error fetching students:", error);
       setError("Failed to load students");
@@ -198,6 +264,13 @@ const EducationDashboard: React.FC = () => {
     ];
   };
 
+  // Get unique values for filters
+  const departments = Array.from(
+    new Set(students.map((s) => s.departmentName))
+  );
+  const programs = Array.from(new Set(students.map((s) => s.programName)));
+  const semesters = Array.from(new Set(students.map((s) => s.semesterName)));
+
   if (loading && !selectedCollege) {
     return <div className="container mx-auto p-6">Loading colleges...</div>;
   }
@@ -205,7 +278,15 @@ const EducationDashboard: React.FC = () => {
   if (error && !selectedCollege) {
     return <div className="container mx-auto p-6 text-red-500">{error}</div>;
   }
+  const handleNextPage = () => {
+    setCurrentPage((prevPage) =>
+      prevPage < totalPages ? prevPage + 1 : prevPage
+    );
+  };
 
+  const handlePreviousPage = () => {
+    setCurrentPage((prevPage) => (prevPage > 1 ? prevPage - 1 : prevPage));
+  };
   return (
     <SideBarLayout>
       <div className="container mx-auto p-4 space-y-6">
@@ -325,6 +406,65 @@ const EducationDashboard: React.FC = () => {
                 <CardTitle>Students List</CardTitle>
               </CardHeader>
               <CardContent>
+                <div className="space-y-4"></div>
+                {/* Filter Controls */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                  <Input
+                    placeholder="Search by name..."
+                    value={searchName}
+                    onChange={(e) => setSearchName(e.target.value)}
+                    className="w-full"
+                  />
+                  <Select
+                    value={filterDepartment}
+                    onValueChange={setFilterDepartment}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Departments</SelectItem>
+                      {departments.map((dept) => (
+                        <SelectItem key={dept} value={dept}>
+                          {dept}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={filterProgram}
+                    onValueChange={setFilterProgram}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by program" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Programs</SelectItem>
+                      {programs.map((prog) => (
+                        <SelectItem key={prog} value={prog}>
+                          {prog}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={filterSemester}
+                    onValueChange={setFilterSemester}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Filter by semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Semesters</SelectItem>
+                      {semesters.map((sem) => (
+                        <SelectItem key={sem} value={sem}>
+                          {sem}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
@@ -344,11 +484,12 @@ const EducationDashboard: React.FC = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Array.isArray(students) && students.length > 0 ? (
-                        students.map((student) => (
+                      {Array.isArray(filteredStudents) &&
+                      filteredStudents.length > 0 ? (
+                        filteredStudents.map((student) => (
                           <TableRow
                             key={student.id}
-                            className="cursor-pointer "
+                            className="cursor-pointer"
                             onClick={() =>
                               router.push(`/college-stats/${student.id}`)
                             }
@@ -385,6 +526,32 @@ const EducationDashboard: React.FC = () => {
                       )}
                     </TableBody>
                   </Table>
+                </div>
+                {/* Pagination Controls */}
+                <div className="flex flex-col sm:flex-row justify-between items-center mt-4 space-y-2 sm:space-y-0">
+                  <div className="text-sm text-gray-500">
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handlePreviousPage}
+                      disabled={currentPage === 1}
+                      className="flex items-center"
+                    >
+                      <ChevronLeft className="mr-1 h-4 w-4" /> Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleNextPage}
+                      disabled={currentPage === totalPages}
+                      className="flex items-center"
+                    >
+                      Next <ChevronRight className="ml-1 h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

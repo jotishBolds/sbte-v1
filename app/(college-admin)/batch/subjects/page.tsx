@@ -530,7 +530,7 @@ const BatchSubjectManagement = () => {
                                             key={subject.id}
                                             value={subject.id}
                                           >
-                                            {subject.name}
+                                            {subject.name} - {subject.code}
                                           </SelectItem>
                                         ))}
                                       </SelectContent>
