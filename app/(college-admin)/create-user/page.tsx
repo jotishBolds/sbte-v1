@@ -158,7 +158,7 @@ const UserRegistrationForm: React.FC = () => {
       });
 
       // Redirect to user list
-      router.push("/user-list");
+      router.push("/create-user/users-list");
     } catch (error) {
       console.error("Error creating user:", error);
       toast({

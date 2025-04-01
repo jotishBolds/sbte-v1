@@ -4,7 +4,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("NEON_URL")
+  // url      = env("NEON_URL")
+  url = env("DATABASE_URL_LOCAL")
 }
 
 enum Role {
@@ -130,8 +131,8 @@ model College {
   NotifiedCollege   NotifiedCollege[]
   LoadBalancingPdf  LoadBalancingPdf[]
   Infrastructures   Infrastructures[]
-  Eligibility Eligibility[]
-  Schedules Schedules[]
+  Eligibility       Eligibility[]
+  Schedules         Schedules[]
 }
 
 model Department {
@@ -156,7 +157,7 @@ model Student {
   enrollmentNo        String?                         @unique
   name                String
   dob                 DateTime?
-  personalEmail       String?                          @unique
+  personalEmail       String?                         @unique
   phoneNo             String?
   studentAvatar       String?
   abcId               String?
@@ -205,10 +206,12 @@ model Student {
   feePayments         FeePayment[]
   certificates        Certificate[]
   feedbacks           Feedback[]
+  gradeCards          StudentGradeCard[] //gradeCardChange
   studentBatches      StudentBatch[]
   examMarks           ExamMark[]
   monthlyAttendance   MonthlyBatchSubjectAttendance[]
 }
+
 model HeadOfDepartment {
   id            String     @id @default(cuid())
   user          User       @relation(fields: [userId], references: [id])
@@ -282,15 +285,16 @@ model Program {
 }
 
 model Semester {
-  id               String            @id @default(cuid())
+  id               String             @id @default(cuid())
   name             String
   alias            String
   numerical        Int
-  college          College           @relation(fields: [collegeId], references: [id])
+  college          College            @relation(fields: [collegeId], references: [id])
   collegeId        String
   students         Student[]
   semesterPrograms SemesterProgram[]
-  batches          Batch[]           @relation("SemesterToBatch")
+  batches          Batch[]            @relation("SemesterToBatch")
+  gradeCards       StudentGradeCard[] //gradeCardChange
 
   @@unique([numerical, collegeId])
 }
@@ -366,6 +370,7 @@ model Batch {
   updatedBy         User?              @relation("UpdatedBy", fields: [updatedById], references: [id])
   updatedById       String?
   studentBatches    StudentBatch[]
+  studentGradeCards StudentGradeCard[] //gradeCardChange
   batchSubjects     BatchSubject[]
   batchBaseExamFees BatchBaseExamFee[]
 }
@@ -418,6 +423,7 @@ model BatchSubject {
   monthlyClasses     MonthlyBatchSubjectClasses[]
   examMarks          ExamMark[]
   Feedback           Feedback[] //newChange
+  SubjectGradeDetail SubjectGradeDetail[] //gradeCardChange
 }
 
 model MonthlyBatchSubjectClasses {
@@ -666,6 +672,7 @@ model Infrastructures {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 model Eligibility {
   id        String   @id @default(cuid())
   title     String
@@ -675,6 +682,7 @@ model Eligibility {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
+
 model Schedules {
   id        String   @id @default(cuid())
   title     String
@@ -693,4 +701,39 @@ model LoadBalancingPdf {
   collegeId String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+//gradeCardChange
+model StudentGradeCard {
+  id                String               @id @default(cuid())
+  cardNo            String               @unique
+  student           Student              @relation(fields: [studentId], references: [id])
+  studentId         String
+  semester          Semester             @relation(fields: [semesterId], references: [id])
+  semesterId        String
+  batch             Batch                @relation(fields: [batchId], references: [id])
+  batchId           String
+  totalQualityPoint Float?
+  totalGradedCredit Float?
+  gpa               Float?
+  cgpa              Float?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  subjectGrades     SubjectGradeDetail[]
+}
+
+model SubjectGradeDetail {
+  id                 String           @id @default(cuid())
+  studentGradeCard   StudentGradeCard @relation(fields: [studentGradeCardId], references: [id])
+  studentGradeCardId String
+  batchSubject       BatchSubject     @relation(fields: [batchSubjectId], references: [id])
+  batchSubjectId     String
+  credit             Float
+  grade              String?
+  gradePoint         Float?
+  qualityPoint       Float?
+  internalMarks      Float?
+  externalMarks      Float?
+
+  @@unique([studentGradeCardId, batchSubjectId])
 }
