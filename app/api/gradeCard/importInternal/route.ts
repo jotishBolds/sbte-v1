@@ -170,12 +170,43 @@ export async function POST(req: Request) {
 
     const studentMap = new Map(students.map((s) => [s.enrollmentNo, s.id]));
 
+    // const batchSubject = await prisma.batchSubject.findUnique({
+    //   where: { id: batchSubjectId },
+    //   select: { batchId: true },
+    // });
+
+    if (!batchSubject) {
+      throw new Error("Batch subject not found.");
+    }
+
+    // Step 5: Fetch students assigned to the batch
+    const assignedStudents = await prisma.studentBatch.findMany({
+      where: { batchId: batchSubject.batchId },
+      select: { studentId: true },
+    });
+
+    // Step 6: Create a Set for quick lookup of assigned students
+    const assignedStudentSet = new Set(
+      assignedStudents.map((s) => s.studentId)
+    );
+
     for (const row of rows) {
-      if (!studentMap.has(row.enrollmentNo)) {
+      const enrollmentNo = row.enrollmentNo.trim();
+      const studentId = studentMap.get(enrollmentNo);
+
+      if (!studentId) {
         missingStudents.push({
-          enrollmentNo: row.enrollmentNo,
+          enrollmentNo,
           error: "Student not found in the system",
         });
+        continue; // Skip further checks for this row
+      }
+      if (!assignedStudentSet.has(studentId)) {
+        missingStudents.push({
+          enrollmentNo,
+          error: "Student is not assigned to this batch.",
+        });
+        continue; // Skip further checks for this row
       } else {
         const existingRecord = await prisma.subjectGradeDetail.findFirst({
           where: {
@@ -242,7 +273,7 @@ export async function POST(req: Request) {
             studentGradeCardId: gradeCard.id,
             batchSubjectId,
             internalMarks: row.internalMarks,
-            credit: batchSubject.creditScore, 
+            credit: batchSubject.creditScore,
           },
         });
       }
