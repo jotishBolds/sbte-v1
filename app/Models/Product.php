@@ -21,6 +21,10 @@ class Product extends Model
     {
         return $this->hasOne(HangingMechanismBasePrice::class);
     }
+    public function hangingMechanismVariety()
+    {
+        return $this->hasMany(HangingMechanismVariety::class);
+    }
 
     public function edgeDesign()
     {

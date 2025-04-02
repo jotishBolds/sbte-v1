@@ -27,6 +27,10 @@ class ProductVariation extends Model
     {
         return $this->hasOne(ProductVariationEdgeDesign::class);
     }
+    public function hangingPrice()
+    {
+        return $this->hasOne(ProductVariationHangingPrice::class);
+    }
 
     public function lengthUnit()
     {
