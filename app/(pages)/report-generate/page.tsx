@@ -121,24 +121,24 @@ const GradeCard: React.FC = () => {
             <p className="text-sm">SEMESTER: {studentData.semester}</p>
           </div>
         </div>
-        <table className="w-full border-collapse border border-black text-center text-xs">
+        <table className="w-full border-collapse border border-gray-800 dark:border-gray-300 text-center text-xs">
           <thead>
             <tr>
               <th
                 rowSpan={2}
-                className="border border-black p-2 bg-gray-100 font-bold w-[150px]"
+                className="border border-gray-800 dark:border-gray-300 p-2 font-bold w-[150px]"
               >
                 SUBJECTS
               </th>
               <th
                 colSpan={5}
-                className="border border-black p-2 bg-gray-100 font-bold"
+                className="border border-gray-800 dark:border-gray-300 p-2 font-bold"
               >
                 THEORY
               </th>
               <th
                 colSpan={5}
-                className="border border-black p-2 bg-gray-100 font-bold"
+                className="border border-gray-800 dark:border-gray-300 p-2 font-bold"
               >
                 PRACTICAL
               </th>
@@ -147,7 +147,7 @@ const GradeCard: React.FC = () => {
               {studentData.subjects.map((subject, index) => (
                 <th
                   key={index}
-                  className={`border border-black p-2 bg-gray-100 font-bold ${
+                  className={`border border-gray-800 dark:border-gray-300 p-2 font-bold ${
                     index === 0 || index === 5
                       ? "w-[100px]"
                       : index === 1 || index === 6
@@ -164,33 +164,53 @@ const GradeCard: React.FC = () => {
           </thead>
           <tbody>
             <tr>
-              <td className="border border-black p-2">CREDIT</td>
+              <td className="border border-gray-800 dark:border-gray-300 p-2">
+                CREDIT
+              </td>
               {studentData.subjects.map((subject, index) => (
-                <td key={index} className="border border-black p-2">
+                <td
+                  key={index}
+                  className="border border-gray-800 dark:border-gray-300 p-2"
+                >
                   {subject.credit}
                 </td>
               ))}
             </tr>
             <tr>
-              <td className="border border-black p-2">GRADE</td>
+              <td className="border border-gray-800 dark:border-gray-300 p-2">
+                GRADE
+              </td>
               {studentData.subjects.map((subject, index) => (
-                <td key={index} className="border border-black p-2">
+                <td
+                  key={index}
+                  className="border border-gray-800 dark:border-gray-300 p-2"
+                >
                   {subject.grade}
                 </td>
               ))}
             </tr>
             <tr>
-              <td className="border border-black p-2">GRADE POINT</td>
+              <td className="border border-gray-800 dark:border-gray-300 p-2">
+                GRADE POINT
+              </td>
               {studentData.subjects.map((subject, index) => (
-                <td key={index} className="border border-black p-2">
+                <td
+                  key={index}
+                  className="border border-gray-800 dark:border-gray-300 p-2"
+                >
                   {subject.gradePoint}
                 </td>
               ))}
             </tr>
             <tr>
-              <td className="border border-black p-2">QUALITY POINT</td>
+              <td className="border border-gray-800 dark:border-gray-300 p-2">
+                QUALITY POINT
+              </td>
               {studentData.subjects.map((subject, index) => (
-                <td key={index} className="border border-black p-2">
+                <td
+                  key={index}
+                  className="border border-gray-800 dark:border-gray-300 p-2"
+                >
                   {subject.qualityPoint}
                 </td>
               ))}
@@ -247,6 +267,11 @@ const GradeCard: React.FC = () => {
           }
           .non-printable {
             display: none;
+          }
+          table,
+          th,
+          td {
+            border-color: black !important;
           }
         }
       `}</style>

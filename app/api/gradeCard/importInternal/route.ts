@@ -1,3 +1,5 @@
+//File : app/api/gradeCard/importInternal/route.ts
+
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
@@ -242,7 +244,7 @@ export async function POST(req: Request) {
             studentGradeCardId: gradeCard.id,
             batchSubjectId,
             internalMarks: row.internalMarks,
-            credit: batchSubject.creditScore, 
+            credit: batchSubject.creditScore,
           },
         });
       }
