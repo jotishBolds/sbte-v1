@@ -11,9 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('product_variation_hanging_prices', function (Blueprint $table) {
+        Schema::create('acrylic_cover_pricings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_variation_id')->constrained('product_variations')->onDelete('cascade');
+            $table->enum('applicability', ['photo', 'specific'])->default('photo');
+            $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('cascade');
             $table->decimal('price', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('product_variation_hanging_prices');
+        Schema::dropIfExists('acrylic_cover_pricings');
     }
 };

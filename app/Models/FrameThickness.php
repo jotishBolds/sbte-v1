@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class HangingMechanismVariety extends Model
+class FrameThickness extends Model
 {
     protected $guarded = [];
 
@@ -13,8 +13,8 @@ class HangingMechanismVariety extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function hangingVariety()
+    public function frameThicknesses()
     {
-        return $this->hasMany(ProductVariationHangingVariety::class);
+        return $this->hasMany(ProductVariationFrameThickness::class);
     }
 }

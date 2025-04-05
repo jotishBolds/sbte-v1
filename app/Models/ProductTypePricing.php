@@ -4,17 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class HangingMechanismVariety extends Model
+class ProductTypePricing extends Model
 {
     protected $guarded = [];
 
     public function product()
     {
         return $this->belongsTo(Product::class);
-    }
-
-    public function hangingVariety()
-    {
-        return $this->hasMany(ProductVariationHangingVariety::class);
     }
 }

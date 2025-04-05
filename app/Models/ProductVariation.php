@@ -32,6 +32,11 @@ class ProductVariation extends Model
         return $this->hasOne(ProductVariationHangingPrice::class);
     }
 
+    public function hangingVariety()
+    {
+        return $this->hasMany(ProductVariationHangingVariety::class);
+    }
+
     public function lengthUnit()
     {
         return $this->belongsTo(LengthUnit::class);
