@@ -21,6 +21,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'email_verified_at',
+        'role',
+        'status',
     ];
 
     /**
@@ -56,4 +59,22 @@ class User extends Authenticatable
         return $this->hasOne(Staff::class);
     }
 
+    public static function booted()
+    {
+        static::created(function ($user) {
+            if ($user->role === 'Staff') {
+                Staff::create([
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'status' => $user->status,
+                ]);
+            } elseif ($user->role === 'Customer') {
+                Customer::create([
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'status' => $user->status,
+                ]);
+            }
+        });
+    }
 }
