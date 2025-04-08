@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
@@ -35,7 +34,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -53,6 +51,7 @@ import {
 } from "lucide-react";
 import SideBarLayout from "@/components/sidebar/layout";
 import Link from "next/link";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 interface Batch {
   id: string;
@@ -92,6 +91,7 @@ export default function InternalMarksImport() {
   const { data: session } = useSession();
   const { toast } = useToast();
   const router = useRouter();
+  // Initialize batches as an empty array to prevent the "map is not a function" error
   const [batches, setBatches] = useState<Batch[]>([]);
   const [batchSubjects, setBatchSubjects] = useState<BatchSubject[]>([]);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -114,8 +114,21 @@ export default function InternalMarksImport() {
         const response = await fetch("/api/batch");
         if (!response.ok) throw new Error("Failed to fetch batches");
         const data = await response.json();
-        setBatches(data);
+        // Ensure data is an array before setting it
+        if (Array.isArray(data)) {
+          setBatches(data);
+        } else {
+          console.error("Expected array but got:", data);
+          setBatches([]);
+          toast({
+            title: "Error",
+            description: "Invalid batch data format received",
+            variant: "destructive",
+          });
+        }
       } catch (error) {
+        console.error("Error fetching batches:", error);
+        setBatches([]);
         toast({
           title: "Error",
           description: "Failed to load batches",
@@ -135,8 +148,21 @@ export default function InternalMarksImport() {
           const response = await fetch(`/api/batch/${batchId}/subject`);
           if (!response.ok) throw new Error("Failed to fetch subjects");
           const data = await response.json();
-          setBatchSubjects(data);
+          // Ensure data is an array before setting it
+          if (Array.isArray(data)) {
+            setBatchSubjects(data);
+          } else {
+            console.error("Expected array but got:", data);
+            setBatchSubjects([]);
+            toast({
+              title: "Error",
+              description: "Invalid subject data format received",
+              variant: "destructive",
+            });
+          }
         } catch (error) {
+          console.error("Error fetching batch subjects:", error);
+          setBatchSubjects([]);
           toast({
             title: "Error",
             description: "Failed to load subjects",
@@ -322,11 +348,17 @@ export default function InternalMarksImport() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {batches.map((batch) => (
-                            <SelectItem key={batch.id} value={batch.id}>
-                              {batch.name}
+                          {Array.isArray(batches) ? (
+                            batches.map((batch) => (
+                              <SelectItem key={batch.id} value={batch.id}>
+                                {batch.name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="loading">
+                              Loading batches...
                             </SelectItem>
-                          ))}
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -351,11 +383,17 @@ export default function InternalMarksImport() {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {batchSubjects.map((subject) => (
-                            <SelectItem key={subject.id} value={subject.id}>
-                              {subject.subject.name}
+                          {Array.isArray(batchSubjects) ? (
+                            batchSubjects.map((subject) => (
+                              <SelectItem key={subject.id} value={subject.id}>
+                                {subject.subject.name}
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="loading">
+                              Loading subjects...
                             </SelectItem>
-                          ))}
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />

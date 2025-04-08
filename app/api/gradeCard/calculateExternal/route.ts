@@ -1,3 +1,5 @@
+//File : /app/api/gradeCard/calculateExternal/route.ts
+
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
@@ -28,9 +30,12 @@ export async function POST(req: Request) {
 
     const batchSubjects = await prisma.batchSubject.findMany({
       where: { batchId },
-      include: { subject: true, batch: {
-        include: { term: true },
-      } },
+      include: {
+        subject: true,
+        batch: {
+          include: { term: true },
+        },
+      },
     });
 
     if (!batchSubjects.length) {
@@ -111,7 +116,7 @@ export async function POST(req: Request) {
         const externalMarks = Math.round(
           (achievedMarks.toNumber() / fullMarks) * 70
         );
-        console.log(studentId," ",batchId," ",batchSubject.batch.termId);
+        console.log(studentId, " ", batchId, " ", batchSubject.batch.termId);
         const studentGradeCard = await prisma.studentGradeCard.findFirst({
           where: {
             studentId,

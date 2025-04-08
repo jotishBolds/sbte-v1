@@ -51,6 +51,7 @@ import {
   Building2,
 } from "lucide-react";
 import SideBarLayout from "@/components/sidebar/layout";
+import GradeCardModal from "../../grade-card/grade-card";
 
 interface ExamType {
   id: string;
@@ -298,10 +299,17 @@ const StudentDashboard: React.FC = () => {
                   <span>{new Date(student.dob).toLocaleDateString()}</span>
                 </div>
               </div>
+              <div className="pt-4">
+                <GradeCardModal
+                  studentId={student.id}
+                  studentName={student.name}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Rest of the dashboard remains the same */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">

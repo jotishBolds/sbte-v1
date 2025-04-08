@@ -86,6 +86,7 @@ import {
   CalendarCheck2,
   TicketCheckIcon,
   PlusIcon,
+  PlusSquareIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -328,6 +329,11 @@ export const Sidebar: React.FC = () => {
                 href: "/import-internal",
                 icon: <PlusIcon size={18} />,
                 label: "Import Internal Marks",
+              },
+              {
+                href: "/post-external-marks",
+                icon: <PlusSquareIcon size={18} />,
+                label: "Calculate External Marks",
               },
             ],
           },

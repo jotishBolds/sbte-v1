@@ -8,6 +8,7 @@ const GradeCard: React.FC = () => {
     rollNo: "C22JD-CS002",
     gradeCardNo: "GC22CS3 002",
     semester: "Third",
+
     subjects: [
       {
         name: "Applied Mathematics & Graph Theory",
@@ -48,8 +49,8 @@ const GradeCard: React.FC = () => {
         name: "Computer Organization",
         credit: 3,
         grade: "S",
-        gradePoint: 10,
-        qualityPoint: 30,
+        gradePoint: 1,
+        qualityPoint: 3,
       },
       {
         name: "Advance DC Programming",
@@ -81,9 +82,9 @@ const GradeCard: React.FC = () => {
       },
     ],
     totalGradedCredits: 27,
-    totalQualityPoints: 194,
-    gpa: 7.19,
-    cgpa: 7.05,
+    totalQualityPoints: 183,
+    gpa: 6.78,
+    cgpa: 6.73,
   };
 
   const handleExport = async () => {
@@ -218,13 +219,26 @@ const GradeCard: React.FC = () => {
           </tbody>
         </table>
 
-        {/* Added Bottom Section to Printable Area */}
-        <div className="flex justify-between mt-5 text-sm">
-          <p>TOTAL GRADED CREDITS: {studentData.totalGradedCredits}</p>
-          <p>TOTAL QUALITY POINTS: {studentData.totalQualityPoints}</p>
-          <p>GPA: {studentData.gpa}</p>
-          <p>CGPA: {studentData.cgpa}</p>
-        </div>
+        {/* Added Bottom Section with border to match table */}
+        <table className="w-full border-collapse border border-gray-800 dark:border-gray-300 text-xs mt-0">
+          <tbody>
+            <tr>
+              <td className="border border-none p-2 text-left">
+                TOTAL GRADED CREDITS: {studentData.totalGradedCredits}
+              </td>
+              <td className="border-none p-2 text-center">
+                TOTAL QUALITY POINTS: {studentData.totalQualityPoints}
+              </td>
+              <td className="border-none p-2 text-center">
+                GPA: {studentData.gpa}
+              </td>
+              <td className="border-none p-2 text-center">
+                CGPA: {studentData.cgpa}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
         <p className="text-xs mt-2">
           * indicates number of additional attempts
         </p>

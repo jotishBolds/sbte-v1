@@ -101,7 +101,59 @@ export default function GradeCardViewPage() {
       </SideBarLayout>
     );
   }
+  const downloadPDF = async () => {
+    try {
+      // Show loading state
+      toast({
+        title: "Generating PDF",
+        description: "Please wait while we prepare your download...",
+      });
 
+      // Make request to the PDF endpoint
+      const response = await fetch(`/api/gradeCard/${params.id}/pdf`, {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate PDF");
+      }
+
+      // Get the PDF blob
+      const blob = await response.blob();
+
+      // Create a URL for the blob
+      const url = window.URL.createObjectURL(blob);
+
+      // Create a temporary link element
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `GradeCard_${gradeCard?.student.enrollmentNo}_Sem${gradeCard?.semester.numerical}.pdf`;
+
+      // Append the link to the body
+      document.body.appendChild(link);
+
+      // Click the link to trigger download
+      link.click();
+
+      // Clean up
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast({
+        title: "Success",
+        description: "Grade card PDF has been downloaded",
+        variant: "default",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description:
+          error instanceof Error ? error.message : "Failed to download PDF",
+        variant: "destructive",
+      });
+    }
+  };
   const calculateTotalCredits = () => {
     return gradeCard.subjectGrades.reduce(
       (sum, subject) => sum + subject.credit,
@@ -119,7 +171,7 @@ export default function GradeCardViewPage() {
               Back to Grade Cards
             </Button>
           </Link>
-          <Button>
+          <Button onClick={downloadPDF}>
             <Download className="mr-2 h-4 w-4" />
             Download PDF
           </Button>
