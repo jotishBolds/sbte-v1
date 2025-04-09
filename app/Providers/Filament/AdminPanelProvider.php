@@ -33,6 +33,12 @@ class AdminPanelProvider extends PanelProvider
                 'admin' => Color::hex('#FF0000'),
                 'staff' => Color::hex('#007BFF'),
                 'customer' => Color::hex('#28A745'),
+                'photo' => Color::hex('#789DBC'),
+                'fabric'=> Color::hex('#FF9D23'),
+                'canvas' => Color::hex('#FDAB9E'),
+
+
+
             ])
             ->profile(EditProfile::class)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

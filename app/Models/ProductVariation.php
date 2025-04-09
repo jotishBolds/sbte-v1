@@ -7,7 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class ProductVariation extends Model
 {
     //
-    protected $guarded = [];
+    protected $fillable = [
+        'product_id',
+        'label',
+        'horizontal_length',
+        'vertical_length',
+        'length_unit_id',
+        'price',
+        'status'
+    ];
 
     public function product()
     {
@@ -41,4 +49,6 @@ class ProductVariation extends Model
     {
         return $this->belongsTo(LengthUnit::class);
     }
+
+
 }

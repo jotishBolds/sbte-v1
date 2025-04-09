@@ -19,6 +19,7 @@ return new class extends Migration
             $table->decimal('vertical_length', 10, 2);
             $table->foreignId('length_unit_id')->nullable()->constrained('length_units')->onDelete('set null');
             $table->decimal('price', 10, 2);
+            $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });
     }
