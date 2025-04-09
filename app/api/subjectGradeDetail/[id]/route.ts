@@ -140,6 +140,16 @@ export async function DELETE(
           },
         },
       },
+      include: {
+        studentGradeCard: {
+          select: {
+            id: true,
+            subjectGrades: {
+              select: { id: true },
+            },
+          },
+        },
+      },
     });
 
     if (!subjectGrade) {
@@ -152,12 +162,29 @@ export async function DELETE(
       );
     }
 
-    await prisma.subjectGradeDetail.delete({
-      where: { id: subjectGradeDetailId },
+    const studentGradeCardId = subjectGrade.studentGradeCard.id;
+    const totalSubjects = subjectGrade.studentGradeCard.subjectGrades.length;
+
+    // Used a transaction to delete both if it's the last one
+    await prisma.$transaction(async (tx) => {
+      await tx.subjectGradeDetail.delete({
+        where: { id: subjectGradeDetailId },
+      });
+
+      if (totalSubjects === 1) {
+        await tx.studentGradeCard.delete({
+          where: { id: studentGradeCardId },
+        });
+      }
     });
 
     return NextResponse.json(
-      { message: "SubjectGradeDetail deleted successfully" },
+      {
+        message:
+          totalSubjects === 1
+            ? "SubjectGradeDetail and StudentGradeCard deleted successfully"
+            : "SubjectGradeDetail deleted successfully",
+      },
       { status: 200 }
     );
   } catch (error) {
