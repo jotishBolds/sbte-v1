@@ -13,7 +13,12 @@ return new class extends Migration
     {
         Schema::create('product_variation_acrylic_cover_pricings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('product_variation_id')->constrained('product_variations')->onDelete('cascade');
+            // $table->foreignId('product_variation_id')->constrained('product_variations')->onDelete('cascade');
+            $table->unsignedBigInteger('product_variation_id');
+            $table->foreign('product_variation_id', 'pvacp_pv_fk')
+                ->references('id')
+                ->on('product_variations')
+                ->onDelete('cascade');
             $table->decimal('price', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();

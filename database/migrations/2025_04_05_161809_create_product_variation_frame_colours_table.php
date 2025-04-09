@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('product_variation_frame_colours', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_variation_id')->constrained('product_variations')->onDelete('cascade');
-            $table->foreignId('frame_color_id')->constrained('frame_colors')->onDelete('cascade');
+            $table->foreignId('frame_color_id')->constrained('frame_colours')->onDelete('cascade');
             $table->decimal('price', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
