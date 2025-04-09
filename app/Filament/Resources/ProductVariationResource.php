@@ -179,11 +179,11 @@ class ProductVariationResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('price')
-                ->label('Base Price')
-                    // ->money('USD')
+                    ->label('Base Price')
                     ->sortable(),
 
-                Tables\Columns\BadgeColumn::make('status')
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
                     ->colors([
                         'success' => 'active',
                         'danger' => 'inactive',
