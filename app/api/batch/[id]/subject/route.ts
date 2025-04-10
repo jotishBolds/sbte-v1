@@ -14,7 +14,7 @@ const batchSubjectSchema = z.object({
   subjectId: z.string(),
   subjectCode: z.string(),
   subjectTypeId: z.string(),
-  classType: z.enum(["PRACTICAL", "THEORY", "BOTH"]),
+  classType: z.enum(["PRACTICAL", "THEORY"]),
   creditScore: z.number(),
 });
 

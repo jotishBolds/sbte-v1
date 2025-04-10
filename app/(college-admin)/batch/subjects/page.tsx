@@ -63,7 +63,7 @@ import { useSession } from "next-auth/react";
 enum ClassType {
   PRACTICAL = "PRACTICAL",
   THEORY = "THEORY",
-  BOTH = "BOTH",
+  // BOTH = "BOTH",
 }
 
 // Interfaces
@@ -82,7 +82,7 @@ interface EditFormValues {
 const editFormSchema = z.object({
   creditScore: z.coerce.number().min(0),
   subjectTypeId: z.string().min(1, "Subject type is required"),
-  classType: z.enum(["PRACTICAL", "THEORY", "BOTH"]),
+  classType: z.enum(["PRACTICAL", "THEORY"]),
 });
 
 interface Batch {

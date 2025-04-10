@@ -11,7 +11,7 @@ const prisma = new PrismaClient();
 const batchSubjectUpdateSchema = z.object({
   creditScore: z.number().optional(),
   subjectTypeId: z.string().optional(),
-  classType: z.enum(["PRACTICAL", "THEORY", "BOTH"]).optional(),
+  classType: z.enum(["PRACTICAL", "THEORY"]).optional(),
 });
 
 export async function PUT(
