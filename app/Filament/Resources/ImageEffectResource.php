@@ -14,13 +14,24 @@ use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Pages\SubNavigationPosition;
+use Filament\Pages\Page;
 
 class ImageEffectResource extends Resource
 {
     protected static ?string $model = ImageEffect::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 
+    public static function getRecordSubNavigation(Page $page): array
+    {
+        return $page->generateNavigationItems([
+            Pages\ViewImageEffect::class,
+            Pages\EditImageEffect::class,
+            Pages\ManageProductVariationPricing::class,
+        ]);
+    }
     public static function form(Form $form): Form
     {
         return $form
@@ -183,8 +194,10 @@ class ImageEffectResource extends Resource
         return [
             'index' => Pages\ListImageEffects::route('/'),
             'create' => Pages\CreateImageEffect::route('/create'),
-            // 'view' => Pages\ViewImageEffect::route('/{record}'),
-            // 'edit' => Pages\EditImageEffect::route('/{record}/edit'),
+            'view' => Pages\ViewImageEffect::route('/{record}'),
+            'edit' => Pages\EditImageEffect::route('/{record}/edit'),
+            'productVariationPricing' => Pages\ManageProductVariationPricing::route('/{record}/product-variation-pricing'),
+
         ];
     }
 }
