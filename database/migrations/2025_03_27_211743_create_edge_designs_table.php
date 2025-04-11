@@ -15,9 +15,9 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('thumbnail');
-            $table->decimal('price', 10, 2)->default(0.00);
             $table->enum('applicability', ['canvas', 'specific'])->default('canvas');
             $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('cascade');
+            $table->decimal('price', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
         });

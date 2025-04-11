@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\ImageEffectResource\Pages;
+namespace App\Filament\Resources\EdgeDesignResource\Pages;
 
-use App\Filament\Resources\ImageEffectResource;
+use App\Filament\Resources\EdgeDesignResource;
 use App\Models\Product;
 use Filament\Actions;
 use Filament\Forms;
@@ -16,10 +16,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ManageProductVariationPricing extends ManageRelatedRecords
 {
-    protected static string $resource = ImageEffectResource::class;
+    protected static string $resource = EdgeDesignResource::class;
+
+    protected static string $relationship = 'edgeDesigns';
 
     protected static ?string $label = 'Product Variation Pricing';
-    protected static string $relationship = 'imageEffects';
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
 
     public static function getNavigationLabel(): string
@@ -44,7 +45,8 @@ class ManageProductVariationPricing extends ManageRelatedRecords
                             }])
                             ->orderBy('name');
 
-                        if (in_array($applicability, ['canvas', 'fabric', 'photo'])) {
+                        if (in_array($applicability, ['canvas'])) {
+                            // , 'fabric', 'photo'
                             $query->where('category', $applicability);
                         } elseif ($applicability === 'specific' && $productId) {
                             $query->where('id', $productId);
@@ -59,13 +61,13 @@ class ManageProductVariationPricing extends ManageRelatedRecords
                                 'canvas_print' => 'Canvas Print',
                                 'canvas_layout' => 'Canvas Layout',
                                 'canvas_split' => 'Canvas Split',
-                                'fabric_frame' => 'Fabric Frame',
-                                'fabric_layout' => 'Fabric Layout',
-                                'fabric_split' => 'Fabric Split',
-                                'photo_frame' => 'Photo Frame',
-                                'photo_layout' => 'Photo Layout',
-                                'photo_split' => 'Photo Split',
-                                'photo_tiles' => 'Photo Tiles',
+                                // 'fabric_frame' => 'Fabric Frame',
+                                // 'fabric_layout' => 'Fabric Layout',
+                                // 'fabric_split' => 'Fabric Split',
+                                // 'photo_frame' => 'Photo Frame',
+                                // 'photo_layout' => 'Photo Layout',
+                                // 'photo_split' => 'Photo Split',
+                                // 'photo_tiles' => 'Photo Tiles',
                                 default => 'Unknown Product',
                             };
 
@@ -77,37 +79,6 @@ class ManageProductVariationPricing extends ManageRelatedRecords
                         return $grouped;
                     })
 
-
-                    // ->relationship('productVariation', 'label')
-                    // ->options(function () {
-                    //     $grouped = [];
-
-                    //     $products = Product::with(['productVariations' => function ($query) {
-                    //         $query->orderBy('label');
-                    //     }])->orderBy('name')->get();
-
-                    //     foreach ($products as $product) {
-                    //         $label = match ($product->name) {
-                    //             'canvas_print' => 'Canvas Print',
-                    //             'canvas_layout' => 'Canvas Layout',
-                    //             'canvas_split' => 'Canvas Split',
-                    //             'fabric_frame' => 'Fabric Frame',
-                    //             'fabric_layout' => 'Fabric Layout',
-                    //             'fabric_split' => 'Fabric Split',
-                    //             'photo_frame' => 'Photo Frame',
-                    //             'photo_layout' => 'Photo Layout',
-                    //             'photo_split' => 'Photo Split',
-                    //             'photo_tiles' => 'Photo Tiles',
-                    //             default => 'Unknown Product',
-                    //         };
-
-                    //         $grouped[$label] = $product->productVariations
-                    //             ->pluck('label', 'id')
-                    //             ->toArray();
-                    //     }
-
-                    //     return $grouped;
-                    // })
                     ->searchable()
                     ->preload()
                     ->required(),
