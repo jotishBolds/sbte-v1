@@ -49,7 +49,7 @@ class EdgeDesignResource extends Resource
                         '6:8',
                         '6:9',
                     ])
-                    ->directory('ImageEffectThumbnail'),
+                    ->directory('EDThumbnail'),
                 Forms\Components\Select::make('applicability')
                     ->label('Applicability')
                     ->required()

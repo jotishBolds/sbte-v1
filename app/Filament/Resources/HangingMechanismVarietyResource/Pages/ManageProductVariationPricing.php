@@ -1,45 +1,60 @@
 <?php
 
-namespace App\Filament\Resources;
+namespace App\Filament\Resources\HangingMechanismVarietyResource\Pages;
 
-use App\Filament\Resources\ProductVariationHangingPriceResource\Pages;
-use App\Filament\Resources\ProductVariationHangingPriceResource\RelationManagers;
+use App\Filament\Resources\HangingMechanismVarietyResource;
 use App\Models\Product;
-use App\Models\ProductVariationHangingPrice;
+use Filament\Actions;
 use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Resources\Resource;
+use Filament\Resources\Pages\ManageRelatedRecords;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class ProductVariationHangingPriceResource extends Resource
+class ManageProductVariationPricing extends ManageRelatedRecords
 {
-    protected static ?string $model = ProductVariationHangingPrice::class;
+    protected static string $resource = HangingMechanismVarietyResource::class;
+    protected static ?string $label = 'Product Variation Pricing';
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationGroup = 'Hanging Management';
-    protected static ?int $navigationSort = 2;
+    protected static string $relationship = 'hangingVarieties';
 
-    public static function form(Form $form): Form
+    protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
+
+    public static function getNavigationLabel(): string
+    {
+        return 'Product Variation Pricing';
+    }
+
+    public function form(Form $form): Form
     {
         return $form
             ->schema([
-
                 Forms\Components\Select::make('product_variation_id')
                     ->label('Product Variation')
-                    ->options(function (Get $get) {
+                    ->options(function () {
+                        $imageEffect = $this->getOwnerRecord(); // The parent ImageEffect
+                        $applicability = $imageEffect->applicability;
+                        $productId = $imageEffect->product_id;
 
                         $query = Product::query()
                             ->with(['productVariations' => function ($q) {
                                 $q->orderBy('label');
                             }])
                             ->orderBy('name');
+
+                        if (in_array($applicability, ['canvas', 'fabric', 'photo'])) {
+                            $query->where('category', $applicability);
+                        } elseif ($applicability === 'specific' && $productId) {
+                            $query->where('id', $productId);
+                        }
+
                         $products = $query->get();
+
                         $grouped = [];
+
                         foreach ($products as $product) {
                             $label = match ($product->name) {
                                 'canvas_print' => 'Canvas Print',
@@ -54,28 +69,31 @@ class ProductVariationHangingPriceResource extends Resource
                                 'photo_tiles' => 'Photo Tiles',
                                 default => 'Unknown Product',
                             };
+
                             $grouped[$label] = $product->productVariations
                                 ->pluck('label', 'id')
                                 ->toArray();
                         }
+
                         return $grouped;
                     })
-
                     ->searchable()
                     ->preload()
                     ->required(),
+
                 Forms\Components\TextInput::make('price')
-                    ->required()
                     ->numeric()
-                    ->default(0.00),
+                    ->default(0)
+                    ->required(),
+
                 Forms\Components\Select::make('status')
-                    ->label('Status')
                     ->options([
                         'active' => 'Active',
                         'inactive' => 'Inactive',
                     ])
                     ->default('active')
-                    ->native(false),
+                    ->native(false)
+                    ->required(),
                 DateTimePicker::make('created_at')
                     ->hiddenOn(['create', 'edit'])
                     ->displayFormat('Y-m-d H:i:s'),
@@ -85,14 +103,16 @@ class ProductVariationHangingPriceResource extends Resource
             ]);
     }
 
-    public static function table(Table $table): Table
+    public function table(Table $table): Table
     {
         return $table
+            ->recordTitleAttribute('product_variation_id')
             ->columns([
                 Tables\Columns\TextColumn::make('productVariation.label')
                     ->label('Product Variation')
                     ->sortable()
                     ->searchable(),
+
                 Tables\Columns\TextColumn::make('price')
                     ->sortable(),
 
@@ -107,19 +127,24 @@ class ProductVariationHangingPriceResource extends Resource
                         'active' => 'Active',
                         'inactive' => 'Inactive',
                     }),
+
                 Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
                     ->label('Created')
+                    ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
                     ->label('Updated')
+                    ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
                 //
+            ])
+            ->headerActions([
+                Tables\Actions\CreateAction::make()->label('New Product Variation Pricing'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
@@ -131,22 +156,5 @@ class ProductVariationHangingPriceResource extends Resource
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
-    }
-
-    public static function getRelations(): array
-    {
-        return [
-            //
-        ];
-    }
-
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListProductVariationHangingPrices::route('/'),
-            'create' => Pages\CreateProductVariationHangingPrice::route('/create'),
-            'view' => Pages\ViewProductVariationHangingPrice::route('/{record}'),
-            'edit' => Pages\EditProductVariationHangingPrice::route('/{record}/edit'),
-        ];
     }
 }

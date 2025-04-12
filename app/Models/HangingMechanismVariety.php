@@ -13,7 +13,7 @@ class HangingMechanismVariety extends Model
         return $this->belongsTo(Product::class);
     }
 
-    public function hangingVariety()
+    public function hangingVarieties()
     {
         return $this->hasMany(ProductVariationHangingVariety::class);
     }

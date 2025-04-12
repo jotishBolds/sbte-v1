@@ -23,6 +23,7 @@ class ProductVariationResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static ?string $navigationGroup = 'Product Management';
+    protected static ?int $navigationSort = 2;
 
     public static function form(Form $form): Form
     {

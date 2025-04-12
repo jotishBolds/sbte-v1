@@ -2,9 +2,9 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\HangingMechanismBasePriceResource\Pages;
-use App\Filament\Resources\HangingMechanismBasePriceResource\RelationManagers;
-use App\Models\HangingMechanismBasePrice;
+use App\Filament\Resources\HangingMechanismVarietyResource\Pages;
+use App\Filament\Resources\HangingMechanismVarietyResource\RelationManagers;
+use App\Models\HangingMechanismVariety;
 use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Form;
@@ -17,29 +17,41 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Filament\Pages\SubNavigationPosition;
 use Filament\Pages\Page;
 
-class HangingMechanismBasePriceResource extends Resource
+class HangingMechanismVarietyResource extends Resource
 {
-    protected static ?string $model = HangingMechanismBasePrice::class;
+    protected static ?string $model = HangingMechanismVariety::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-
     protected static ?string $navigationGroup = 'Hanging Management';
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 3;
+    protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 
-    // protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
-
-    // public static function getRecordSubNavigation(Page $page): array
-    // {
-    //     return $page->generateNavigationItems([
-    //         Pages\ViewHangingMechanismBasePrice::class,
-    //         Pages\EditHangingMechanismBasePrice::class,
-    //         // Pages\ManageProductVariationPricing::class,
-    //     ]);
-    // }
+    public static function getRecordSubNavigation(Page $page): array
+    {
+        return $page->generateNavigationItems([
+            Pages\ViewHangingMechanismVariety::class,
+            Pages\EditHangingMechanismVariety::class,
+            Pages\ManageProductVariationPricing::class,
+        ]);
+    }
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
+                Forms\Components\TextInput::make('name')
+                    ->required()
+                    ->maxLength(255),
+
+                Forms\Components\FileUpload::make('thumbnail')
+                    ->label('Thumbnail')
+                    ->imageEditor()
+                    ->image()
+                    ->required()
+                    ->imageEditorAspectRatios([
+                        '6:8',
+                        '6:9',
+                    ])
+                    ->directory('HMVThumbnail'),
                 Forms\Components\Select::make('applicability')
                     ->label('Applicability')
                     ->required()
@@ -57,8 +69,8 @@ class HangingMechanismBasePriceResource extends Resource
                     ->label('Product')
                     ->relationship('product', 'name')
                     ->native(false)
-                    ->required(fn($get) => $get('applicability') === 'specific')
-                    ->disabled(fn($get) => $get('applicability') !== 'specific') // Only show when "specific" is selected
+                    ->visible(fn($get) => $get('applicability') === 'specific') // Only show when "specific" is selected
+
                     ->getOptionLabelFromRecordUsing(fn($record) => match ($record->name) {
                         'canvas_print' => 'Canvas Print',
                         'canvas_layout' => 'Canvas Layout',
@@ -97,6 +109,11 @@ class HangingMechanismBasePriceResource extends Resource
     {
         return $table
             ->columns([
+                Tables\Columns\ImageColumn::make('thumbnail')
+                    ->label('Thumbnail')
+                    ->size(80),
+                Tables\Columns\TextColumn::make('name')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('applicability')
                     ->label('Applicability')
                     ->getStateUsing(fn($record) => match ($record->applicability ?? null) {
@@ -176,10 +193,11 @@ class HangingMechanismBasePriceResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListHangingMechanismBasePrices::route('/'),
-            'create' => Pages\CreateHangingMechanismBasePrice::route('/create'),
-            'view' => Pages\ViewHangingMechanismBasePrice::route('/{record}'),
-            'edit' => Pages\EditHangingMechanismBasePrice::route('/{record}/edit'),
+            'index' => Pages\ListHangingMechanismVarieties::route('/'),
+            'create' => Pages\CreateHangingMechanismVariety::route('/create'),
+            'view' => Pages\ViewHangingMechanismVariety::route('/{record}'),
+            'edit' => Pages\EditHangingMechanismVariety::route('/{record}/edit'),
+            'productVariationPricing' => Pages\ManageProductVariationPricing::route('/{record}/product-variation-pricing'),
         ];
     }
 }
