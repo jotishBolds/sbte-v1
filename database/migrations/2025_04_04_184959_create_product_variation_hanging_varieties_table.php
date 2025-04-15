@@ -14,7 +14,6 @@ return new class extends Migration
         Schema::create('product_variation_hanging_varieties', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_variation_id')->constrained('product_variations')->onDelete('cascade');
-            // $table->foreignId('hanging_mechanism_variety_id')->constrained('hanging_mechanism_varieties')->onDelete('cascade');
             $table->unsignedBigInteger('hanging_mechanism_variety_id');
             $table->foreign('hanging_mechanism_variety_id', 'pv_hm_variety_fk')
                 ->references('id')
@@ -23,6 +22,7 @@ return new class extends Migration
             $table->decimal('price', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
+            $table->unique(['product_variation_id', 'hanging_mechanism_variety_id']);
         });
     }
 

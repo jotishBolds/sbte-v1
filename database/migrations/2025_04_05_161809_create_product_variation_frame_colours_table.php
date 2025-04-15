@@ -18,6 +18,7 @@ return new class extends Migration
             $table->decimal('price', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
+            $table->unique(['product_variation_id', 'frame_color_id']);
         });
     }
 

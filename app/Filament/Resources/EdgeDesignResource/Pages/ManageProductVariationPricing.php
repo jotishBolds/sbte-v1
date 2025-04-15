@@ -35,9 +35,9 @@ class ManageProductVariationPricing extends ManageRelatedRecords
                 Forms\Components\Select::make('product_variation_id')
                     ->label('Product Variation')
                     ->options(function () {
-                        $imageEffect = $this->getOwnerRecord(); // The parent ImageEffect
-                        $applicability = $imageEffect->applicability;
-                        $productId = $imageEffect->product_id;
+                        $edgeDesign = $this->getOwnerRecord();
+                        $applicability = $edgeDesign->applicability;
+                        $productId = $edgeDesign->product_id;
 
                         $query = Product::query()
                             ->with(['productVariations' => function ($q) {
@@ -81,6 +81,15 @@ class ManageProductVariationPricing extends ManageRelatedRecords
 
                     ->searchable()
                     ->preload()
+                    ->rules([
+                        function (callable $get) {
+                            return \Illuminate\Validation\Rule::unique('product_variation_edge_designs', 'product_variation_id')
+                                ->where(function ($query) use ($get) {
+                                    return $query->where('edge_design_id', $this->getOwnerRecord()->id);
+                                })
+                                ->ignore($this->record?->id);
+                        }
+                    ])
                     ->required(),
 
                 Forms\Components\TextInput::make('price')
@@ -108,7 +117,7 @@ class ManageProductVariationPricing extends ManageRelatedRecords
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('product_variation_id')
+            // ->recordTitleAttribute('product_variation_id')
             ->columns([
                 Tables\Columns\TextColumn::make('productVariation.label')
                     ->label('Product Variation')

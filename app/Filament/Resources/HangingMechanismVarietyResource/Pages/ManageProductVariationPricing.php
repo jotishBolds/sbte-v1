@@ -35,9 +35,9 @@ class ManageProductVariationPricing extends ManageRelatedRecords
                 Forms\Components\Select::make('product_variation_id')
                     ->label('Product Variation')
                     ->options(function () {
-                        $imageEffect = $this->getOwnerRecord(); // The parent ImageEffect
-                        $applicability = $imageEffect->applicability;
-                        $productId = $imageEffect->product_id;
+                        $hangingVariety = $this->getOwnerRecord();
+                        $applicability = $hangingVariety->applicability;
+                        $productId = $hangingVariety->product_id;
 
                         $query = Product::query()
                             ->with(['productVariations' => function ($q) {
@@ -79,6 +79,15 @@ class ManageProductVariationPricing extends ManageRelatedRecords
                     })
                     ->searchable()
                     ->preload()
+                    ->rules([
+                        function (callable $get) {
+                            return \Illuminate\Validation\Rule::unique('product_variation_hanging_varieties', 'product_variation_id')
+                                ->where(function ($query) use ($get) {
+                                    return $query->where('hanging_mechanism_variety_id', $this->getOwnerRecord()->id);
+                                })
+                                ->ignore($this->record?->id);
+                        }
+                    ])
                     ->required(),
 
                 Forms\Components\TextInput::make('price')
@@ -106,7 +115,7 @@ class ManageProductVariationPricing extends ManageRelatedRecords
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('product_variation_id')
+            // ->recordTitleAttribute('productVariation.label')
             ->columns([
                 Tables\Columns\TextColumn::make('productVariation.label')
                     ->label('Product Variation')

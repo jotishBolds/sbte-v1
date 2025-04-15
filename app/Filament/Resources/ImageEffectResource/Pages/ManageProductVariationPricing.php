@@ -76,40 +76,17 @@ class ManageProductVariationPricing extends ManageRelatedRecords
 
                         return $grouped;
                     })
-
-
-                    // ->relationship('productVariation', 'label')
-                    // ->options(function () {
-                    //     $grouped = [];
-
-                    //     $products = Product::with(['productVariations' => function ($query) {
-                    //         $query->orderBy('label');
-                    //     }])->orderBy('name')->get();
-
-                    //     foreach ($products as $product) {
-                    //         $label = match ($product->name) {
-                    //             'canvas_print' => 'Canvas Print',
-                    //             'canvas_layout' => 'Canvas Layout',
-                    //             'canvas_split' => 'Canvas Split',
-                    //             'fabric_frame' => 'Fabric Frame',
-                    //             'fabric_layout' => 'Fabric Layout',
-                    //             'fabric_split' => 'Fabric Split',
-                    //             'photo_frame' => 'Photo Frame',
-                    //             'photo_layout' => 'Photo Layout',
-                    //             'photo_split' => 'Photo Split',
-                    //             'photo_tiles' => 'Photo Tiles',
-                    //             default => 'Unknown Product',
-                    //         };
-
-                    //         $grouped[$label] = $product->productVariations
-                    //             ->pluck('label', 'id')
-                    //             ->toArray();
-                    //     }
-
-                    //     return $grouped;
-                    // })
                     ->searchable()
                     ->preload()
+                    ->rules([
+                        function (callable $get) {
+                            return \Illuminate\Validation\Rule::unique('product_variation_image_effects', 'product_variation_id')
+                                ->where(function ($query) use ($get) {
+                                    return $query->where('image_effect_id', $this->getOwnerRecord()->id);
+                                })
+                                ->ignore($this->record?->id);
+                        }
+                    ])
                     ->required(),
 
                 Forms\Components\TextInput::make('price')
@@ -137,7 +114,7 @@ class ManageProductVariationPricing extends ManageRelatedRecords
     public function table(Table $table): Table
     {
         return $table
-            ->recordTitleAttribute('product_variation_id')
+            // ->recordTitleAttribute('productVariation.label')
             ->columns([
                 Tables\Columns\TextColumn::make('productVariation.label')
                     ->label('Product Variation')
