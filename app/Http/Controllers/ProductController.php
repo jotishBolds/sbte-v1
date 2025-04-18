@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\EdgeDesign;
+use App\Models\FrameThickness;
 use App\Models\HangingMechanismBasePrice;
 use App\Models\HangingMechanismVariety;
 use App\Models\ImageEffect;
@@ -16,18 +17,11 @@ class ProductController extends Controller
     public function showCanvasProduct($productName)
     {
         try {
-            $allowedNames = [
-                'canvas_print',
-                'canvas_layout',
-                'canvas_split',
-                'fabric_frame',
-                'fabric_layout',
-                'fabric_split',
-                'photo_frame',
-                'photo_layout',
-                'photo_split',
-                'photo_tiles'
-            ];
+            // $allowedNames = [
+            //     'canvas_print',
+            //     'canvas_layout',
+            //     'canvas_split',
+            // ];
 
             $product = Product::with([
                 'productVariations.lengthUnit',
@@ -38,61 +32,80 @@ class ProductController extends Controller
                 'productVariations.edgeDesigns' => function ($query) {
                     $query->where('status', 'active')->with('edgeDesign');
                 },
+                'productVariations.frameThicknesses' => function ($query) {
+                    $query->where('status', 'active')->with('frameThickness');
+                },
                 'productVariations.hangingPrice' => function ($query) {
                     $query->where('status', 'active');
                 },
                 'productVariations.hangingVarieties' => function ($query) {
                     $query->where('status', 'active')->with('hangingMechanismVariety');
                 },
-                // 'productVariations.imageEffects.imageEffect',
-                // 'productVariations.edgeDesigns.edgeDesign',
-                // 'productVariations.hangingPrice',
-                // 'productVariations.hangingVarieties.hangingMechanismVariety',
+
             ])
                 ->where('category', 'canvas')
                 ->where('name', $productName)
                 ->firstOrFail();
 
-            // Fetch base image effects (applicable to canvas or all)
-            $imageEffects = ImageEffect::whereIn('applicability', ['canvas', 'all'])
+            $imageEffects = ImageEffect::where('status', 'active')
                 ->where(function ($query) use ($product) {
-                    $query->whereNull('product_id')
-                        ->orWhere('product_id', $product->id);
+                    $query->whereIn('applicability', ['canvas', 'all'])
+                        ->orWhere(function ($q) use ($product) {
+                            $q->where('applicability', 'specific')
+                                ->where('product_id', $product->id);
+                        });
                 })
-                ->where('status', 'active')
                 ->get();
 
-            // Fetch base edge designs
-            $edgeDesigns = EdgeDesign::whereIn('applicability', ['canvas'])
+            $edgeDesigns = EdgeDesign::where('status', 'active')
                 ->where(function ($query) use ($product) {
-                    $query->whereNull('product_id')
-                        ->orWhere('product_id', $product->id);
+                    $query->whereIn('applicability', ['canvas', 'all'])
+                        ->orWhere(function ($q) use ($product) {
+                            $q->where('applicability', 'specific')
+                                ->where('product_id', $product->id);
+                        });
                 })
-                ->where('status', 'active')
                 ->get();
 
-            // Fetch base hanging mechanism prices
-            $hangingBasePrice = HangingMechanismBasePrice::whereIn('applicability', ['canvas', 'all'])
+
+            $frameThicknesses = FrameThickness::where('status', 'active')
                 ->where(function ($query) use ($product) {
-                    $query->whereNull('product_id')
-                        ->orWhere('product_id', $product->id);
+                    $query->whereIn('applicability', ['canvas', 'all'])
+                        ->orWhere(function ($q) use ($product) {
+                            $q->where('applicability', 'specific')
+                                ->where('product_id', $product->id);
+                        });
                 })
-                ->where('status', 'active')
+                ->get();
+
+
+
+            $hangingBasePrice = HangingMechanismBasePrice::where('status', 'active')
+                ->where(function ($query) use ($product) {
+                    $query->whereIn('applicability', ['canvas', 'all'])
+                        ->orWhere(function ($q) use ($product) {
+                            $q->where('applicability', 'specific')
+                                ->where('product_id', $product->id);
+                        });
+                })
                 ->first();
 
-            // Fetch all hanging mechanism varieties
-            $hangingVarieties = HangingMechanismVariety::whereIn('applicability', ['canvas', 'all'])
+
+            $hangingVarieties = HangingMechanismVariety::where('status', 'active')
                 ->where(function ($query) use ($product) {
-                    $query->whereNull('product_id')
-                        ->orWhere('product_id', $product->id);
+                    $query->whereIn('applicability', ['canvas', 'all'])
+                        ->orWhere(function ($q) use ($product) {
+                            $q->where('applicability', 'specific')
+                                ->where('product_id', $product->id);
+                        });
                 })
-                ->where('status', 'active')
                 ->get();
 
             return response()->json([
                 'product' => $product,
                 'baseImageEffects' => $imageEffects,
                 'baseEdgeDesigns' => $edgeDesigns,
+                'baseFrameThicknesses' => $frameThicknesses,
                 'hangingBasePrice' => $hangingBasePrice,
                 'baseHangingVarieties' => $hangingVarieties
             ], 200);
@@ -106,6 +119,11 @@ class ProductController extends Controller
             // ]);
         } catch (\Exception $e) {
             Log::error('Error fetching canvas product details: ' . $e->getMessage());
+            return response()->json([
+                'error' => 'Failed to fetch canvas product details',
+                'message' => $e->getMessage(),
+            ], 500);
+
             return Inertia::render('Product/CanvasProduct', [
                 'product' => [],
                 'error' => 'Failed to fetch canvas product details',
@@ -113,21 +131,4 @@ class ProductController extends Controller
             ]);
         }
     }
-    // show()
-    // {
-    //     try {
-
-    //         return response()->json(['product' => $products], 200);
-    //         return Inertia::render('Product', [
-    //             'product' => $product
-    //         ]);
-    //     } catch (\Exception $e) {
-    //         Log::error('Error fetching product details: ' . $e->getMessage());
-    //         return Inertia::render('Product', [
-    //             'product' => [],
-    //             'error' => 'Failed to fetch product details',
-    //             'message' => $e->getMessage(),
-    //         ]);
-    //     }
-    // }
 }

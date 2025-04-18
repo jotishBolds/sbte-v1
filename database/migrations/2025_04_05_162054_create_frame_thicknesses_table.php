@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('frame_thicknesses', function (Blueprint $table) {
             $table->id();
             $table->string('name', 100);
-            $table->enum('applicability', ['all', 'fabric', 'photo', 'specific'])->default('all');
+            $table->enum('applicability', ['all', 'canvas', 'fabric', 'photo', 'specific'])->default('all');
             $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('cascade');
             $table->decimal('price', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');

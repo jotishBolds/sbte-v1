@@ -39,6 +39,13 @@ class ProductVariation extends Model
     {
         return $this->hasMany(ProductVariationEdgeDesign::class)->with('edgeDesign');
     }
+
+    public function frameThicknesses()
+    {
+        return $this->hasMany(ProductVariationFrameThickness::class)
+            ->with('frameThickness'); // eager load actual effect details
+    }
+
     // public function edgeDesign()
     // {
     //     return $this->hasMany(ProductVariationEdgeDesign::class);
