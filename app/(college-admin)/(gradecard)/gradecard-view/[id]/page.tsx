@@ -108,6 +108,7 @@ export default function GradeCardViewPage() {
   const [isDeletingSubject, setIsDeletingSubject] = useState(false);
   const [showExternalUpdateGuide, setShowExternalUpdateGuide] = useState(false);
   const [showGradeUpdateGuide, setShowGradeUpdateGuide] = useState(false);
+  const [isLastSubject, setIsLastSubject] = useState(false);
   useEffect(() => {
     const fetchGradeCard = async () => {
       try {
@@ -261,7 +262,9 @@ export default function GradeCardViewPage() {
     }
   };
   const confirmDeleteSubject = (subjectId: string) => {
+    const isLastSubject = gradeCard?.subjectGrades.length === 1;
     setSubjectToDelete(subjectId);
+    setIsLastSubject(isLastSubject);
   };
 
   const deleteSubjectGrade = async () => {
@@ -281,6 +284,17 @@ export default function GradeCardViewPage() {
         throw new Error(errorData.error || "Failed to delete subject grade");
       }
 
+      toast({
+        title: "Success",
+        description: "Subject grade deleted successfully",
+      });
+
+      // If this was the last subject, redirect to the grade cards list
+      if (isLastSubject) {
+        router.push("/gradecard-view");
+        return;
+      }
+
       // Update local state by removing the deleted subject
       if (gradeCard) {
         const updatedSubjectGrades = gradeCard.subjectGrades.filter(
@@ -292,11 +306,6 @@ export default function GradeCardViewPage() {
           subjectGrades: updatedSubjectGrades,
         });
       }
-
-      toast({
-        title: "Success",
-        description: "Subject grade deleted successfully",
-      });
 
       // Refresh the grade card to get updated GPA/CGPA
       const refreshResponse = await fetch(`/api/gradeCard/${params.id}`);
@@ -798,8 +807,8 @@ export default function GradeCardViewPage() {
               {showExternalUpdateGuide && (
                 <div className="space-y-2">
                   <p className="text-sm">
-                    You've updated mark values. To ensure these are properly
-                    reflected in the system:
+                    You&apos;ve updated mark values. To ensure these are
+                    properly reflected in the system:
                   </p>
                   <Link href="/post-external-marks">
                     <Button
@@ -863,8 +872,18 @@ export default function GradeCardViewPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Subject Grade</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete this subject grade? This action
-              cannot be undone.
+              {isLastSubject ? (
+                <>
+                  This is the <strong>last subject</strong> in this grade card.
+                  Deleting it will also delete the entire grade card. This
+                  action cannot be undone.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to delete this subject grade? This
+                  action cannot be undone.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -889,21 +908,37 @@ export default function GradeCardViewPage() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+            <AlertDialogTitle>Delete Subject Grade</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              grade card for{" "}
-              <span className="font-semibold">{gradeCard.student.name}</span>{" "}
-              and all associated subject grades.
+              {isLastSubject ? (
+                <>
+                  This is the <strong>last subject</strong> in this grade card.
+                  Deleting it will also delete the entire grade card. This
+                  action cannot be undone.
+                </>
+              ) : (
+                <>
+                  Are you sure you want to delete this subject grade? This
+                  action cannot be undone.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleDeleteGradeCard}
+              onClick={deleteSubjectGrade}
+              disabled={isDeletingSubject}
               className="bg-red-600 hover:bg-red-700"
             >
-              Delete
+              {isDeletingSubject ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -126,7 +126,7 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
       </DialogTrigger>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto print:max-h-none print:overflow-visible">
         <DialogHeader className="print:hidden">
-          <DialogTitle>{studentName}'s Grade Card</DialogTitle>
+          <DialogTitle>{studentName}&apos;s Grade Card</DialogTitle>
         </DialogHeader>
 
         {loading && (

@@ -87,6 +87,7 @@ import {
   TicketCheckIcon,
   PlusIcon,
   PlusSquareIcon,
+  PlusCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -334,6 +335,11 @@ export const Sidebar: React.FC = () => {
                 href: "/post-external-marks",
                 icon: <PlusSquareIcon size={18} />,
                 label: "Calculate External Marks",
+              },
+              {
+                href: "/post-grade-details",
+                icon: <PlusCircle size={18} />,
+                label: "Calculate Grade Details",
               },
             ],
           },
