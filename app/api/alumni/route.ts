@@ -68,6 +68,25 @@ export async function GET(request: NextRequest) {
             name: true, // Include only the name of the department
           },
         },
+        program: {
+          select: {
+            name: true,
+            code: true,
+          },
+        },
+        batchYear: {
+          select: {
+            year: true,
+          },
+        },
+        admissionYear: {
+          select: {
+            year: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 
@@ -81,13 +100,39 @@ export async function GET(request: NextRequest) {
 
     // Step 8: Format the alumni data before sending the response.
     const formattedAlumni = alumni.map((alumnus) => ({
-      id: alumnus.id, // Alumnus ID
+      id: alumnus.id,
+      name: alumnus.name,
+      email: alumnus.user.email,
+      department: alumnus.department.name,
+      graduationYear: alumnus.graduationYear,
+      verified: alumnus.verified,
       profilePic: alumnus.profilePic,
-      name: alumnus.name, // Alumnus name
-      email: alumnus.user.email, // Associated user's email
-      department: alumnus.department.name, // Alumnus department name
-      graduationYear: alumnus.graduationYear, // Graduation year of alumnus
-      verified: alumnus.verified, // Alumnus verified status
+      phoneNo: alumnus.phoneNo || undefined,
+      dateOfBirth: alumnus.dateOfBirth || undefined,
+      address: alumnus.address || undefined,
+      currentEmployer: alumnus.currentEmployer || undefined,
+      currentPosition: alumnus.currentPosition || undefined,
+      industry: alumnus.industry || undefined,
+      linkedInProfile: alumnus.linkedInProfile || undefined,
+      jobStatus: alumnus.jobStatus || undefined,
+      gpa: alumnus.gpa || undefined,
+      achievements: alumnus.achievements || undefined,
+      program: alumnus.program
+        ? {
+            name: alumnus.program.name,
+            code: alumnus.program.code,
+          }
+        : undefined,
+      batchYear: alumnus.batchYear
+        ? {
+            year: alumnus.batchYear.year,
+          }
+        : undefined,
+      admissionYear: alumnus.admissionYear
+        ? {
+            year: alumnus.admissionYear.year,
+          }
+        : undefined,
     }));
 
     // Step 9: Return the formatted alumni data as a JSON response.
@@ -96,7 +141,7 @@ export async function GET(request: NextRequest) {
     // Step 10: Catch and log any errors, and return a 500 Internal Server Error response.
     console.error("Error fetching alumni:", error);
     return NextResponse.json(
-      { message: "Error fetching alumni" },
+      { error: "Failed to fetch alumni" },
       { status: 500 }
     );
   }

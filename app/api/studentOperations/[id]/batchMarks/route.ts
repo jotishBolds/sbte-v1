@@ -30,6 +30,21 @@ export async function GET(
       );
     }
 
+    // Check if the batch exists
+    const batchExists = await prisma.batch.findUnique({
+      where: { id: batchId },
+    });
+
+    if (!batchExists) {
+      return NextResponse.json(
+        {
+          error: "Batch not found",
+          examMarks: [],
+        },
+        { status: 200 }
+      );
+    }
+
     // Fetch exam marks for the specific student and batch
     const examMarks = await prisma.examMark.findMany({
       where: {
@@ -49,10 +64,14 @@ export async function GET(
       },
     });
 
+    // If no exam marks found, return an empty array instead of an error
     if (examMarks.length === 0) {
       return NextResponse.json(
-        { error: "No exam marks found for the specified student and batch" },
-        { status: 404 }
+        {
+          error: "No exam marks found for the specified student and batch",
+          examMarks: [],
+        },
+        { status: 200 }
       );
     }
 
@@ -62,8 +81,8 @@ export async function GET(
       subjectName: mark.batchSubject.subject.name,
       subjectCode: mark.batchSubject.subject.code,
       examType: mark.examType.examName,
-      totalMarks: mark.examType.totalMarks, // Assuming `totalMarks` exists in ExamType
-      passingMarks: mark.examType.passingMarks, // Assuming `passingMarks` exists in ExamType
+      totalMarks: mark.examType.totalMarks,
+      passingMarks: mark.examType.passingMarks,
       batchId: mark.batchSubject.batch.id,
       batchName: mark.batchSubject.batch.name,
       achievedMarks: mark.achievedMarks,
@@ -78,7 +97,7 @@ export async function GET(
   } catch (error) {
     console.error("Error retrieving exam marks:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      { error: "Internal Server Error", examMarks: [] },
       { status: 500 }
     );
   } finally {

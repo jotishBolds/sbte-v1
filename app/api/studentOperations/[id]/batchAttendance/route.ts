@@ -1,5 +1,3 @@
-//File : /api/studentOperations/[id]/batchAttendance/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
@@ -30,6 +28,22 @@ export async function GET(
       );
     }
 
+    // Check if the batch exists
+    const batchExists = await prisma.batch.findUnique({
+      where: { id: batchId },
+    });
+
+    if (!batchExists) {
+      return NextResponse.json(
+        {
+          error: "Batch not found",
+          monthlyAttendance: [],
+          aggregatedAttendance: [],
+        },
+        { status: 200 }
+      );
+    }
+
     // Fetch attendance details
     const attendanceRecords =
       await prisma.monthlyBatchSubjectAttendance.findMany({
@@ -55,13 +69,16 @@ export async function GET(
         },
       });
 
+    // If no attendance records found, return empty arrays
     if (attendanceRecords.length === 0) {
       return NextResponse.json(
         {
           error:
             "No attendance records found for the specified student and batch",
+          monthlyAttendance: [],
+          aggregatedAttendance: [],
         },
-        { status: 404 }
+        { status: 200 }
       );
     }
 
@@ -129,7 +146,11 @@ export async function GET(
   } catch (error) {
     console.error("Error retrieving attendance records:", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
+      {
+        error: "Internal Server Error",
+        monthlyAttendance: [],
+        aggregatedAttendance: [],
+      },
       { status: 500 }
     );
   } finally {

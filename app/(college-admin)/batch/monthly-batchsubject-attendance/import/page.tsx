@@ -29,9 +29,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Loader2, Upload, FileSpreadsheet, X } from "lucide-react";
+import { Loader2, Upload, FileSpreadsheet, X, Download } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import SideBarLayout from "@/components/sidebar/layout";
+import Link from "next/link";
 
 const importFormSchema = z.object({
   file: z.instanceof(File, {
@@ -255,23 +256,39 @@ export default function AttendanceImport() {
                 )}
               />
 
-              <Button
-                type="submit"
-                disabled={isSubmitting}
-                className="w-full md:w-auto md:min-w-[200px] h-8text-base font-medium"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Importing...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="mr-2 h-5 w-5" />
-                    Import Attendance
-                  </>
-                )}
-              </Button>
+              <div className="flex justify-between items-center w-full gap-4">
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full md:w-auto md:min-w-[200px] h-8 text-base font-medium"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="mr-2 h-5 w-5" />
+                      Import Attendance
+                    </>
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  asChild
+                  className="w-full md:w-auto md:min-w-[200px]"
+                >
+                  <Link
+                    href="/templates/exam_attendance_template.xlsx"
+                    download
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Download Template
+                  </Link>
+                </Button>
+              </div>
             </form>
           </Form>
 

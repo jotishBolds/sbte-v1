@@ -134,7 +134,12 @@ export async function DELETE(
       );
     }
 
-    // Delete the student from the batch
+    // First delete all related StudentBatchExamFee records
+    await prisma.studentBatchExamFee.deleteMany({
+      where: { studentBatchId: studentBatch.id },
+    });
+
+    // Now delete the student from the batch
     await prisma.studentBatch.delete({
       where: { id: studentBatch.id },
     });

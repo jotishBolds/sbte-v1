@@ -84,6 +84,10 @@ import {
   CheckCheck,
   TimerIcon,
   CalendarCheck2,
+  TicketCheckIcon,
+  PlusIcon,
+  PlusSquareIcon,
+  PlusCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -91,6 +95,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useNotificationManager } from "./notification-hook/hook";
+import { CardStackIcon } from "@radix-ui/react-icons";
 
 type NavLinkType = {
   href: string;
@@ -308,6 +313,33 @@ export const Sidebar: React.FC = () => {
                 href: "/certificate-types",
                 icon: <Option size={18} />,
                 label: "Certificate Types",
+              },
+            ],
+          },
+          {
+            href: "/gradecard",
+            icon: <CardStackIcon />,
+            label: "Student Grades",
+            subItems: [
+              {
+                href: "/gradecard-view",
+                icon: <TicketCheckIcon size={18} />,
+                label: "View Student Grades",
+              },
+              {
+                href: "/import-internal",
+                icon: <PlusIcon size={18} />,
+                label: "Import Internal Marks",
+              },
+              {
+                href: "/post-external-marks",
+                icon: <PlusSquareIcon size={18} />,
+                label: "Calculate External Marks",
+              },
+              {
+                href: "/post-grade-details",
+                icon: <PlusCircle size={18} />,
+                label: "Calculate Grade Details",
               },
             ],
           },
@@ -599,11 +631,11 @@ export const Sidebar: React.FC = () => {
             icon: <Home size={18} />,
             label: "Dashboard",
           },
-          {
-            href: "/profile",
-            icon: <UserCheck size={18} />,
-            label: "Alumni Profile",
-          },
+          // {
+          //   href: "/profile",
+          //   icon: <UserCheck size={18} />,
+          //   label: "Alumni Profile",
+          // },
           // {
           //   href: "/events",
           //   icon: <Calendar size={18} />,
