@@ -14,9 +14,39 @@ Route::get('/', function () {
     ]);
 });
 
+Route::get('/canva-print', function () {
+    return Inertia::render('PrintLayouts/CanvasPrintDesigner');
+});
+Route::get('/canva-print-layout', function () {
+    return Inertia::render('PrintLayouts/MultiCanvasPrintDesigner');
+})->name('canva.print.layout');
+Route::get('/canva-print-split-layout', function () {
+    return Inertia::render('PrintLayouts/SplitPrint');
+})->name('canva.print.split');
 Route::get('/dashboard', function () {
     return Inertia::render('Dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+
+//Details
+Route::get('/canva-details', function () {
+    return Inertia::render('Details/CanvaDetails');
+});
+Route::get('/fabric-details', function () {
+    return Inertia::render('Details/FabricDetails');
+});
+Route::get('/photo-details', function () {
+    return Inertia::render('Details/PhotoFrames');
+});
+
+//Blog
+Route::get('/recent-blogs', function () {
+    return Inertia::render('Blogs/RecentBlogs');
+});
+
+Route::get('/recent-blogs-details', function () {
+    return Inertia::render('Blogs/BlogDetails');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
