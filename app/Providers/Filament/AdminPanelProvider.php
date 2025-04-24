@@ -30,10 +30,15 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             ->colors([
                 'primary' => Color::hex('#64b94b'),
-                'admin' => Color::hex('#FF0000'),     // Deep Red for Admin
-                'staff' => Color::hex('#007BFF'),    // Deep Blue for Staff
-                'customer' => Color::hex('#28A745'), // Bright Green for Customer
-                'driver' => Color::hex('#FFC107'),
+                'admin' => Color::hex('#FF0000'),
+                'staff' => Color::hex('#007BFF'),
+                'customer' => Color::hex('#28A745'),
+                'photo' => Color::hex('#789DBC'),
+                'fabric'=> Color::hex('#FF9D23'),
+                'canvas' => Color::hex('#FDAB9E'),
+
+
+
             ])
             ->profile(EditProfile::class)
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')

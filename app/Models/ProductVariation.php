@@ -7,7 +7,15 @@ use Illuminate\Database\Eloquent\Model;
 class ProductVariation extends Model
 {
     //
-    protected $guarded = [];
+    protected $fillable = [
+        'product_id',
+        'label',
+        'horizontal_length',
+        'vertical_length',
+        'length_unit_id',
+        'price',
+        'status'
+    ];
 
     public function product()
     {
@@ -18,16 +26,43 @@ class ProductVariation extends Model
         return $this->hasOne(ProductVariationLayoutDetail::class);
     }
 
-    public function imageEffect()
+    // public function imageEffect()
+    // {
+    //     return $this->hasMany(ProductVariationImageEffect::class);
+    // }
+    public function imageEffects()
     {
-        return $this->hasOne(ProductVariationImageEffect::class);
+        return $this->hasMany(ProductVariationImageEffect::class)
+            ->with('imageEffect'); // eager load actual effect details
+    }
+    public function edgeDesigns()
+    {
+        return $this->hasMany(ProductVariationEdgeDesign::class)->with('edgeDesign');
     }
 
-    public function edgeDesign()
+    public function frameThicknesses()
     {
-        return $this->hasOne(ProductVariationEdgeDesign::class);
+        return $this->hasMany(ProductVariationFrameThickness::class)
+            ->with('frameThickness'); // eager load actual effect details
     }
 
+    // public function edgeDesign()
+    // {
+    //     return $this->hasMany(ProductVariationEdgeDesign::class);
+    // }
+    public function hangingPrice()
+    {
+        return $this->hasOne(ProductVariationHangingPrice::class);
+    }
+
+    // public function hangingVariety()
+    // {
+    //     return $this->hasMany(ProductVariationHangingVariety::class);
+    // }
+    public function hangingVarieties()
+    {
+        return $this->hasMany(ProductVariationHangingVariety::class)->with('hangingMechanismVariety');
+    }
     public function lengthUnit()
     {
         return $this->belongsTo(LengthUnit::class);
