@@ -5,6 +5,14 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import prisma from "@/src/lib/prisma";
 
+const chunkArray = <T>(array: T[], size: number): T[][] => {
+  const chunks: T[][] = [];
+  for (let i = 0; i < array.length; i += size) {
+    chunks.push(array.slice(i, i + size));
+  }
+  return chunks;
+};
+
 export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions);
@@ -182,16 +190,24 @@ export async function POST(req: Request) {
       );
     }
 
-    for (const update of updates) {
-      await prisma.subjectGradeDetail.updateMany({
-        where: {
-          studentGradeCardId: update.studentGradeCardId,
-          batchSubjectId: update.batchSubjectId,
-        },
-        data: {
-          externalMarks: update.externalMarks,
-        },
-      });
+    // CHUNKING BEGINS HERE
+    const CHUNK_SIZE = 10;
+    const updateChunks = chunkArray(updates, CHUNK_SIZE);
+
+    for (const chunk of updateChunks) {
+      await Promise.all(
+        chunk.map((update) =>
+          prisma.subjectGradeDetail.updateMany({
+            where: {
+              studentGradeCardId: update.studentGradeCardId,
+              batchSubjectId: update.batchSubjectId,
+            },
+            data: {
+              externalMarks: update.externalMarks,
+            },
+          })
+        )
+      );
     }
 
     return NextResponse.json(
@@ -209,3 +225,15 @@ export async function POST(req: Request) {
     );
   }
 }
+
+// for (const update of updates) {
+//   await prisma.subjectGradeDetail.updateMany({
+//     where: {
+//       studentGradeCardId: update.studentGradeCardId,
+//       batchSubjectId: update.batchSubjectId,
+//     },
+//     data: {
+//       externalMarks: update.externalMarks,
+//     },
+//   });
+// }

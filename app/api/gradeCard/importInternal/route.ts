@@ -15,14 +15,6 @@ const rowSchema = z.object({
     .max(30, "Internal marks cannot exceed 30"),
 });
 
-const chunkArray = <T>(array: T[], size: number): T[][] => {
-  const chunks: T[][] = [];
-  for (let i = 0; i < array.length; i += size) {
-    chunks.push(array.slice(i, i + size));
-  }
-  return chunks;
-};
-
 const generateGradeCardNumber = async (
   batchId: string,
   semesterId: string,
@@ -172,11 +164,6 @@ export async function POST(req: Request) {
 
     const studentMap = new Map(students.map((s) => [s.enrollmentNo, s.id]));
 
-    // const batchSubject = await prisma.batchSubject.findUnique({
-    //   where: { id: batchSubjectId },
-    //   select: { batchId: true },
-    // });
-
     if (!batchSubject) {
       throw new Error("Batch subject not found.");
     }
@@ -236,58 +223,84 @@ export async function POST(req: Request) {
       );
     }
 
-    await prisma.$transaction(async (tx) => {
-      const createdGradeCards = new Set<string>(); // Store generated grade cards
-      for (const row of rows) {
-        let student = await tx.student.findUnique({
-          where: { enrollmentNo: row.enrollmentNo },
-          select: { id: true, enrollmentNo: true },
-        });
 
-        if (!student) {
-          missingStudents.push({
-            enrollmentNo: row.enrollmentNo,
-            error: "Student not found in the system",
-          });
-          continue;
-        }
+    // ✅ NOW proceed to chunked transaction only if everything is clean
+    const CHUNK_SIZE = 50;
 
-        let gradeCard = await tx.studentGradeCard.findFirst({
-          where: { studentId: student.id, semesterId, batchId },
-        });
-
-        if (!gradeCard) {
-          const cardNo = await generateGradeCardNumber(
-            batchId,
-            semesterId,
-            student,
-            tx,
-            createdGradeCards
-          );
-
-          gradeCard = await tx.studentGradeCard.create({
-            data: { studentId: student.id, semesterId, batchId, cardNo },
-          });
-        }
-
-        await tx.subjectGradeDetail.create({
-          data: {
-            studentGradeCardId: gradeCard.id,
-            batchSubjectId,
-            internalMarks: row.internalMarks,
-            credit: batchSubject.creditScore,
-          },
-        });
-      }
+    // Only include rows that passed all checks and have valid student mappings
+    const validRows = rows.filter((row) => {
+      const studentId = studentMap.get(row.enrollmentNo.trim());
+      return (
+        studentId &&
+        assignedStudentSet.has(studentId) &&
+        !existingRecords.some((rec) => rec.enrollmentNo === row.enrollmentNo)
+      );
     });
+
+    // Break validRows into chunks to prevent timeout
+    const chunks = [];
+    for (let i = 0; i < validRows.length; i += CHUNK_SIZE) {
+      chunks.push(validRows.slice(i, i + CHUNK_SIZE));
+    }
+
+    const createdGradeCards = new Set<string>();
+
+    for (const chunk of chunks) {
+      await prisma.$transaction(async (tx) => {
+        for (const row of chunk) {
+          const enrollmentNo = row.enrollmentNo.trim();
+          const studentId = studentMap.get(enrollmentNo);
+
+          if (!studentId) continue;
+
+          // Check if grade card already exists
+          let studentGradeCard = await tx.studentGradeCard.findFirst({
+            where: {
+              studentId,
+              batchId,
+              semesterId,
+            },
+          });
+
+          if (!studentGradeCard) {
+            const newCardNo = await generateGradeCardNumber(
+              batchId,
+              semesterId,
+              { enrollmentNo, id: studentId },
+              tx,
+              createdGradeCards
+            );
+
+            studentGradeCard = await tx.studentGradeCard.create({
+              data: {
+                studentId,
+                batchId,
+                semesterId,
+                cardNo: newCardNo,
+              },
+            });
+          }
+
+          await tx.subjectGradeDetail.create({
+            data: {
+              studentGradeCardId: studentGradeCard.id,
+              batchSubjectId,
+              internalMarks: row.internalMarks,
+              credit: batchSubject.creditScore,
+            },
+          });
+        }
+      });
+    }
 
     return NextResponse.json(
       {
-        message: `Successfully imported ${rows.length} records.`,
-        successCount: rows.length,
+        message: `Successfully imported ${validRows.length} records.`,
+        successCount: validRows.length,
       },
       { status: 201 }
     );
+
   } catch (error) {
     console.error("Error processing internal marks import:", error);
     return NextResponse.json(
@@ -299,3 +312,61 @@ export async function POST(req: Request) {
     );
   }
 }
+
+
+
+
+
+    // await prisma.$transaction(async (tx) => {
+    //   const createdGradeCards = new Set<string>(); // Store generated grade cards
+    //   for (const row of rows) {
+    //     let student = await tx.student.findUnique({
+    //       where: { enrollmentNo: row.enrollmentNo },
+    //       select: { id: true, enrollmentNo: true },
+    //     });
+
+    //     if (!student) {
+    //       missingStudents.push({
+    //         enrollmentNo: row.enrollmentNo,
+    //         error: "Student not found in the system",
+    //       });
+    //       continue;
+    //     }
+
+    //     let gradeCard = await tx.studentGradeCard.findFirst({
+    //       where: { studentId: student.id, semesterId, batchId },
+    //     });
+
+    //     if (!gradeCard) {
+    //       const cardNo = await generateGradeCardNumber(
+    //         batchId,
+    //         semesterId,
+    //         student,
+    //         tx,
+    //         createdGradeCards
+    //       );
+
+    //       gradeCard = await tx.studentGradeCard.create({
+    //         data: { studentId: student.id, semesterId, batchId, cardNo },
+    //       });
+    //     }
+
+    //     await tx.subjectGradeDetail.create({
+    //       data: {
+    //         studentGradeCardId: gradeCard.id,
+    //         batchSubjectId,
+    //         internalMarks: row.internalMarks,
+    //         credit: batchSubject.creditScore,
+    //       },
+    //     });
+    //   }
+    // });
+
+    
+    // return NextResponse.json(
+    //   {
+    //     message: `Successfully imported ${rows.length} records.`,
+    //     successCount: rows.length,
+    //   },
+    //   { status: 201 }
+    // );
