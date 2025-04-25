@@ -11,11 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('product_type_pricings', function (Blueprint $table) {
+        Schema::create('product_types', function (Blueprint $table) {
             $table->id();
-            $table->enum('applicability', ['fabric', 'specific'])->default('fabric');
+            $table->enum('applicability', ['fabric', 'specific']);
             $table->foreignId('product_id')->nullable()->constrained('products')->onDelete('cascade');
-            $table->string('title');
+            $table->string('label');
             $table->decimal('price', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
@@ -27,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('product_type_pricings');
+        Schema::dropIfExists('product_types');
     }
 };
