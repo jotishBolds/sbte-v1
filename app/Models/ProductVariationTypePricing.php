@@ -12,8 +12,8 @@ class ProductVariationTypePricing extends Model
     {
         return $this->belongsTo(ProductVariation::class);
     }
-    public function productTypePricing()
+    public function productType()
     {
-        return $this->belongsTo(ProductTypePricing::class);
+        return $this->belongsTo(ProductType::class,'product_type_id');
     }
 }
