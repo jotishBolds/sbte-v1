@@ -2,11 +2,11 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\ProductVariationHangingPriceResource\Pages;
-use App\Filament\Resources\ProductVariationHangingPriceResource\RelationManagers;
-use App\Models\HangingMechanismBasePrice;
+use App\Filament\Resources\ProductVariationAcrylicCoverPricingResource\Pages;
+use App\Filament\Resources\ProductVariationAcrylicCoverPricingResource\RelationManagers;
+use App\Models\AcrylicCoverPricing;
 use App\Models\Product;
-use App\Models\ProductVariationHangingPrice;
+use App\Models\ProductVariationAcrylicCoverPricing;
 use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Form;
@@ -17,47 +17,30 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 
-class ProductVariationHangingPriceResource extends Resource
+class ProductVariationAcrylicCoverPricingResource extends Resource
 {
-    protected static ?string $model = ProductVariationHangingPrice::class;
+    protected static ?string $model = ProductVariationAcrylicCoverPricing::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationGroup = 'Hanging Management';
+    protected static ?string $navigationGroup = 'Acrylic Cover Management';
     protected static ?int $navigationSort = 2;
-
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-
                 Forms\Components\Select::make('product_variation_id')
                     ->label('Product Variation')
                     ->options(function (Get $get) {
-
-                        // $query = Product::query()
-                        //     ->with(['productVariations' => function ($q) {
-                        //         $q->orderBy('label');
-                        //     }])
-                        //     ->orderBy('name');
-                        // $query = Product::query()
-                        //     ->whereHas('hangingMechanismBasePrice') // Only products with acrylic cover pricing
-                        //     ->with(['productVariations' => function ($q) {
-                        //         $q->orderBy('label');
-                        //     }])
-                        //     ->orderBy('name');
-                        // $products = $query->get();
-
-
                         // First, find out all applicable product IDs
 
                         // Products that are specifically assigned
-                        $specificProductIds = HangingMechanismBasePrice::whereNotNull('product_id')
+                        $specificProductIds = AcrylicCoverPricing::whereNotNull('product_id')
                             // ->where('status', 'active')
                             ->pluck('product_id')
                             ->toArray();
 
                         // Categories where applicability is set to photo
-                        $applicableCategories = HangingMechanismBasePrice::whereNull('product_id')
+                        $applicableCategories = AcrylicCoverPricing::whereNull('product_id')
                             // ->where('status', 'active')
                             ->pluck('applicability')
                             ->toArray();
@@ -79,15 +62,10 @@ class ProductVariationHangingPriceResource extends Resource
                             ->orderBy('name')
                             ->get();
 
+
                         $grouped = [];
                         foreach ($products as $product) {
                             $label = match ($product->name) {
-                                'canvas_print' => 'Canvas Print',
-                                'canvas_layout' => 'Canvas Layout',
-                                'canvas_split' => 'Canvas Split',
-                                'fabric_frame' => 'Fabric Frame',
-                                'fabric_layout' => 'Fabric Layout',
-                                'fabric_split' => 'Fabric Split',
                                 'photo_frame' => 'Photo Frame',
                                 'photo_layout' => 'Photo Layout',
                                 'photo_split' => 'Photo Split',
@@ -183,10 +161,10 @@ class ProductVariationHangingPriceResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListProductVariationHangingPrices::route('/'),
-            'create' => Pages\CreateProductVariationHangingPrice::route('/create'),
-            'view' => Pages\ViewProductVariationHangingPrice::route('/{record}'),
-            'edit' => Pages\EditProductVariationHangingPrice::route('/{record}/edit'),
+            'index' => Pages\ListProductVariationAcrylicCoverPricings::route('/'),
+            'create' => Pages\CreateProductVariationAcrylicCoverPricing::route('/create'),
+            'view' => Pages\ViewProductVariationAcrylicCoverPricing::route('/{record}'),
+            'edit' => Pages\EditProductVariationAcrylicCoverPricing::route('/{record}/edit'),
         ];
     }
 }

@@ -18,7 +18,11 @@ return new class extends Migration
             $table->decimal('price', 10, 2)->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
-            $table->unique(['product_variation_id', 'image_effect_id']);
+            // $table->unique(['product_variation_id', 'image_effect_id']);
+            $table->unique(
+                ['product_variation_id', 'image_effect_id'],
+                'pv_ie_unique'
+            );
         });
     }
 

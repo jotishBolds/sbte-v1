@@ -34,4 +34,8 @@ class Product extends Model
     {
         return $this->hasMany(ProductTypePricing::class);
     }
+    public function acrylicCoverPricing()
+    {
+        return $this->hasOne(AcrylicCoverPricing::class);
+    }
 }

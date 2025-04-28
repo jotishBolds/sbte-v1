@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Filament\Resources\FrameTypeResource\Pages;
+namespace App\Filament\Resources\FloatingFrameColourResource\Pages;
 
-use App\Filament\Resources\FrameTypeResource;
+use App\Filament\Resources\FloatingFrameColourResource;
 use App\Models\Product;
 use Filament\Actions;
 use Filament\Forms;
@@ -16,10 +16,11 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 
 class ManageProductVariationPricing extends ManageRelatedRecords
 {
-    protected static string $resource = FrameTypeResource::class;
+    protected static string $resource = FloatingFrameColourResource::class;
 
     protected static ?string $label = 'Product Variation Pricing';
-    protected static string $relationship = 'frameType';
+
+    protected static string $relationship = 'floatingFrameColours';
 
     protected static ?string $navigationIcon = 'heroicon-o-currency-dollar';
 
@@ -35,9 +36,9 @@ class ManageProductVariationPricing extends ManageRelatedRecords
                 Forms\Components\Select::make('product_variation_id')
                     ->label('Product Variation')
                     ->options(function () {
-                        $frameType = $this->getOwnerRecord(); // The parent frameType
-                        $applicability = $frameType->applicability;
-                        $productId = $frameType->product_id;
+                        $floatingFrameColour = $this->getOwnerRecord(); // The parent floatingFrameColour
+                        $applicability = $floatingFrameColour->applicability;
+                        $productId = $floatingFrameColour->product_id;
 
                         $query = Product::query()
                             ->with(['productVariations' => function ($q) {
@@ -81,9 +82,9 @@ class ManageProductVariationPricing extends ManageRelatedRecords
                     ->preload()
                     ->rules([
                         function (callable $get) {
-                            return \Illuminate\Validation\Rule::unique('product_variation_frame_types', 'product_variation_id')
+                            return \Illuminate\Validation\Rule::unique('product_variation_floating_frame_colours', 'product_variation_id')
                                 ->where(function ($query) use ($get) {
-                                    return $query->where('frame_type_id', $this->getOwnerRecord()->id);
+                                    return $query->where('floating_frame_colour_id', $this->getOwnerRecord()->id);
                                 })
                                 ->ignore($this->record?->id);
                         }
