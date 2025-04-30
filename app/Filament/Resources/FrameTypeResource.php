@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\FrameTypeResource\Pages;
 use App\Filament\Resources\FrameTypeResource\RelationManagers;
 use App\Models\FrameType;
+use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Form;
@@ -69,19 +70,25 @@ class FrameTypeResource extends Resource
                     ->label('Product')
                     ->relationship('product', 'name')
                     ->native(false)
-                    ->visible(fn($get) => $get('applicability') === 'specific') // Only show when "specific" is selected
-                    ->getOptionLabelFromRecordUsing(fn($record) => match ($record->name) {
-                        // 'canvas_print' => 'Canvas Print',
-                        // 'canvas_layout' => 'Canvas Layout',
-                        // 'canvas_split' => 'Canvas Split',
-                        // 'fabric_frame' => 'Fabric Frame',
-                        // 'fabric_layout' => 'Fabric Layout',
-                        // 'fabric_split' => 'Fabric Split',
-                        'photo_frame' => 'Photo Frame',
-                        'photo_layout' => 'Photo Layout',
-                        'photo_split' => 'Photo Split',
-                        'photo_tiles' => 'Photo Tiles',
-                        default => 'Unknown Product',
+                    ->hint('Select if selected applicability is "specific"')
+                    ->required(fn($get) => $get('applicability') === 'specific')
+                    ->disabled(fn($get) => $get('applicability') !== 'specific')
+                    ->options(function () {
+                        $products = Product::where('category', 'photo')
+                            ->orderBy('name')->get();
+
+                        $options = [];
+                        foreach ($products as $product) {
+                            $label = match ($product->name) {
+                                'photo_frame' => 'Photo Frame',
+                                'photo_layout' => 'Photo Layout',
+                                'photo_split' => 'Photo Split',
+                                'photo_tiles' => 'Photo Tiles',
+                                default => ucfirst(str_replace('_', ' ', $product->name)), // Fallback readable label
+                            };
+                            $options[$product->id] = $label;
+                        }
+                        return $options;
                     }),
                 Forms\Components\TextInput::make('price')
                     ->required()

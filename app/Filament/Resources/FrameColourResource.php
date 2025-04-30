@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\FrameColourResource\Pages;
 use App\Filament\Resources\FrameColourResource\RelationManagers;
 use App\Models\FrameColour;
+use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Form;
@@ -57,7 +58,7 @@ class FrameColourResource extends Resource
                     ->required()
                     ->reactive()
                     ->options([
-                        'all' => 'All',
+                        // 'all' => 'All',
                         // 'canvas' => 'Canvas',
                         'fabric' => 'Fabric',
                         'photo' => 'Photo',
@@ -67,21 +68,30 @@ class FrameColourResource extends Resource
 
                 Forms\Components\Select::make('product_id')
                     ->label('Product')
-                    ->relationship('product', 'name')
+                    // ->relationship('product', 'name')
                     ->native(false)
-                    ->visible(fn($get) => $get('applicability') === 'specific') // Only show when "specific" is selected
-                    ->getOptionLabelFromRecordUsing(fn($record) => match ($record->name) {
-                        // 'canvas_print' => 'Canvas Print',
-                        // 'canvas_layout' => 'Canvas Layout',
-                        // 'canvas_split' => 'Canvas Split',
-                        'fabric_frame' => 'Fabric Frame',
-                        'fabric_layout' => 'Fabric Layout',
-                        'fabric_split' => 'Fabric Split',
-                        'photo_frame' => 'Photo Frame',
-                        'photo_layout' => 'Photo Layout',
-                        'photo_split' => 'Photo Split',
-                        'photo_tiles' => 'Photo Tiles',
-                        default => 'Unknown Product',
+                    ->hint('Select if selected applicability is "specific"')
+                    ->required(fn($get) => $get('applicability') === 'specific')
+                    ->disabled(fn($get) => $get('applicability') !== 'specific')
+                    ->options(function () {
+                        $products = Product::whereIn('category', ['photo', 'fabric'])
+                            ->orderBy('name')->get();
+
+                        $options = [];
+                        foreach ($products as $product) {
+                            $label = match ($product->name) {
+                                'photo_frame' => 'Photo Frame',
+                                'photo_layout' => 'Photo Layout',
+                                'photo_split' => 'Photo Split',
+                                'photo_tiles' => 'Photo Tiles',
+                                'fabric_frame' => 'Fabric Frame',
+                                'fabric_layout' => 'Fabric Layout',
+                                'fabric_split' => 'Fabric Split',
+                                default => ucfirst(str_replace('_', ' ', $product->name)), // Fallback readable label
+                            };
+                            $options[$product->id] = $label;
+                        }
+                        return $options;
                     }),
                 Forms\Components\TextInput::make('price')
                     ->required()

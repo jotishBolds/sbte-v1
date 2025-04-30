@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\EdgeDesignResource\Pages;
 use App\Filament\Resources\EdgeDesignResource\RelationManagers;
 use App\Models\EdgeDesign;
+use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Form;
@@ -62,25 +63,27 @@ class EdgeDesignResource extends Resource
                         'specific' => 'Specific',
                     ])
                     ->native(false),
-
                 Forms\Components\Select::make('product_id')
                     ->label('Product')
-                    ->relationship('product', 'name')
                     ->native(false)
-                    ->visible(fn($get) => $get('applicability') === 'specific') // Only show when "specific" is selected
+                    ->hint('Select if selected applicability is "specific"')
+                    ->required(fn($get) => $get('applicability') === 'specific')
+                    ->disabled(fn($get) => $get('applicability') !== 'specific')
+                    ->options(function () {
+                        $products = Product::where('category', 'canvas')
+                            ->orderBy('name')->get();
 
-                    ->getOptionLabelFromRecordUsing(fn($record) => match ($record->name) {
-                        'canvas_print' => 'Canvas Print',
-                        'canvas_layout' => 'Canvas Layout',
-                        'canvas_split' => 'Canvas Split',
-                        // 'fabric_frame' => 'Fabric Frame',
-                        // 'fabric_layout' => 'Fabric Layout',
-                        // 'fabric_split' => 'Fabric Split',
-                        // 'photo_frame' => 'Photo Frame',
-                        // 'photo_layout' => 'Photo Layout',
-                        // 'photo_split' => 'Photo Split',
-                        // 'photo_tiles' => 'Photo Tiles',
-                        default => 'Unknown Product',
+                        $options = [];
+                        foreach ($products as $product) {
+                            $label = match ($product->name) {
+                                'canvas_print' => 'Canvas Print',
+                                'canvas_layout' => 'Canvas Layout',
+                                'canvas_split' => 'Canvas Split',
+                                default => ucfirst(str_replace('_', ' ', $product->name)), // Fallback readable label
+                            };
+                            $options[$product->id] = $label;
+                        }
+                        return $options;
                     }),
                 Forms\Components\TextInput::make('price')
                     ->required()

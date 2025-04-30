@@ -69,8 +69,8 @@ class HangingMechanismVarietyResource extends Resource
                     ->label('Product')
                     ->relationship('product', 'name')
                     ->native(false)
-                    ->visible(fn($get) => $get('applicability') === 'specific') // Only show when "specific" is selected
-
+                    ->required(fn($get) => $get('applicability') === 'specific')
+                    ->disabled(fn($get) => $get('applicability') !== 'specific')->hint('Select if selected applicability is "specific"')
                     ->getOptionLabelFromRecordUsing(fn($record) => match ($record->name) {
                         'canvas_print' => 'Canvas Print',
                         'canvas_layout' => 'Canvas Layout',

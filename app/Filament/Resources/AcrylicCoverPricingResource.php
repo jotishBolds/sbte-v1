@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\AcrylicCoverPricingResource\Pages;
 use App\Filament\Resources\AcrylicCoverPricingResource\RelationManagers;
 use App\Models\AcrylicCoverPricing;
+use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Form;
@@ -42,23 +43,41 @@ class AcrylicCoverPricingResource extends Resource
 
                 Forms\Components\Select::make('product_id')
                     ->label('Product')
-                    ->relationship('product', 'name')
+                    // ->relationship('product', 'name')
                     ->native(false)
+                    ->hint('Select if selected applicability is "specific"')
                     ->required(fn($get) => $get('applicability') === 'specific')
-                    ->disabled(fn($get) => $get('applicability') !== 'specific') // Only show when "specific" is selected
-                    ->getOptionLabelFromRecordUsing(fn($record) => match ($record->name) {
-                        // 'canvas_print' => 'Canvas Print',
-                        // 'canvas_layout' => 'Canvas Layout',
-                        // 'canvas_split' => 'Canvas Split',
-                        // 'fabric_frame' => 'Fabric Frame',
-                        // 'fabric_layout' => 'Fabric Layout',
-                        // 'fabric_split' => 'Fabric Split',
-                        'photo_frame' => 'Photo Frame',
-                        'photo_layout' => 'Photo Layout',
-                        'photo_split' => 'Photo Split',
-                        'photo_tiles' => 'Photo Tiles',
-                        default => 'Unknown Product',
+                    ->disabled(fn($get) => $get('applicability') !== 'specific')
+                    ->options(function () {
+                        $products = Product::where('category', 'photo')
+                            ->orderBy('name')->get();
+
+                        $options = [];
+                        foreach ($products as $product) {
+                            $label = match ($product->name) {
+                                'photo_frame' => 'Photo Frame',
+                                'photo_layout' => 'Photo Layout',
+                                'photo_split' => 'Photo Split',
+                                'photo_tiles' => 'Photo Tiles',
+                                default => ucfirst(str_replace('_', ' ', $product->name)), // Fallback readable label
+                            };
+                            $options[$product->id] = $label;
+                        }
+                        return $options;
                     }),
+                // ->getOptionLabelFromRecordUsing(fn($record) => match ($record->name) {
+                //     // 'canvas_print' => 'Canvas Print',
+                //     // 'canvas_layout' => 'Canvas Layout',
+                //     // 'canvas_split' => 'Canvas Split',
+                //     // 'fabric_frame' => 'Fabric Frame',
+                //     // 'fabric_layout' => 'Fabric Layout',
+                //     // 'fabric_split' => 'Fabric Split',
+                //     'photo_frame' => 'Photo Frame',
+                //     'photo_layout' => 'Photo Layout',
+                //     'photo_split' => 'Photo Split',
+                //     'photo_tiles' => 'Photo Tiles',
+                //     default => 'Unknown Product',
+                // }),
                 Forms\Components\TextInput::make('price')
                     ->required()
                     ->numeric()

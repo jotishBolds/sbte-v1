@@ -57,6 +57,7 @@ class HangingMechanismBasePriceResource extends Resource
                     ->label('Product')
                     ->relationship('product', 'name')
                     ->native(false)
+                    ->hint('Select if selected applicability is "specific"')
                     ->required(fn($get) => $get('applicability') === 'specific')
                     ->disabled(fn($get) => $get('applicability') !== 'specific') // Only show when "specific" is selected
                     ->getOptionLabelFromRecordUsing(fn($record) => match ($record->name) {
