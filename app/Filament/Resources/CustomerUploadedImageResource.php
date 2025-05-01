@@ -2,66 +2,62 @@
 
 namespace App\Filament\Resources;
 
-use App\Filament\Resources\CustomerResource\Pages;
-use App\Filament\Resources\CustomerResource\RelationManagers;
+use App\Filament\Resources\CustomerUploadedImageResource\Pages;
+use App\Filament\Resources\CustomerUploadedImageResource\RelationManagers;
 use App\Models\Customer;
-use App\Models\User;
+use App\Models\CustomerUploadedImage;
 use Filament\Forms;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
+use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Tables\Actions\ActionGroup;
 
-class CustomerResource extends Resource
+class CustomerUploadedImageResource extends Resource
 {
-    protected static ?string $model = Customer::class;
+    protected static ?string $model = CustomerUploadedImage::class;
 
     protected static ?string $navigationGroup = 'Customer Management';
-    protected static ?int $navigationSort = 1;
-    protected static ?string $recordTitleAttribute = 'name';
+    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationIcon = 'heroicon-s-photo';
+    protected static ?string $activeNavigationIcon = 'heroicon-o-photo';
 
-    protected static ?string $navigationIcon = 'heroicon-s-user-circle';
-    protected static ?string $activeNavigationIcon = 'heroicon-o-user-circle';
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\FileUpload::make('profile_picture')
+                Forms\Components\Select::make('customer_id')
+                    ->label('Customer')
+                    ->searchable()
+                    // ->disabled()
+                    ->options(Customer::all()->pluck('name', 'id'))
+                    ->native(false)
+                    ->placeholder('Select a customer')
+                    ->required(),
+
+                Forms\Components\TextInput::make('title')
+                    ->maxLength(255),
+                Forms\Components\Select::make('status')
+                    ->label('Status')
+                    ->options([
+                        'active' => 'Active',
+                        'inactive' => 'Inactive',
+                    ])
+                    ->default('active')
+                    ->native(false),
+                Forms\Components\FileUpload::make('image_path')
                     ->label('Image')
                     ->imageEditor()
                     ->image()
+                    ->required()
                     ->imageEditorAspectRatios([
                         '6:8',
                         '6:9',
                     ])
-                    ->directory('CustomerImages'),
-                Forms\Components\Select::make('user_id')
-                    ->label('User')
-                    ->disabled()
-                    ->options(User::all()->pluck('name', 'id'))
-                    ->native(false)
-                    ->placeholder('Select a user')
-                    ->required(),
-                Forms\Components\TextInput::make('name')
-                    ->required()
-                    ->maxLength(255),
-                Forms\Components\TextInput::make('primary_number')
-                    ->label('Primary Number')
-                    ->required(),
-                Forms\Components\TextInput::make('alternate_number')
-                    ->label('Alternate Number'),
-                Forms\Components\Select::make('status')
-                    ->native(false)
-                    ->options([
-                        'Active' => 'Active',
-                        'Inactive' => 'Inactive',
-                        'Suspended' => 'Suspended'
-                    ])
-                    ->default('Active'),
+                    ->directory('CustomerUploadedImages'),
                 DateTimePicker::make('created_at')
                     ->hiddenOn(['create', 'edit'])
                     ->displayFormat('Y-m-d H:i:s'),
@@ -75,20 +71,16 @@ class CustomerResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('profile_picture')
-                    ->circular()
-                    ->size(80)
-                    ->label('Image')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
-                Tables\Columns\TextColumn::make('user.email')
+
+                Tables\Columns\ImageColumn::make('image_path')
+                    // ->circular()
+                    ->size(150)
+                    ->label('Image'),
+                Tables\Columns\TextColumn::make('customer.name')
                     ->searchable()
-                    ->copyable()
-                    ->copyMessage('Email address copied')
-                    ->icon('heroicon-m-envelope'),
-                Tables\Columns\TextColumn::make('primary_number')->label('Primary Number'),
-                Tables\Columns\TextColumn::make('alternate_number')->label('Alternate Number'),
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('title')
+                    ->searchable(),
                 Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
@@ -97,6 +89,7 @@ class CustomerResource extends Resource
                         'Suspended' => 'danger',
                     })
                     ->label('Status'),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -133,9 +126,10 @@ class CustomerResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListCustomers::route('/'),
-            // 'create' => Pages\CreateCustomer::route('/create'),
-            // 'edit' => Pages\EditCustomer::route('/{record}/edit'),
+            'index' => Pages\ListCustomerUploadedImages::route('/'),
+            'create' => Pages\CreateCustomerUploadedImage::route('/create'),
+            'view' => Pages\ViewCustomerUploadedImage::route('/{record}'),
+            'edit' => Pages\EditCustomerUploadedImage::route('/{record}/edit'),
         ];
     }
 }

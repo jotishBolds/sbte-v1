@@ -15,4 +15,8 @@ class Customer extends Model
     {
         return $this->hasMany(Address::class);
     }
+    public function images()
+    {
+        return $this->hasMany(CustomerUploadedImage::class, 'customer_id');
+    }
 }
