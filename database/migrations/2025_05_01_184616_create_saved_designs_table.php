@@ -20,7 +20,7 @@ return new class extends Migration
                 ->on('product_variations')
                 ->onDelete('cascade');
             $table->string('thumbnail')->nullable();
-            $table->enum('status', ['draft', 'finalized', 'carted'])->default('draft');
+            $table->enum('status', ['Draft', 'Finalized', 'Carted'])->default('Draft');
             $table->timestamps();
         });
     }

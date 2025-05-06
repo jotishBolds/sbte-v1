@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SavedDesignController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -28,7 +29,8 @@ Route::middleware('auth')->group(function () {
 //Canvas Products
 Route::get('/canvas-product/{productName}', [ProductController::class, 'showCanvasProduct']);
 
+//Saved Designs
+Route::post('/save-design', [SavedDesignController ::class, 'store']);
 
-require __DIR__.'/auth.php';
 
-
+require __DIR__ . '/auth.php';
