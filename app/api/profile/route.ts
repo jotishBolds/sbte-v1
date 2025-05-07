@@ -48,48 +48,52 @@ const MaritalStatusEnum = z.enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"]);
 const CasteEnum = z.enum(["GENERAL", "OBC", "SC", "ST"]);
 const GenderEnum = z.enum(["MALE", "FEMALE", "OTHER"]);
 
+// Updated schema with all fields as optional and nullable
 const updateProfileSchema = z.object({
-  username: z.string().optional(),
-  email: z.string().optional(),
-  currentPassword: z.string().optional(),
-  newPassword: z.string().optional(),
-  confirmPassword: z.string().optional(),
+  username: z.string().optional().nullable(),
+  email: z.string().optional().nullable(),
+  currentPassword: z.string().optional().nullable(),
+  newPassword: z.string().optional().nullable(),
+  confirmPassword: z.string().optional().nullable(),
   headOfDepartment: z
     .object({
-      name: z.string().optional(),
-      phoneNo: z.string().optional(),
-      address: z.string().optional(),
-      qualification: z.string().optional(),
-      experience: z.string().optional(),
+      name: z.string().optional().nullable(),
+      phoneNo: z.string().optional().nullable(),
+      address: z.string().optional().nullable(),
+      qualification: z.string().optional().nullable(),
+      experience: z.string().optional().nullable(),
     })
-    .optional(), // Optional HOD data
+    .optional()
+    .nullable(),
   alumnus: z
     .object({
-      jobStatus: z.string().optional(),
-      currentEmployer: z.string().optional(),
-      currentPosition: z.string().optional(),
-      industry: z.string().optional(),
+      jobStatus: z.string().optional().nullable(),
+      currentEmployer: z.string().optional().nullable(),
+      currentPosition: z.string().optional().nullable(),
+      industry: z.string().optional().nullable(),
     })
-    .optional(), // Optional HOD data
+    .optional()
+    .nullable(),
   teacher: z
     .object({
-      name: z.string().optional(),
-      phoneNo: z.string().optional(),
-      address: z.string().optional(),
-      qualification: z.string().optional(),
-      designationId: z.string().optional(),
-      categoryId: z.string().optional(),
-      experience: z.string().optional(),
-      maritalStatus: MaritalStatusEnum.optional(),
-      joiningDate: z.string().optional(),
-      gender: GenderEnum.optional(),
-      religion: z.string().optional(),
-      caste: CasteEnum.optional(),
-      isLocalResident: z.boolean().optional(),
-      isDifferentlyAbled: z.boolean().optional(),
-      hasResigned: z.boolean().optional(),
+      name: z.string().optional().nullable(),
+      phoneNo: z.string().optional().nullable(),
+      address: z.string().optional().nullable(),
+      qualification: z.string().optional().nullable(),
+      designationId: z.string().optional().nullable(),
+      categoryId: z.string().optional().nullable(),
+      experience: z.string().optional().nullable(),
+      maritalStatus: MaritalStatusEnum.optional().nullable(),
+      joiningDate: z.string().optional().nullable(),
+      gender: GenderEnum.optional().nullable(),
+      religion: z.string().optional().nullable(),
+      caste: CasteEnum.optional().nullable(),
+      isLocalResident: z.boolean().optional().nullable(),
+      isDifferentlyAbled: z.boolean().optional().nullable(),
+      hasResigned: z.boolean().optional().nullable(),
     })
-    .optional(),
+    .optional()
+    .nullable(),
 });
 
 export async function PUT(request: NextRequest) {
@@ -102,7 +106,20 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const result = updateProfileSchema.safeParse(body);
+    // Transform null values to undefined to avoid Prisma errors
+    const transformedBody = {
+      ...body,
+      teacher: body.teacher
+        ? Object.fromEntries(
+            Object.entries(body.teacher).map(([key, value]) => [
+              key,
+              value === null ? undefined : value,
+            ])
+          )
+        : undefined,
+    };
+
+    const result = updateProfileSchema.safeParse(transformedBody);
 
     if (!result.success) {
       return NextResponse.json(
@@ -127,7 +144,7 @@ export async function PUT(request: NextRequest) {
       include: {
         headOfDepartment: true,
         teacher: true,
-        alumnus:true,
+        alumnus: true,
       },
     });
 
@@ -161,10 +178,9 @@ export async function PUT(request: NextRequest) {
       const updatedUser = await prisma.user.update({
         where: { id: user.id },
         data: updateData,
-
       });
 
-      // Only update HOD if the user is HOD
+      // Only update HOD if the user is HOD and data is provided
       if (session.user.role === "HOD" && headOfDepartment) {
         if (user.headOfDepartment) {
           // Update existing HOD record
@@ -191,13 +207,18 @@ export async function PUT(request: NextRequest) {
         }
       }
 
-      // Only update teacher if the user is TEACHER
+      // Only update teacher if the user is TEACHER and data is provided
       if (session.user.role === "TEACHER" && teacher) {
         if (user.teacher) {
+          // Filter out undefined values
+          const teacherUpdateData = Object.fromEntries(
+            Object.entries(teacher).filter(([_, value]) => value !== undefined)
+          );
+
           await prisma.teacher.update({
             where: { id: user.teacher.id },
             data: {
-              ...teacher,
+              ...teacherUpdateData,
               joiningDate: teacher.joiningDate
                 ? new Date(teacher.joiningDate)
                 : undefined,
@@ -206,7 +227,7 @@ export async function PUT(request: NextRequest) {
         }
       }
 
-      // Only update teacher if the user is TEACHER
+      // Only update alumnus if the user is ALUMNUS and data is provided
       if (session.user.role === "ALUMNUS" && alumnus) {
         if (user.alumnus) {
           await prisma.alumnus.update({

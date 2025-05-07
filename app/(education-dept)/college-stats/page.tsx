@@ -231,12 +231,19 @@ const EducationDashboard: React.FC = () => {
       const response = await fetch(
         `/api/educationDepartment/student?collegeId=${collegeId}`
       );
-      const data: Student[] = await response.json();
-      setStudents(data);
-      setFilteredStudents(data); // Initialize filtered students
+      const data = await response.json();
+      // Ensure data is an array before setting state
+      const studentsArray = Array.isArray(data) ? data : [];
+      setStudents(studentsArray);
+      setFilteredStudents(studentsArray.slice(0, ITEMS_PER_PAGE)); // Initialize filtered students with first page
+      setTotalPages(Math.ceil(studentsArray.length / ITEMS_PER_PAGE));
     } catch (error) {
       console.error("Error fetching students:", error);
       setError("Failed to load students");
+      // Set empty arrays on error
+      setStudents([]);
+      setFilteredStudents([]);
+      setTotalPages(0);
     }
   };
 
@@ -266,10 +273,18 @@ const EducationDashboard: React.FC = () => {
 
   // Get unique values for filters
   const departments = Array.from(
-    new Set(students.map((s) => s.departmentName))
+    new Set(
+      (Array.isArray(students) ? students : []).map((s) => s.departmentName)
+    )
   );
-  const programs = Array.from(new Set(students.map((s) => s.programName)));
-  const semesters = Array.from(new Set(students.map((s) => s.semesterName)));
+  const programs = Array.from(
+    new Set((Array.isArray(students) ? students : []).map((s) => s.programName))
+  );
+  const semesters = Array.from(
+    new Set(
+      (Array.isArray(students) ? students : []).map((s) => s.semesterName)
+    )
+  );
 
   if (loading && !selectedCollege) {
     return <div className="container mx-auto p-6">Loading colleges...</div>;
