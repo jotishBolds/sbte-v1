@@ -33,4 +33,9 @@ class SavedDesign extends Model
     {
         return $this->hasMany(SavedDesignImage::class);
     }
+
+    public function shoppingCartItems()
+    {
+        return $this->hasMany(ShoppingCartItem::class);
+    }
 }

@@ -14,6 +14,11 @@ use Inertia\Inertia;
 
 class ProductController extends Controller
 {
+
+    public function csrf()
+    {
+        return csrf_token();
+    }
     public function showCanvasProduct($productName)
     {
         try {

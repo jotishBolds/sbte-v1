@@ -19,4 +19,9 @@ class Customer extends Model
     {
         return $this->hasMany(CustomerUploadedImage::class, 'customer_id');
     }
+
+    public function shoppingCartItems()
+    {
+        return $this->hasMany(ShoppingCartItem::class);
+    }
 }
