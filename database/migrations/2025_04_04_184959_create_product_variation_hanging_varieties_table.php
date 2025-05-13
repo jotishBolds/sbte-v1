@@ -17,7 +17,7 @@ return new class extends Migration
             $table->unsignedBigInteger('hanging_mechanism_variety_id');
             $table->foreign('hanging_mechanism_variety_id', 'pv_hm_variety_fk')
                 ->references('id')
-                ->on('hanging_mechanism_varieties')
+            ->on('hanging_mechanism_varieties')
                 ->onDelete('cascade');
             $table->decimal('price', 10, 2)->default(0.00);
             $table->enum('status', ['active', 'inactive'])->default('active');
