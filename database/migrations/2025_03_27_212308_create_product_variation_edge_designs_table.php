@@ -18,7 +18,7 @@ return new class extends Migration
             $table->decimal('price', 10, 2)->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->timestamps();
-            $table->unique(['product_variation_id', 'edge_design_id']);
+            $table->unique(['product_variation_id', 'edge_design_id'],'pv_ed_unique');
         });
     }
 

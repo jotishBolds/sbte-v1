@@ -1,19 +1,19 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Card, CardContent } from "@/Components/ui/card";
-import { MultiCanvasFormData, PanelLayout, Position } from "@/types/canvas";
-import { SIZE_OPTIONS } from "@/types/constants";
+import {
+    MultiCanvasFormData,
+    PanelLayout,
+    Position,
+    ProductData,
+} from "@/types/canvas";
 import { ImagePlus } from "lucide-react";
-
 import InfocusLayout from "@/Components/Layouts/InfocusLayout";
 import { PANEL_LAYOUTS } from "@/Components/Infocused/MultiLayoutSelector";
-import { MultiCanvasPreview } from "@/Components/Infocused/MultiPanelPreview";
 import { MultiOptionSelectors } from "@/Components/Infocused/MultiOptionsSelector";
-
-interface CanvasPrintDesignerProps {
-    showMockGallery?: boolean;
-    setShowMockGallery?: (show: boolean) => void;
-}
+import { MultiCanvasPreview } from "@/Components/Infocused/MultiPanelPreview";
+import axios from "axios";
+import { convertFileToBase64 } from "@/types/utils";
 
 const ROOM_MOCKS = [
     {
@@ -53,21 +53,30 @@ const ROOM_MOCKS = [
     },
 ];
 
+interface CanvasPrintDesignerProps {
+    showMockGallery?: boolean;
+    setShowMockGallery?: (show: boolean) => void;
+}
+
 const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [fileName, setFileName] = useState<string | null>(null);
-    const [imagePosition, setImagePosition] = useState({ x: 0, y: 0 });
+    const [imagePosition, setImagePosition] = useState<Position>({
+        x: 0,
+        y: 0,
+    });
     const [zoomLevel, setZoomLevel] = useState(100);
     const [selectedMock, setSelectedMock] = useState(ROOM_MOCKS[0]);
     const [selectedLayout, setSelectedLayout] = useState<PanelLayout | null>(
-        PANEL_LAYOUTS[0]
+        null
     );
     const [panelImages, setPanelImages] = useState<Record<string, string>>({});
     const [activePanel, setActivePanel] = useState<string | null>(null);
     const [panelStates, setPanelStates] = useState<
         Record<string, { position: Position; zoom: number }>
     >({});
+    const [productData, setProductData] = useState<ProductData | null>(null);
     const mockPreviewRef = useRef<HTMLDivElement>(null);
     const [mockDimensions, setMockDimensions] = useState({
         width: 0,
@@ -81,19 +90,41 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
         processing,
         errors,
     } = useForm<MultiCanvasFormData>({
-        size: SIZE_OPTIONS[0].label,
+        size: "",
         quantity: 1,
         imageEffect: "Original",
         edgeDesign: "Folded",
-        hangingMechanism: "Yes",
+        hangingMechanism: "No",
         imageFile: null,
+        imageUrl: null,
         imagePosition: { x: 0, y: 0 },
         zoomLevel: 100,
-        layout: PANEL_LAYOUTS[0],
+        layout: null,
         frameThickness: 1,
         panelImages: {},
         panelEffects: {},
     });
+
+    useEffect(() => {
+        const fetchProductData = async () => {
+            try {
+                const response = await axios.get(
+                    "/canvas-product/canvas_layout"
+                );
+                setProductData(response.data);
+                if (response.data?.product?.product_variations?.length > 0) {
+                    setData(
+                        "size",
+                        response.data.product.product_variations[0].label
+                    );
+                }
+            } catch (error) {
+                console.error("Error fetching product data:", error);
+            }
+        };
+
+        fetchProductData();
+    }, []);
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -130,6 +161,7 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                 setFileName(name);
                 setData("imageFile", file);
                 setImageUrl(URL.createObjectURL(file));
+                setData("imageUrl", imageData);
             } catch (error) {
                 console.error("Error loading image from localStorage:", error);
                 localStorage.removeItem("canvasDesignerImage");
@@ -174,6 +206,39 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
         }
     };
 
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0] || null;
+        if (file) {
+            setImageFile(file);
+            setFileName(file.name);
+            setData("imageFile", file);
+
+            const base64Image = await convertFileToBase64(file);
+            setImageUrl(URL.createObjectURL(file));
+            setData("imageUrl", base64Image);
+
+            localStorage.setItem(
+                "canvasDesignerImage",
+                JSON.stringify({
+                    imageData: base64Image,
+                    name: file.name,
+                })
+            );
+
+            const newPosition = { x: 0, y: 0 };
+            setImagePosition(newPosition);
+            setZoomLevel(100);
+            setData("imagePosition", newPosition);
+            setData("zoomLevel", 100);
+
+            localStorage.setItem(
+                "canvasDesignerPosition",
+                JSON.stringify(newPosition)
+            );
+            localStorage.setItem("canvasDesignerZoom", "100");
+        }
+    };
+
     const handlePanelImageChange = (panelId: string, file: File) => {
         const objectUrl = URL.createObjectURL(file);
         const newPanelImages = { ...panelImages, [panelId]: objectUrl };
@@ -198,6 +263,10 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                 "canvasDesignerPanelImages",
                 JSON.stringify(storedImages)
             );
+            setData("panelImages", {
+                ...data.panelImages,
+                [panelId]: reader.result as string,
+            });
         };
         reader.readAsDataURL(file);
     };
@@ -230,6 +299,7 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
         setImageUrl(null);
         setFileName(null);
         setData("imageFile", null);
+        setData("imageUrl", null);
         localStorage.removeItem("canvasDesignerImage");
         const newPosition = { x: 0, y: 0 };
         setImagePosition(newPosition);
@@ -238,7 +308,7 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
         setData("zoomLevel", 100);
     };
 
-    const handlePositionChange = (position: { x: number; y: number }) => {
+    const handlePositionChange = (position: Position) => {
         setImagePosition(position);
         setData("imagePosition", position);
     };
@@ -254,7 +324,10 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
         localStorage.setItem("canvasDesignerLayout", JSON.stringify(layout));
     };
 
-    const handlePanelEffectChange = (panelId: string, effect: string) => {
+    const handlePanelEffectChange = (
+        panelId: string,
+        effect: string | number
+    ) => {
         setData("panelEffects", {
             ...data.panelEffects,
             [panelId]: effect,
@@ -279,15 +352,34 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
         };
     }, [imageUrl, panelImages]);
 
-    const selectedSize =
-        SIZE_OPTIONS.find((size) => size.label === data.size) ||
-        SIZE_OPTIONS[0];
+    const getSelectedSizeDimensions = () => {
+        const selectedVariation =
+            productData?.product?.product_variations?.find(
+                (variation) => variation.label === data.size
+            );
+
+        if (selectedVariation) {
+            return {
+                width: parseFloat(selectedVariation.horizontal_length),
+                height: parseFloat(selectedVariation.vertical_length),
+                unit: selectedVariation.length_unit.name,
+            };
+        }
+
+        return { width: 0, height: 0, unit: "inch" };
+    };
 
     const getCanvasDimensions = () => {
+        const selectedSize = getSelectedSizeDimensions();
         const baseSize = Math.min(mockDimensions.width, mockDimensions.height);
-        const aspectRatio = selectedLayout
-            ? selectedLayout.totalWidth / selectedLayout.totalHeight
-            : selectedSize.width / selectedSize.height;
+        let aspectRatio = 1;
+
+        if (selectedLayout) {
+            aspectRatio =
+                selectedLayout.totalWidth / selectedLayout.totalHeight;
+        } else {
+            aspectRatio = selectedSize.height / selectedSize.width;
+        }
 
         let width = baseSize * selectedMock.canvasScale;
         let height = width / aspectRatio;
@@ -296,12 +388,21 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
             height = baseSize * selectedMock.canvasScale;
             width = height * aspectRatio;
         }
+
         return { width, height };
     };
 
-    const getImageFilter = (effect?: string) => {
-        const effectToUse = effect || data.imageEffect;
-        switch (effectToUse) {
+    const getImageFilter = (effect?: string | number) => {
+        const effectName =
+            typeof effect === "number"
+                ? productData?.baseImageEffects?.find((e) => e.id === effect)
+                      ?.name ||
+                  productData?.product?.product_variations?.[0]?.image_effects?.find(
+                      (ie) => ie.image_effect_id === effect
+                  )?.image_effect?.name
+                : effect || data.imageEffect;
+
+        switch (effectName) {
             case "B&W":
                 return "grayscale(100%)";
             case "Sepia":
@@ -312,7 +413,43 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
     };
 
     const getBorderStyle = () => {
-        return {};
+        const edgeName =
+            typeof data.edgeDesign === "number"
+                ? productData?.baseEdgeDesigns?.find(
+                      (e) => e.id === data.edgeDesign
+                  )?.name ||
+                  productData?.product?.product_variations?.[0]?.edge_designs?.find(
+                      (ed) => ed.edge_design_id === data.edgeDesign
+                  )?.edge_design?.name
+                : data.edgeDesign;
+
+        const borderWidth = `${data.frameThickness}px`;
+        switch (edgeName) {
+            case "Folded":
+                return {
+                    border: `${borderWidth} solid #f5f5f5`,
+                    boxShadow:
+                        "inset 0 0 10px rgba(0,0,0,0.1), 0 6px 15px rgba(0,0,0,0.2)",
+                };
+            case "Mirrored":
+                return {
+                    border: `${borderWidth} solid #e0e0e0`,
+                    boxShadow:
+                        "inset 0 0 20px rgba(255,255,255,0.8), 0 6px 15px rgba(0,0,0,0.2)",
+                };
+            case "White":
+                return {
+                    border: `${borderWidth} solid white`,
+                    boxShadow: "0 6px 15px rgba(0,0,0,0.2)",
+                };
+            case "Black":
+                return {
+                    border: `${borderWidth} solid #222`,
+                    boxShadow: "0 6px 15px rgba(0,0,0,0.3)",
+                };
+            default:
+                return { border: `${borderWidth} solid #d3d3d3` };
+        }
     };
 
     const getImageTransform = (panelId?: string) => {
@@ -367,7 +504,7 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                                         imageUrl={imageUrl}
                                         imagePosition={imagePosition}
                                         zoomLevel={zoomLevel}
-                                        selectedSize={selectedSize}
+                                        selectedSize={data.size}
                                         imageEffect={data.imageEffect}
                                         edgeDesign={data.edgeDesign}
                                         selectedLayout={selectedLayout}
@@ -389,6 +526,7 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                                         setActivePanel={setActivePanel}
                                         panelStates={panelStates}
                                         setPanelStates={setPanelStates}
+                                        productData={productData}
                                     />
                                     {(imageUrl ||
                                         Object.keys(panelImages).length >
@@ -458,8 +596,7 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                                                                             .panelEffects?.[
                                                                             panel
                                                                                 .id
-                                                                        ] ||
-                                                                        data.imageEffect;
+                                                                        ];
 
                                                                     return (
                                                                         <div
@@ -678,6 +815,7 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                                                 );
                                             }
                                         }}
+                                        productData={productData}
                                     />
                                 </CardContent>
                             </Card>

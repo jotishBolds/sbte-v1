@@ -9,7 +9,6 @@ import {
     ChevronDown,
     X,
 } from "lucide-react";
-
 import { Sheet, SheetContent, SheetTrigger } from "@/Components/ui/sheet";
 import {
     DropdownMenu,
@@ -20,9 +19,13 @@ import {
 import { Link } from "@inertiajs/react";
 import { NavItem } from "@/types/types";
 
+import { useCart } from "@/context/CartContext";
+import { CartSheet } from "../CartSheet";
+
 export const Navbar: React.FC = () => {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
-
+    const { cartCount } = useCart();
+    const [cartOpen, setCartOpen] = useState(false);
     const navItems: NavItem[] = [
         { label: "Home", href: "/" },
         {
@@ -276,21 +279,25 @@ export const Navbar: React.FC = () => {
                                         0
                                     </span>
                                 </Link>
-                                <Link
-                                    href="/cart"
+                                <button
+                                    onClick={() => setCartOpen(true)}
                                     className="text-gray-700 hover:text-black transition-colors relative"
                                     aria-label="Cart"
                                 >
                                     <ShoppingCart size={20} />
-                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                                        0
-                                    </span>
-                                </Link>
+                                    {cartCount > 0 && (
+                                        <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                                            {cartCount}
+                                        </span>
+                                    )}
+                                </button>
                             </>
                         )}
                     </div>
                 </div>
             </div>
+
+            <CartSheet open={cartOpen} onOpenChange={setCartOpen} />
         </nav>
     );
 };

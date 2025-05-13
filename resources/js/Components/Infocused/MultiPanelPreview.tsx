@@ -1,24 +1,25 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Slider } from "@/Components/ui/slider";
-import { Position, SizeOption, PanelLayout, Panel } from "@/types/canvas";
+import { Position, PanelLayout, Panel } from "@/types/canvas";
 import { ImagePlus, X } from "lucide-react";
+import { ProductData } from "@/types/canvas";
 
 interface CanvasPreviewProps {
     imageUrl: string | null;
     imagePosition: Position;
     zoomLevel: number;
-    selectedSize: SizeOption;
-    imageEffect: string;
-    edgeDesign: string;
+    selectedSize: string;
+    imageEffect: string | number;
+    edgeDesign: string | number;
     selectedLayout: PanelLayout | null;
     frameThickness: number;
     panelImages: Record<string, string>;
-    panelEffects: Record<string, string>;
+    panelEffects: Record<string, string | number>;
     onPositionChange: (position: Position) => void;
     onZoomChange: (zoom: number) => void;
     onPanelImageChange: (panelId: string, file: File) => void;
     onPanelImageRemove: (panelId: string) => void;
-    onPanelEffectChange: (panelId: string, effect: string) => void;
+    onPanelEffectChange: (panelId: string, effect: string | number) => void;
     activePanel: string | null;
     setActivePanel: (panelId: string | null) => void;
     panelStates: Record<string, { position: Position; zoom: number }>;
@@ -27,6 +28,7 @@ interface CanvasPreviewProps {
             Record<string, { position: Position; zoom: number }>
         >
     >;
+    productData: ProductData | null;
 }
 
 export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
@@ -49,12 +51,27 @@ export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
     setActivePanel,
     panelStates,
     setPanelStates,
+    productData,
 }) => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState<Position>({ x: 0, y: 0 });
     const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
     const [draggingPanel, setDraggingPanel] = useState<Panel | null>(null);
+
+    // Get selected variation
+    const selectedVariation = productData?.product?.product_variations?.find(
+        (variation) => variation.label === selectedSize
+    );
+
+    // Get dimensions from selected size
+    const width = selectedVariation
+        ? parseFloat(selectedVariation.horizontal_length)
+        : 0;
+    const height = selectedVariation
+        ? parseFloat(selectedVariation.vertical_length)
+        : 0;
+    const unit = selectedVariation?.length_unit?.name || "inch";
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -70,9 +87,18 @@ export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
         return () => window.removeEventListener("resize", updateDimensions);
     }, []);
 
-    const getImageFilter = (effect?: string) => {
-        const effectToUse = effect || imageEffect;
-        switch (effectToUse) {
+    const getImageFilter = (effect?: string | number) => {
+        // If effect is a number (ID), we need to find the matching effect name
+        const effectName =
+            typeof effect === "number"
+                ? productData?.baseImageEffects?.find((e) => e.id === effect)
+                      ?.name ||
+                  productData?.product?.product_variations?.[0]?.image_effects?.find(
+                      (ie) => ie.image_effect_id === effect
+                  )?.image_effect?.name
+                : effect || imageEffect;
+
+        switch (effectName) {
             case "B&W":
                 return "grayscale(100%)";
             case "Sepia":
@@ -83,8 +109,18 @@ export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
     };
 
     const getBorderStyle = () => {
+        // If edgeDesign is a number (ID), we need to find the matching design name
+        const edgeName =
+            typeof edgeDesign === "number"
+                ? productData?.baseEdgeDesigns?.find((e) => e.id === edgeDesign)
+                      ?.name ||
+                  productData?.product?.product_variations?.[0]?.edge_designs?.find(
+                      (ed) => ed.edge_design_id === edgeDesign
+                  )?.edge_design?.name
+                : edgeDesign;
+
         const borderWidth = `${frameThickness}px`;
-        switch (edgeDesign) {
+        switch (edgeName) {
             case "Folded":
                 return {
                     border: `${borderWidth} solid #f5f5f5`,
@@ -238,7 +274,7 @@ export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
                     <div className="absolute right-0 h-3 w-px bg-gray-400 -top-1"></div>
                     <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-6">
                         <div className="bg-white px-3 py-1 text-sm font-medium text-gray-700 shadow-sm border rounded">
-                            {`${selectedSize.width} inch`}
+                            {width > 0 ? `${width} ${unit}` : "Select size"}
                         </div>
                     </div>
                 </div>
@@ -251,7 +287,7 @@ export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
                     <div className="absolute bottom-0 w-3 h-px bg-gray-400 -left-[6px]"></div>
                     <div className="absolute top-1/2 transform -translate-y-1/2 translate-x-6 -right-4">
                         <div className="bg-white px-3 py-1 text-sm font-medium text-gray-700 shadow-sm border rounded transform rotate-90">
-                            {`${selectedSize.height} inch`}
+                            {height > 0 ? `${height} ${unit}` : "Select size"}
                         </div>
                     </div>
                 </div>
@@ -261,9 +297,7 @@ export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
                 className="relative mx-auto"
                 style={{
                     width: "70%",
-                    paddingBottom: `${
-                        (selectedSize.height / selectedSize.width) * 70
-                    }%`,
+                    paddingBottom: `${(height / width) * 70}%`,
                 }}
             >
                 <div
@@ -389,7 +423,7 @@ export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
                             <div className="absolute right-0 h-3 w-px bg-gray-400 -top-1"></div>
                             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-6">
                                 <div className="bg-white px-3 py-1 text-sm font-medium text-gray-700 shadow-sm border rounded">
-                                    {`${selectedLayout.totalWidth} inch`}
+                                    {`${selectedLayout.totalWidth} ${unit}`}
                                 </div>
                             </div>
                         </div>
@@ -409,7 +443,7 @@ export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
                             <div className="absolute bottom-0 w-3 h-px bg-gray-400 -left-[6px]"></div>
                             <div className="absolute top-1/2 transform -translate-y-1/2 translate-x-6 -right-4">
                                 <div className="bg-white px-3 py-1 text-sm font-medium text-gray-700 shadow-sm border rounded transform rotate-90">
-                                    {`${selectedLayout.totalHeight} inch`}
+                                    {`${selectedLayout.totalHeight} ${unit}`}
                                 </div>
                             </div>
                         </div>
@@ -428,8 +462,7 @@ export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
                                 zoom: 100,
                             };
 
-                            const panelEffect =
-                                panelEffects[panel.id] || imageEffect;
+                            const panelEffect = panelEffects[panel.id];
 
                             return (
                                 <div
@@ -534,7 +567,9 @@ export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
 
                 <div className="mt-4 text-center text-sm text-gray-500">
                     {selectedLayout.description} • Total:{" "}
-                    {selectedLayout.totalWidth}" × {selectedLayout.totalHeight}"
+                    {selectedLayout.totalWidth}
+                    {unit} × {selectedLayout.totalHeight}
+                    {unit}
                 </div>
             </div>
         );

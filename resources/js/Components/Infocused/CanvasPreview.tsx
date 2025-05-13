@@ -1,16 +1,18 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Slider } from "@/Components/ui/slider";
 import { Position, SizeOption } from "@/types/canvas";
+import { ProductData } from "@/types/canvas";
 
 interface CanvasPreviewProps {
     imageUrl: string | null;
     imagePosition: Position;
     zoomLevel: number;
-    selectedSize: SizeOption;
-    imageEffect: string;
-    edgeDesign: string;
+    selectedSize: string;
+    imageEffect: string | number;
+    edgeDesign: string | number;
     onPositionChange: (position: Position) => void;
     onZoomChange: (zoom: number) => void;
+    productData: ProductData | null;
 }
 
 export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
@@ -22,6 +24,7 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
     edgeDesign,
     onPositionChange,
     onZoomChange,
+    productData,
 }) => {
     const canvasRef = useRef<HTMLDivElement>(null);
     const imageRef = useRef<HTMLImageElement>(null);
@@ -35,8 +38,20 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
     const containerWidth = 600;
     const containerHeight = 500; // Fixed height for the preview area
 
+    // Get dimensions from the selected size
+    const selectedVariation = productData?.product?.product_variations?.find(
+        (variation) => variation.label === selectedSize
+    );
+
+    const width = selectedVariation
+        ? parseFloat(selectedVariation.horizontal_length)
+        : 0;
+    const height = selectedVariation
+        ? parseFloat(selectedVariation.vertical_length)
+        : 0;
+
     // Calculate aspect ratio and scaled dimensions
-    const aspectRatio = selectedSize.height / selectedSize.width;
+    const aspectRatio = height / width || 1;
     let contentWidth = containerWidth;
     let contentHeight = contentWidth * aspectRatio;
 
@@ -56,7 +71,6 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         }
     }, [selectedSize, contentWidth, contentHeight]);
 
-    // Handle image load to get natural dimensions and initialize position
     // Handle image load to get natural dimensions and initialize position
     const handleImageLoad = () => {
         if (imageRef.current && canvasRef.current) {
@@ -85,7 +99,6 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         }
     };
 
-    // Reset to center with default zoom (fit to proper dimension)
     // Reset to center with default zoom (prioritize height fitting)
     const handleReset = () => {
         if (imageRef.current) {
@@ -138,7 +151,6 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
 
             // Calculate maximum allowed position based on zoom level
             const zoomFactor = zoomLevel / 100;
-            // Adjust the maxX/maxY calculation to allow for better dragging at all zoom levels
             const maxX = Math.max(0, (zoomFactor - 1) / 2);
             const maxY = Math.max(0, (zoomFactor - 1) / 2);
 
@@ -158,7 +170,6 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
 
             // Calculate maximum allowed position based on zoom level
             const zoomFactor = zoomLevel / 100;
-            // Adjust the maxX/maxY calculation to allow for better dragging at all zoom levels
             const maxX = Math.max(0, (zoomFactor - 1) / 2);
             const maxY = Math.max(0, (zoomFactor - 1) / 2);
 
@@ -185,7 +196,6 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         // Adjust position to maintain proportional position during zoom
         if (oldZoom !== newZoom) {
             // Calculate new position that maintains the current center point
-            // This ensures zooming happens from the current position
             const scaleFactor = newZoom / oldZoom;
             const newX = centerX;
             const newY = centerY;
@@ -228,7 +238,18 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
 
     // Apply image effects
     const getImageFilter = () => {
-        switch (imageEffect) {
+        // If effect is a number (ID), we need to find the matching effect name
+        const effectName =
+            typeof imageEffect === "number"
+                ? productData?.baseImageEffects?.find(
+                      (e) => e.id === imageEffect
+                  )?.name ||
+                  productData?.product?.product_variations?.[0]?.image_effects?.find(
+                      (e) => e.image_effect_id === imageEffect
+                  )?.image_effect?.name
+                : imageEffect;
+
+        switch (effectName) {
             case "B&W":
                 return "grayscale(100%)";
             case "Sepia":
@@ -238,9 +259,19 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
         }
     };
 
-    // Apply border styles with smaller borders
+    // Apply border styles
     const getBorderStyle = () => {
-        switch (edgeDesign) {
+        // If edgeDesign is a number (ID), we need to find the matching design name
+        const edgeName =
+            typeof edgeDesign === "number"
+                ? productData?.baseEdgeDesigns?.find((e) => e.id === edgeDesign)
+                      ?.name ||
+                  productData?.product?.product_variations?.[0]?.edge_designs?.find(
+                      (e) => e.edge_design_id === edgeDesign
+                  )?.edge_design?.name
+                : edgeDesign;
+
+        switch (edgeName) {
             case "Folded":
                 return {
                     border: "8px solid #f5f5f5",
@@ -282,7 +313,12 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                             <div className="absolute right-0 h-3 w-px bg-gray-400 -top-1"></div>
                             <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-6">
                                 <div className="bg-white px-3 py-1 text-sm font-medium text-gray-700 shadow-sm border rounded">
-                                    {`${selectedSize.width} inch`}
+                                    {width > 0
+                                        ? `${width} ${
+                                              selectedVariation?.length_unit
+                                                  ?.name || "inch"
+                                          }`
+                                        : "Select size"}
                                 </div>
                             </div>
                         </div>
@@ -295,7 +331,12 @@ export const CanvasPreview: React.FC<CanvasPreviewProps> = ({
                             <div className="absolute bottom-0 w-3 h-px bg-gray-400 -left-[6px]"></div>
                             <div className="absolute top-1/2 transform -translate-y-1/2 translate-x-6 -right-4">
                                 <div className="bg-white px-3 py-1 text-sm font-medium text-gray-700 shadow-sm border rounded transform rotate-90">
-                                    {`${selectedSize.height} inch`}
+                                    {height > 0
+                                        ? `${height} ${
+                                              selectedVariation?.length_unit
+                                                  ?.name || "inch"
+                                          }`
+                                        : "Select size"}
                                 </div>
                             </div>
                         </div>

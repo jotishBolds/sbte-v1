@@ -1,12 +1,15 @@
+// Updated CanvasPrintDesigner.tsx
 import React, { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Card, CardContent } from "@/Components/ui/card";
-import { CanvasFormData, Position } from "@/types/canvas";
+import { CanvasFormData, Position, ProductData } from "@/types/canvas";
 import { SIZE_OPTIONS } from "@/types/constants";
 import { ImageUploader } from "@/Components/Infocused/ImageUploader";
 import { CanvasPreview } from "@/Components/Infocused/CanvasPreview";
 import { OptionSelectors } from "@/Components/Infocused/OptionsSelector";
 import InfocusLayout from "@/Components/Layouts/InfocusLayout";
+import axios from "axios";
+import { convertFileToBase64 } from "@/types/utils";
 
 interface CanvasPrintDesignerProps {
     showMockGallery?: boolean;
@@ -66,7 +69,7 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
         width: 0,
         height: 0,
     });
-
+    const [productData, setProductData] = useState<ProductData | null>(null);
     const {
         data,
         setData: setFormData,
@@ -78,11 +81,107 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
         quantity: 1,
         imageEffect: "Original",
         edgeDesign: "Folded",
-        hangingMechanism: "Yes",
+        hangingMechanism: "No",
         imageFile: null,
         imagePosition: { x: 0, y: 0 },
         zoomLevel: 100,
     });
+
+    // Get the current edge design name (handling both string and number IDs)
+    const getEdgeDesignName = () => {
+        if (typeof data.edgeDesign === "number") {
+            const edge =
+                productData?.baseEdgeDesigns?.find(
+                    (e) => e.id === Number(data.edgeDesign)
+                ) ||
+                productData?.product?.product_variations?.[0]?.edge_designs?.find(
+                    (ed) => ed.edge_design_id === Number(data.edgeDesign)
+                )?.edge_design;
+            return edge?.name || "Folded";
+        }
+        return data.edgeDesign;
+    };
+
+    // Get the current image effect name (handling both string and number IDs)
+    const getImageEffectName = () => {
+        if (typeof data.imageEffect === "number") {
+            const effect =
+                productData?.baseImageEffects?.find(
+                    (e) => e.id === Number(data.imageEffect)
+                ) ||
+                productData?.product?.product_variations?.[0]?.image_effects?.find(
+                    (ie) => ie.image_effect_id === Number(data.imageEffect)
+                )?.image_effect;
+            return effect?.name || "Original";
+        }
+        return data.imageEffect;
+    };
+
+    // Get border style based on edge design
+    const getBorderStyle = () => {
+        const edgeName = getEdgeDesignName();
+
+        switch (edgeName) {
+            case "Folded":
+                return {
+                    border: "15px solid #f5f5f5",
+                    boxShadow:
+                        "inset 0 0 10px rgba(0,0,0,0.1), 0 6px 15px rgba(0,0,0,0.2)",
+                };
+            case "Mirrored":
+                return {
+                    border: "10px solid #e0e0e0",
+                    boxShadow:
+                        "inset 0 0 20px rgba(255,255,255,0.8), 0 6px 15px rgba(0,0,0,0.2)",
+                };
+            case "White":
+                return {
+                    border: "15px solid white",
+                    boxShadow: "0 6px 15px rgba(0,0,0,0.2)",
+                };
+            case "Black":
+                return {
+                    border: "15px solid #222",
+                    boxShadow: "0 6px 15px rgba(0,0,0,0.3)",
+                };
+            default:
+                return {
+                    border: "15px solid #f5f5f5",
+                    boxShadow:
+                        "inset 0 0 10px rgba(0,0,0,0.1), 0 6px 15px rgba(0,0,0,0.2)",
+                };
+        }
+    };
+
+    // Get image filter based on image effect
+    const getImageFilter = () => {
+        const effectName = getImageEffectName();
+
+        switch (effectName) {
+            case "B&W":
+                return "grayscale(100%)";
+            case "Sepia":
+                return "sepia(100%)";
+            default:
+                return "none";
+        }
+    };
+
+    useEffect(() => {
+        // Fetch product data when component mounts
+        const fetchProductData = async () => {
+            try {
+                const response = await axios.get(
+                    "/canvas-product/canvas_print"
+                );
+                setProductData(response.data);
+            } catch (error) {
+                console.error("Error fetching product data:", error);
+            }
+        };
+
+        fetchProductData();
+    }, []);
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -103,62 +202,91 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
         if (storedImage) {
             try {
                 const { imageData, name } = JSON.parse(storedImage);
-                const byteString = atob(imageData.split(",")[1]);
-                const mimeString = imageData
-                    .split(",")[0]
-                    .split(":")[1]
-                    .split(";")[0];
-                const ab = new ArrayBuffer(byteString.length);
-                const ia = new Uint8Array(ab);
-                for (let i = 0; i < byteString.length; i++) {
-                    ia[i] = byteString.charCodeAt(i);
-                }
-                const blob = new Blob([ab], { type: mimeString });
-                const file = new File([blob], name, { type: mimeString });
-                setImageFile(file);
+
+                // Always use the base64 image data for persistence
+                setImageUrl(imageData);
                 setFileName(name);
-                setData("imageFile", file);
-                setImageUrl(URL.createObjectURL(file));
+
+                // Create a file object from base64
+                if (imageData.startsWith("data:")) {
+                    const byteString = atob(imageData.split(",")[1]);
+                    const mimeString = imageData
+                        .split(",")[0]
+                        .split(":")[1]
+                        .split(";")[0];
+                    const ab = new ArrayBuffer(byteString.length);
+                    const ia = new Uint8Array(ab);
+                    for (let i = 0; i < byteString.length; i++) {
+                        ia[i] = byteString.charCodeAt(i);
+                    }
+                    const blob = new Blob([ab], { type: mimeString });
+                    const file = new File([blob], name, { type: mimeString });
+                    setImageFile(file);
+                    setData("imageFile", file);
+                }
             } catch (error) {
                 console.error("Error loading image from localStorage:", error);
                 localStorage.removeItem("canvasDesignerImage");
             }
         }
+
         const storedMock = localStorage.getItem("canvasDesignerMock");
         if (storedMock) {
             const mockId = parseInt(storedMock);
             const mock = ROOM_MOCKS.find((m) => m.id === mockId);
             if (mock) setSelectedMock(mock);
         }
+
+        // Load position and zoom from localStorage if available
+        const storedPosition = localStorage.getItem("canvasDesignerPosition");
+        if (storedPosition) {
+            const position = JSON.parse(storedPosition);
+            setImagePosition(position);
+            setData("imagePosition", position);
+        }
+
+        const storedZoom = localStorage.getItem("canvasDesignerZoom");
+        if (storedZoom) {
+            const zoom = parseInt(storedZoom);
+            setZoomLevel(zoom);
+            setData("zoomLevel", zoom);
+        }
     }, []);
 
     const setData = (key: keyof CanvasFormData, value: any) =>
         setFormData(key, value);
 
-    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0] || null;
         if (file) {
             setImageFile(file);
             setFileName(file.name);
             setData("imageFile", file);
-            const objectUrl = URL.createObjectURL(file);
-            setImageUrl(objectUrl);
-            const reader = new FileReader();
-            reader.onload = () => {
-                localStorage.setItem(
-                    "canvasDesignerImage",
-                    JSON.stringify({
-                        imageData: reader.result,
-                        name: file.name,
-                    })
-                );
-            };
-            reader.readAsDataURL(file);
+
+            const base64Image = await convertFileToBase64(file);
+            setImageUrl(base64Image);
+
+            // Store in localStorage
+            localStorage.setItem(
+                "canvasDesignerImage",
+                JSON.stringify({
+                    imageData: base64Image,
+                    name: file.name,
+                })
+            );
+
             const newPosition = { x: 0, y: 0 };
             setImagePosition(newPosition);
             setZoomLevel(100);
             setData("imagePosition", newPosition);
             setData("zoomLevel", 100);
+
+            // Store position and zoom
+            localStorage.setItem(
+                "canvasDesignerPosition",
+                JSON.stringify(newPosition)
+            );
+            localStorage.setItem("canvasDesignerZoom", "100");
         }
     };
 
@@ -168,12 +296,16 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
     };
 
     const handleDeleteImage = () => {
-        if (imageUrl) URL.revokeObjectURL(imageUrl);
+        if (imageUrl && imageUrl.startsWith("blob:")) {
+            URL.revokeObjectURL(imageUrl);
+        }
         setImageFile(null);
         setImageUrl(null);
         setFileName(null);
         setData("imageFile", null);
         localStorage.removeItem("canvasDesignerImage");
+        localStorage.removeItem("canvasDesignerPosition");
+        localStorage.removeItem("canvasDesignerZoom");
         const newPosition = { x: 0, y: 0 };
         setImagePosition(newPosition);
         setZoomLevel(100);
@@ -184,11 +316,16 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
     const handlePositionChange = (position: Position) => {
         setImagePosition(position);
         setData("imagePosition", position);
+        localStorage.setItem(
+            "canvasDesignerPosition",
+            JSON.stringify(position)
+        );
     };
 
     const handleZoomChange = (value: number) => {
         setZoomLevel(value);
         setData("zoomLevel", value);
+        localStorage.setItem("canvasDesignerZoom", value.toString());
     };
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -198,23 +335,42 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
 
     useEffect(() => {
         return () => {
-            if (imageUrl && imageUrl.startsWith("blob:"))
+            // Clean up any blob URLs if they exist
+            if (imageUrl && imageUrl.startsWith("blob:")) {
                 URL.revokeObjectURL(imageUrl);
+            }
         };
     }, [imageUrl]);
 
-    const selectedSize =
-        SIZE_OPTIONS.find((size) => size.label === data.size) ||
-        SIZE_OPTIONS[0];
+    const getSelectedSizeDimensions = () => {
+        const selectedVariation =
+            productData?.product?.product_variations?.find(
+                (variation) => variation.label === data.size
+            );
+
+        if (selectedVariation) {
+            return {
+                width: parseFloat(selectedVariation.horizontal_length),
+                height: parseFloat(selectedVariation.vertical_length),
+                label: selectedVariation.label,
+                unit: selectedVariation.length_unit.name,
+            };
+        }
+
+        return { width: 0, height: 0, label: "", unit: "inch" };
+    };
 
     const getCanvasDimensions = () => {
+        const selectedSize = getSelectedSizeDimensions();
         const baseSize = Math.min(mockDimensions.width, mockDimensions.height);
         let width = baseSize * selectedMock.canvasScale;
         let height = width * (selectedSize.height / selectedSize.width);
+
         if (height > baseSize) {
             height = baseSize * selectedMock.canvasScale;
             width = height * (selectedSize.width / selectedSize.height);
         }
+
         return { width, height };
     };
 
@@ -259,11 +415,12 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                                         imageUrl={imageUrl}
                                         imagePosition={imagePosition}
                                         zoomLevel={zoomLevel}
-                                        selectedSize={selectedSize}
+                                        selectedSize={data.size}
                                         imageEffect={data.imageEffect}
                                         edgeDesign={data.edgeDesign}
                                         onPositionChange={handlePositionChange}
                                         onZoomChange={handleZoomChange}
+                                        productData={productData}
                                     />
                                     {imageUrl && (
                                         <div className="mt-8">
@@ -302,36 +459,10 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                                                             getCanvasDimensions()
                                                                 .height
                                                         }px`,
-                                                        boxShadow:
-                                                            "0 6px 15px rgba(0,0,0,0.2)",
+                                                        ...getBorderStyle(),
                                                         overflow: "hidden",
                                                         backgroundColor:
                                                             "white",
-                                                        borderRadius: "2px",
-                                                        ...(data.edgeDesign ===
-                                                            "Folded" && {
-                                                            border: "15px solid #f5f5f5",
-                                                            boxShadow:
-                                                                "inset 0 0 10px rgba(0,0,0,0.1), 0 6px 15px rgba(0,0,0,0.2)",
-                                                        }),
-                                                        ...(data.edgeDesign ===
-                                                            "Mirrored" && {
-                                                            border: "10px solid #e0e0e0",
-                                                            boxShadow:
-                                                                "inset 0 0 20px rgba(255,255,255,0.8), 0 6px 15px rgba(0,0,0,0.2)",
-                                                        }),
-                                                        ...(data.edgeDesign ===
-                                                            "White" && {
-                                                            border: "15px solid white",
-                                                            boxShadow:
-                                                                "0 6px 15px rgba(0,0,0,0.2)",
-                                                        }),
-                                                        ...(data.edgeDesign ===
-                                                            "Black" && {
-                                                            border: "15px solid #222",
-                                                            boxShadow:
-                                                                "0 6px 15px rgba(0,0,0,0.3)",
-                                                        }),
                                                     }}
                                                 >
                                                     {imageUrl && (
@@ -357,14 +488,7 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                                                                         "center",
                                                                     transition:
                                                                         "transform 0.3s ease",
-                                                                    filter:
-                                                                        data.imageEffect ===
-                                                                        "B&W"
-                                                                            ? "grayscale(100%)"
-                                                                            : data.imageEffect ===
-                                                                              "Sepia"
-                                                                            ? "sepia(100%)"
-                                                                            : "none",
+                                                                    filter: getImageFilter(),
                                                                 }}
                                                             />
                                                         </div>
@@ -453,6 +577,7 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                                     <h2 className="text-xl font-semibold mb-4">
                                         Price Calculator
                                     </h2>
+
                                     <OptionSelectors
                                         data={data}
                                         setData={(key, value) =>
@@ -464,6 +589,8 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                                         onSubmit={handleSubmit}
                                         processing={processing}
                                         hasImage={!!imageUrl}
+                                        productData={productData}
+                                        imageUrl={imageUrl}
                                     />
                                 </CardContent>
                             </Card>
