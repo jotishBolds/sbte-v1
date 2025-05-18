@@ -132,7 +132,7 @@ const Footer: React.FC = () => {
                         <ul className="space-y-3 text-sm text-gray-600">
                             <li>
                                 <Link
-                                    href="/canvas/prints"
+                                    href="/canva-print"
                                     className="hover:underline"
                                 >
                                     Canvas Prints - Bestseller
@@ -148,7 +148,7 @@ const Footer: React.FC = () => {
                             </li>
                             <li>
                                 <Link
-                                    href="/canvas/split-prints"
+                                    href="/canva-print-split-layout"
                                     className="hover:underline"
                                 >
                                     Split Canvas Prints

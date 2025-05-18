@@ -7,6 +7,7 @@ use App\Filament\Resources\BlogResource\RelationManagers;
 use App\Models\Blog;
 use App\Models\User;
 use Filament\Forms;
+use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
@@ -34,8 +35,7 @@ class BlogResource extends Resource
                     ->searchable()
                     ->options(User::all()->pluck('name', 'id'))
                     ->native(false)
-                    ->placeholder('Select a user')
-                    ->required(),
+                    ->placeholder('Select a user'),
                 Forms\Components\TextInput::make('title')
                     ->label('Title')
                     ->required()
@@ -71,6 +71,12 @@ class BlogResource extends Resource
                 TiptapEditor::make('content')
                     ->columnSpanFull()
                     ->required(),
+                DateTimePicker::make('created_at')
+                    ->hiddenOn(['create', 'edit'])
+                    ->displayFormat('Y-m-d H:i:s'),
+                DateTimePicker::make('updated_at')
+                    ->hiddenOn(['create', 'edit'])
+                    ->displayFormat('Y-m-d H:i:s'),
             ]);
     }
 

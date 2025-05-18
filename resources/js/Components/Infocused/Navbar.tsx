@@ -30,23 +30,26 @@ export const Navbar: React.FC = () => {
         { label: "Home", href: "/" },
         {
             label: "Canvas",
-            href: "/canvas",
+            href: "/canva-details",
             children: [
                 {
                     label: "Canvas Prints",
-                    href: "/canvas/prints",
+                    href: "/canva-print",
                     tag: "bestseller",
                 },
                 {
                     label: "Canvas Frames Layout",
-                    href: "/canvas/frames-layout",
+                    href: "/canva-print-layout(dontshow)",
                 },
-                { label: "Split Canvas Prints", href: "/canvas/split-prints" },
+                {
+                    label: "Split Canvas Prints",
+                    href: "/canva-print-split-layout",
+                },
             ],
         },
         {
             label: "Fabric Frame",
-            href: "/fabric-frame",
+            href: "/fabric-details",
             children: [
                 { label: "Fabric Frame", href: "/fabric-frame/standard" },
                 { label: "Fabric Frames Layout", href: "/fabric-frame/layout" },
@@ -55,7 +58,7 @@ export const Navbar: React.FC = () => {
         },
         {
             label: "Photo Frames",
-            href: "/photo-frames",
+            href: "/photo-details",
             children: [
                 {
                     label: "Photo Tiles",
@@ -72,11 +75,11 @@ export const Navbar: React.FC = () => {
         },
         {
             label: "Blogs",
-            href: "/blogs",
-            children: [
-                { label: "Design Tips", href: "/blogs/design-tips" },
-                { label: "Perfect Layout", href: "/blogs/layout" },
-            ],
+            href: "/recent-blogs",
+            // children: [
+            //     { label: "Design Tips", href: "/blogs/design-tips" },
+            //     { label: "Perfect Layout", href: "/blogs/layout" },
+            // ],
         },
     ];
 

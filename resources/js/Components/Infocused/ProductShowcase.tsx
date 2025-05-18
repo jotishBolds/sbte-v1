@@ -28,7 +28,7 @@ const ProductShowcase: React.FC = () => {
                     id: 1,
                     title: "CANVAS PRINTS",
                     image: "/assets/canvas/canva.png",
-                    link: "/products/canvas-prints",
+                    link: "/canva-print",
                     description:
                         "High-quality canvas prints for your home or office",
                 },
@@ -44,7 +44,7 @@ const ProductShowcase: React.FC = () => {
                     id: 3,
                     title: "SPLIT CANVAS PRINTS",
                     image: "/assets/canvas/split.png",
-                    link: "/products/split-canvas-prints",
+                    link: "/canva-print-split-layout",
                     description:
                         "Beautiful split canvas prints for statement walls",
                 },
