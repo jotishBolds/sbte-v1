@@ -8,6 +8,7 @@ use App\Models\HangingMechanismBasePrice;
 use App\Models\HangingMechanismVariety;
 use App\Models\ImageEffect;
 use App\Models\Product;
+use App\Models\ShippingType;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -106,13 +107,18 @@ class ProductController extends Controller
                 })
                 ->get();
 
+            $shippingTypes = ShippingType::where('status', 'active')->get();
+
+
             return response()->json([
                 'product' => $product,
                 'baseImageEffects' => $imageEffects,
                 'baseEdgeDesigns' => $edgeDesigns,
                 'baseFrameThicknesses' => $frameThicknesses,
                 'hangingBasePrice' => $hangingBasePrice,
-                'baseHangingVarieties' => $hangingVarieties
+                'baseHangingVarieties' => $hangingVarieties,
+                'shippingTypes' => $shippingTypes
+
             ], 200);
 
             // return Inertia::render('Product/CanvasProduct', [
