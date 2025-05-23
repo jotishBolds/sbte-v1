@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\BlogController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SavedDesignController;
@@ -71,5 +72,12 @@ Route::prefix('shopping-cart')->group(function () {
     Route::delete('/delete/{id}', [ShoppingCartController::class, 'deleteItem']);
     Route::get('/customer/{customer_id}', [ShoppingCartController::class, 'getCustomerCart']);
 });
+
+//Blogs
+
+Route::get('/blogs', [BlogController::class, 'index']);
+Route::get('/blogs/{id}', [BlogController::class, 'getBlogById']);
+Route::get('/blogs/slug/{slug}', [BlogController::class, 'getBlogBySlug']);
+
 
 require __DIR__ . '/auth.php';
