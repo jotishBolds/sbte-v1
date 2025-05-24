@@ -63,7 +63,15 @@ Route::get('/fetchCSRF', [ProductController::class, 'csrf']);
 
 
 Route::get('/canvas-product/{productName}', [ProductController::class, 'showCanvasProduct']);
-Route::post('/save-design', [SavedDesignController::class, 'store']);
+
+//Saved Design Routes
+// Route::post('/save-design', [SavedDesignController::class, 'store']);
+// Create a new saved design
+Route::post('/saved-designs', [SavedDesignController::class, 'store']);
+// Get all saved designs by customer ID
+Route::get('/saved-designs/customer/{customer_id}', [SavedDesignController::class, 'getByCustomer']);
+// Get a single saved design by ID
+Route::get('/saved-designs/{id}', [SavedDesignController::class, 'getById']);
 
 //Shopping Cart Routes
 Route::prefix('shopping-cart')->group(function () {

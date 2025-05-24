@@ -180,13 +180,30 @@ class SavedDesignController extends Controller
     public function getByCustomer($customer_id)
     {
         try {
+            $customer = \App\Models\Customer::find($customer_id);
+
+            if (!$customer) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Customer not found.',
+                ], 404);
+            }
+
             $savedDesigns = SavedDesign::with(['attributes', 'images'])
                 ->where('customer_id', $customer_id)
                 ->get();
 
+            if ($savedDesigns->isEmpty()) {
+                return response()->json([
+                    'status' => 'success',
+                    'message' => 'No saved designs found for this customer.',
+                    'data' => [],
+                ], 200);
+            }
+
             return response()->json([
                 'status' => 'success',
-                'message' => 'Saved designs fetched successfully',
+                'message' => 'Saved designs fetched successfully.',
                 'data' => $savedDesigns,
             ], 200);
         } catch (\Exception $e) {
