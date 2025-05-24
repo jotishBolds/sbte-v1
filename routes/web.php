@@ -70,15 +70,6 @@ Route::get('/fetchCSRF', [ProductController::class, 'csrf']);
 
 Route::get('/canvas-product/{productName}', [ProductController::class, 'showCanvasProduct']);
 
-
-//Shopping Cart Routes
-Route::prefix('shopping-cart')->group(function () {
-    Route::post('/add', [ShoppingCartController::class, 'addItem']);
-    Route::put('/update/{id}', [ShoppingCartController::class, 'updateItem']);
-    Route::delete('/delete/{id}', [ShoppingCartController::class, 'deleteItem']);
-    Route::get('/customer/{customer_id}', [ShoppingCartController::class, 'getCustomerCart']);
-});
-
 //Blogs
 Route::get('/blogs', [BlogController::class, 'index']);
 Route::get('/blogs/{id}', [BlogController::class, 'getBlogById']);
@@ -114,6 +105,14 @@ Route::middleware('auth:sanctum')->group(function () {
     // Route::put('/saved-designs/{id}', [SavedDesignController::class, 'update']);
     Route::post('/saved-designs/{id}', [SavedDesignController::class, 'update']);
 
+});
+
+//Shopping Cart Routes
+Route::middleware('auth:sanctum')->prefix('shopping-cart')->group(function () {
+    Route::post('/add', [ShoppingCartController::class, 'addItem']);
+    Route::put('/update/{id}', [ShoppingCartController::class, 'updateItem']);
+    Route::delete('/delete/{id}', [ShoppingCartController::class, 'deleteItem']);
+    Route::get('/customer', [ShoppingCartController::class, 'getCustomerCart']);
 });
 
 
