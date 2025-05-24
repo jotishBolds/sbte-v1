@@ -70,14 +70,6 @@ Route::get('/fetchCSRF', [ProductController::class, 'csrf']);
 
 Route::get('/canvas-product/{productName}', [ProductController::class, 'showCanvasProduct']);
 
-//Saved Design Routes
-// Route::post('/save-design', [SavedDesignController::class, 'store']);
-// Create a new saved design
-Route::post('/saved-designs', [SavedDesignController::class, 'store']);
-// Get all saved designs by customer ID
-Route::get('/saved-designs/customer/{customer_id}', [SavedDesignController::class, 'getByCustomer']);
-// Get a single saved design by ID
-Route::get('/saved-designs/{id}', [SavedDesignController::class, 'getById']);
 
 //Shopping Cart Routes
 Route::prefix('shopping-cart')->group(function () {
@@ -93,9 +85,6 @@ Route::get('/blogs/{id}', [BlogController::class, 'getBlogById']);
 Route::get('/blogs/slug/{slug}', [BlogController::class, 'getBlogBySlug']);
 
 //Customer Uploaded Images Routes
-// Route::get('/customer-uploaded-images/{customer_id}', [CustomerUploadedImageController::class, 'getByCustomer']);
-// Route::post('/customer-uploaded-images', [CustomerUploadedImageController::class, 'store']);
-// Route::delete('/customer-uploaded-images/{id}', [CustomerUploadedImageController::class, 'destroy']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/customer-uploaded-images', [CustomerUploadedImageController::class, 'getByCustomer']);
     Route::post('/customer-uploaded-images', [CustomerUploadedImageController::class, 'store']);
@@ -110,6 +99,24 @@ Route::prefix('addresses')->middleware('auth:sanctum')->group(function () {
     Route::get('/customer', [AddressController::class, 'getByCustomer']); // Get all for customer
     Route::get('/{id}', [AddressController::class, 'show']); // Get by ID
 });
+
+//Saved Design Routes
+Route::middleware('auth:sanctum')->group(function () {
+    // Create a new saved design
+    Route::post('/saved-designs', [SavedDesignController::class, 'store']);
+    // Get all saved designs by customer ID
+    Route::get('/saved-designs/customer', [SavedDesignController::class, 'getByCustomer']);
+    // Get a single saved design by ID
+    Route::get('/saved-designs/{id}', [SavedDesignController::class, 'getById']);
+    // Delete a saved design by ID
+    Route::delete('/saved-designs/{id}', [SavedDesignController::class, 'destroy']);
+    // Update a saved design by ID
+    // Route::put('/saved-designs/{id}', [SavedDesignController::class, 'update']);
+    Route::post('/saved-designs/{id}', [SavedDesignController::class, 'update']);
+
+});
+
+
 
 // Route::middleware('auth:sanctum')->post('/addresses', [AddressController::class, 'store']);
 
