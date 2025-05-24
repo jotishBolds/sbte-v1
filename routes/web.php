@@ -1,12 +1,17 @@
 <?php
 
+use App\Http\Controllers\AddressController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CustomerUploadedImageController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SavedDesignController;
 use App\Http\Controllers\ShoppingCartController;
+use App\Models\User;
 use Illuminate\Foundation\Application;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -93,4 +98,37 @@ Route::post('/customer-uploaded-images', [CustomerUploadedImageController::class
 Route::delete('/customer-uploaded-images/{id}', [CustomerUploadedImageController::class, 'destroy']);
 
 
+//Address Routes
+Route::prefix('addresses')->middleware('auth:sanctum')->group(function () {
+    Route::post('/', [AddressController::class, 'store']); // Create
+    Route::put('/{id}', [AddressController::class, 'update']); // Update
+    Route::delete('/{id}', [AddressController::class, 'destroy']); // Delete
+    Route::get('/customer', [AddressController::class, 'getByCustomer']); // Get all for customer
+    Route::get('/{id}', [AddressController::class, 'show']); // Get by ID
+});
+
+// Route::middleware('auth:sanctum')->post('/addresses', [AddressController::class, 'store']);
+
+
+Route::middleware('auth:sanctum')->get('/me', function () {
+    return Auth::user();
+});
+
+
+Route::post('/loginwithsanctum', function (Request $request) {
+    $request->validate([
+        'email' => 'required|email',
+        'password' => 'required|string',
+    ]);
+
+    $user = User::where('email', $request->email)->first();
+
+    if (! $user || ! Hash::check($request->password, $user->password)) {
+        return response()->json(['message' => 'Invalid credentials'], 401);
+    }
+
+    return response()->json([
+        'token' => $user->createToken('api-token')->plainTextToken,
+    ]);
+});
 require __DIR__ . '/auth.php';
