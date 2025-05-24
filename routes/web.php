@@ -93,10 +93,14 @@ Route::get('/blogs/{id}', [BlogController::class, 'getBlogById']);
 Route::get('/blogs/slug/{slug}', [BlogController::class, 'getBlogBySlug']);
 
 //Customer Uploaded Images Routes
-Route::get('/customer-uploaded-images/{customer_id}', [CustomerUploadedImageController::class, 'getByCustomer']);
-Route::post('/customer-uploaded-images', [CustomerUploadedImageController::class, 'store']);
-Route::delete('/customer-uploaded-images/{id}', [CustomerUploadedImageController::class, 'destroy']);
-
+// Route::get('/customer-uploaded-images/{customer_id}', [CustomerUploadedImageController::class, 'getByCustomer']);
+// Route::post('/customer-uploaded-images', [CustomerUploadedImageController::class, 'store']);
+// Route::delete('/customer-uploaded-images/{id}', [CustomerUploadedImageController::class, 'destroy']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/customer-uploaded-images', [CustomerUploadedImageController::class, 'getByCustomer']);
+    Route::post('/customer-uploaded-images', [CustomerUploadedImageController::class, 'store']);
+    Route::delete('/customer-uploaded-images/{id}', [CustomerUploadedImageController::class, 'destroy']);
+});
 
 //Address Routes
 Route::prefix('addresses')->middleware('auth:sanctum')->group(function () {

@@ -5,38 +5,32 @@ namespace App\Http\Controllers;
 use App\Models\Customer;
 use App\Models\CustomerUploadedImage;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class CustomerUploadedImageController extends Controller
 {
-
-    public function getByCustomer($customer_id)
+    public function getByCustomer()
     {
         try {
-            $customer = Customer::find($customer_id);
+            $customer = Auth::user()->customer;
 
             if (!$customer) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Customer not found.',
+                    'message' => 'Authenticated customer not found.',
                 ], 404);
             }
 
-            $images = CustomerUploadedImage::where('customer_id', $customer_id)
+            $images = CustomerUploadedImage::where('customer_id', $customer->id)
                 ->where('status', 'Active')
                 ->get();
 
-            if ($images->isEmpty()) {
-                return response()->json([
-                    'status' => 'success',
-                    'message' => 'No uploaded images found for this customer.',
-                    'data' => [],
-                ], 200);
-            }
-
             return response()->json([
                 'status' => 'success',
-                'message' => 'Uploaded images fetched successfully.',
+                'message' => $images->isEmpty()
+                    ? 'No uploaded images found for this customer.'
+                    : 'Uploaded images fetched successfully.',
                 'data' => $images,
             ], 200);
         } catch (\Exception $e) {
@@ -52,17 +46,25 @@ class CustomerUploadedImageController extends Controller
     {
         try {
             $validated = $request->validate([
-                'customer_id' => 'required|exists:customers,id',
                 'image_file' => 'required|file|image|max:5120', // max 5MB
                 'title' => 'nullable|string|max:255',
             ]);
+
+            $customer = Auth::user()->customer;
+
+            if (!$customer) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Authenticated customer not found.',
+                ], 404);
+            }
 
             // Store image
             $imagePath = $request->file('image_file')->store('customer_uploaded_images', 'public');
 
             // Save to DB
             $uploadedImage = CustomerUploadedImage::create([
-                'customer_id' => $validated['customer_id'],
+                'customer_id' => $customer->id,
                 'image_path' => $imagePath,
                 'title' => $validated['title'] ?? null,
                 'status' => 'Active',
@@ -88,15 +90,27 @@ class CustomerUploadedImageController extends Controller
         }
     }
 
+
     public function destroy($id)
     {
         try {
-            $uploadedImage = CustomerUploadedImage::find($id);
+            $customer = Auth::user()->customer;
+
+            if (!$customer) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Authenticated customer not found.',
+                ], 404);
+            }
+
+            $uploadedImage = CustomerUploadedImage::where('id', $id)
+                ->where('customer_id', $customer->id)
+                ->first();
 
             if (!$uploadedImage) {
                 return response()->json([
                     'status' => 'error',
-                    'message' => 'Customer uploaded image not found.',
+                    'message' => 'Customer uploaded image not found or does not belong to the authenticated customer.',
                 ], 404);
             }
 
