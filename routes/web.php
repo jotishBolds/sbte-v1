@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\BlogController;
+use App\Http\Controllers\CustomerUploadedImageController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SavedDesignController;
@@ -82,10 +83,14 @@ Route::prefix('shopping-cart')->group(function () {
 });
 
 //Blogs
-
 Route::get('/blogs', [BlogController::class, 'index']);
 Route::get('/blogs/{id}', [BlogController::class, 'getBlogById']);
 Route::get('/blogs/slug/{slug}', [BlogController::class, 'getBlogBySlug']);
+
+//Customer Uploaded Images Routes
+Route::get('/customer-uploaded-images/{customer_id}', [CustomerUploadedImageController::class, 'getByCustomer']);
+Route::post('/customer-uploaded-images', [CustomerUploadedImageController::class, 'store']);
+Route::delete('/customer-uploaded-images/{id}', [CustomerUploadedImageController::class, 'destroy']);
 
 
 require __DIR__ . '/auth.php';
