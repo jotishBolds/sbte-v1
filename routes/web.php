@@ -6,6 +6,7 @@ use App\Http\Controllers\CustomerUploadedImageController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SavedDesignController;
+use App\Http\Controllers\ShippingTypeController;
 use App\Http\Controllers\ShoppingCartController;
 use App\Models\User;
 use Illuminate\Foundation\Application;
@@ -67,7 +68,6 @@ Route::middleware('auth')->group(function () {
 //FetchCSRF
 Route::get('/fetchCSRF', [ProductController::class, 'csrf']);
 
-
 Route::get('/canvas-product/{productName}', [ProductController::class, 'showCanvasProduct']);
 
 //Blogs
@@ -115,10 +115,12 @@ Route::middleware('auth:sanctum')->prefix('shopping-cart')->group(function () {
     Route::get('/customer', [ShoppingCartController::class, 'getCustomerCart']);
 });
 
+//Shipping Type Fetch Route 
+Route::get('/shipping-types', [ShippingTypeController::class, 'getActiveShippingTypes']);
+
 
 
 // Route::middleware('auth:sanctum')->post('/addresses', [AddressController::class, 'store']);
-
 
 Route::middleware('auth:sanctum')->get('/me', function () {
     return Auth::user();
