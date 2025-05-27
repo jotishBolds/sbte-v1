@@ -1,6 +1,6 @@
 // Components/CartItem.tsx
 import React from "react";
-import { Button } from "@/Components/ui/button";
+
 import { Input } from "@/Components/ui/input";
 import { X } from "lucide-react";
 import { formatCurrency } from "@/types/utils";

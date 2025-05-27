@@ -60,11 +60,15 @@ export const OptionSelectors: React.FC<OptionSelectorsProps> = ({
             edgeDesign: data.edgeDesign,
             hangingMechanism: data.hangingMechanism,
             hangingVariety: data.hangingVariety,
-            imageUrl: imageUrl, // Now this will work
+            imageUrl: imageUrl,
             imagePosition: data.imagePosition,
             zoomLevel: data.zoomLevel,
             price: priceInfo.total / data.quantity,
             productData: productData,
+            layout: null, // Single canvas doesn't use layout
+            frameThickness: data.frameThickness || 1, // Default to 1 inch if not specified
+            panelImages: {}, // Single canvas doesn't use panel images
+            panelEffects: {}, // Single canvas doesn't use panel effects
         });
         console.log("Adding to cart", data, priceInfo);
     };
