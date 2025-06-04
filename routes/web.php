@@ -3,6 +3,7 @@
 use App\Http\Controllers\AddressController;
 use App\Http\Controllers\BlogController;
 use App\Http\Controllers\CustomerUploadedImageController;
+use App\Http\Controllers\OrderController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SavedDesignController;
@@ -104,7 +105,6 @@ Route::middleware('auth:sanctum')->group(function () {
     // Update a saved design by ID
     // Route::put('/saved-designs/{id}', [SavedDesignController::class, 'update']);
     Route::post('/saved-designs/{id}', [SavedDesignController::class, 'update']);
-
 });
 
 //Shopping Cart Routes
@@ -118,6 +118,7 @@ Route::middleware('auth:sanctum')->prefix('shopping-cart')->group(function () {
 //Shipping Type Fetch Route 
 Route::get('/shipping-types', [ShippingTypeController::class, 'getActiveShippingTypes']);
 
+Route::post('/orders', [OrderController::class, 'placeOrder'])->middleware('auth:sanctum');
 
 
 // Route::middleware('auth:sanctum')->post('/addresses', [AddressController::class, 'store']);

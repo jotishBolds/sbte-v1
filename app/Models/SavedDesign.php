@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class SavedDesign extends Model
 {
-    protected $guarded = [];
+    // protected $guarded = [];
     protected $fillable = [
         'customer_id',
         'product_variation_id',
