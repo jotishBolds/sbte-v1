@@ -1,5 +1,5 @@
 // contexts/CartContext.tsx
-import { ProductData } from "@/types/canvas";
+import { PanelLayout, ProductData } from "@/types/canvas";
 import { convertFileToBase64 } from "@/types/utils";
 import React, { createContext, useContext, useEffect, useState } from "react";
 
@@ -18,6 +18,10 @@ interface CartItem {
     price: number;
     productData: ProductData | null;
     createdAt: number;
+    layout: PanelLayout | null;
+    frameThickness: number;
+    panelImages: Record<string, string>;
+    panelEffects: Record<string, string | number>;
 }
 interface CartContextType {
     cart: CartItem[];

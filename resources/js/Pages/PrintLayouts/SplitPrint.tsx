@@ -63,6 +63,7 @@ const SplitPrint: React.FC = () => {
         edgeDesign: "Folded",
         hangingMechanism: "Yes",
         imageFile: null,
+        imageUrl: null,
         imagePosition: { x: 0, y: 0 },
         zoomLevel: 100,
         layout: SPLIT_LAYOUTS[0],
@@ -302,14 +303,14 @@ const SplitPrint: React.FC = () => {
                                         onDelete={handleDeleteImage}
                                         imageUrl={imageUrl}
                                         fileName={fileName}
-                                    />
+                                    />{" "}
                                     <SplitPreview
                                         imageUrl={imageUrl}
                                         imagePosition={imagePosition}
                                         zoomLevel={zoomLevel}
                                         selectedSize={selectedSize}
-                                        imageEffect={data.imageEffect}
-                                        edgeDesign={data.edgeDesign}
+                                        imageEffect={String(data.imageEffect)}
+                                        edgeDesign={String(data.edgeDesign)}
                                         selectedLayout={selectedLayout}
                                         frameThickness={data.frameThickness}
                                         onPositionChange={handlePositionChange}
