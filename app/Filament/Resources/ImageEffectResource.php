@@ -22,6 +22,9 @@ class ImageEffectResource extends Resource
     protected static ?string $model = ImageEffect::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Attribute Management';
+    protected static ?int $navigationSort = 1;
+
     protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 
     public static function getRecordSubNavigation(Page $page): array

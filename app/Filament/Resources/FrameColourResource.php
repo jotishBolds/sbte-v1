@@ -23,6 +23,9 @@ class FrameColourResource extends Resource
     protected static ?string $model = FrameColour::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Attribute Management';
+    protected static ?int $navigationSort = 5;
+
 
     protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 

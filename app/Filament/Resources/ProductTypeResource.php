@@ -23,6 +23,9 @@ class ProductTypeResource extends Resource
     protected static ?string $model = ProductType::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationGroup = 'Attribute Management';
+    protected static ?int $navigationSort = 8;
+
 
     protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 

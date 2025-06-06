@@ -22,6 +22,9 @@ class EdgeDesignResource extends Resource
 {
     protected static ?string $model = EdgeDesign::class;
 
+    protected static ?string $navigationGroup = 'Attribute Management';
+    protected static ?int $navigationSort = 2;
+
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
     protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 

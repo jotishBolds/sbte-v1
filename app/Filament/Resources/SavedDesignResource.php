@@ -22,6 +22,7 @@ use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Schema;
 
 class SavedDesignResource extends Resource
@@ -34,7 +35,10 @@ class SavedDesignResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-s-printer';
     protected static ?string $activeNavigationIcon = 'heroicon-o-printer';
 
-
+    public static function canAccess(): bool
+    {
+        return Auth::check() && Auth::user()->role === 'Customer';
+    }
     public static function form(Form $form): Form
     {
         return $form

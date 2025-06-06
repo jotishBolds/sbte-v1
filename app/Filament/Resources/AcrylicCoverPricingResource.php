@@ -20,8 +20,8 @@ class AcrylicCoverPricingResource extends Resource
 {
     protected static ?string $model = AcrylicCoverPricing::class;
 
-    protected static ?string $navigationGroup = 'Acrylic Cover Management';
-    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationGroup = 'Attribute Management';
+    protected static ?int $navigationSort = 12;
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function form(Form $form): Form

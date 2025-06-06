@@ -14,6 +14,7 @@ use Filament\Tables\Actions\ActionGroup;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Facades\Auth;
 
 class AddressResource extends Resource
 {
@@ -25,6 +26,10 @@ class AddressResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-s-map-pin';
     protected static ?string $activeNavigationIcon = 'heroicon-o-map-pin';
 
+    public static function canAccess(): bool
+    {
+        return Auth::check() && Auth::user()->role === 'Customer';
+    }
 
     public static function form(Form $form): Form
     {

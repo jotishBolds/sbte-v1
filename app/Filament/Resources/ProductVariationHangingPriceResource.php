@@ -22,13 +22,13 @@ class ProductVariationHangingPriceResource extends Resource
     protected static ?string $model = ProductVariationHangingPrice::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationGroup = 'Hanging Management';
-    protected static ?int $navigationSort = 2;
+    protected static ?string $navigationGroup = 'Attribute Management';
+    protected static ?int $navigationSort = 10;
 
     public static function form(Form $form): Form
     {
         return $form
-            ->schema([
+            ->sßchema([
 
                 Forms\Components\Select::make('product_variation_id')
                     ->label('Product Variation')

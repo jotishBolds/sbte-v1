@@ -195,12 +195,16 @@ class ProductVariationResource extends Resource
                 Tables\Columns\TextColumn::make('layoutDetail.image_count')
                     ->label('Image Count')
                     ->sortable()
-                    ->toggleable(),
+                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
 
                 // Show layout thumbnail as image if exists
                 Tables\Columns\ImageColumn::make('layoutDetail.thumbnail')
                     ->label('Thumbnail')
-                    ->toggleable(),
+                    ->toggleable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()

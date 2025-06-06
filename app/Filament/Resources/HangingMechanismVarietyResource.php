@@ -22,8 +22,8 @@ class HangingMechanismVarietyResource extends Resource
     protected static ?string $model = HangingMechanismVariety::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
-    protected static ?string $navigationGroup = 'Hanging Management';
-    protected static ?int $navigationSort = 3;
+    protected static ?string $navigationGroup = 'Attribute Management';
+    protected static ?int $navigationSort = 11;
     protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 
     public static function getRecordSubNavigation(Page $page): array
