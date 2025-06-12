@@ -763,6 +763,23 @@ export const Sidebar: React.FC = () => {
     );
   };
 
+  const handleSignOut = () => {
+    // Get the current session's user ID and clean up before signing out
+    fetch("/api/auth/session-cleanup", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: session.user.id }),
+    })
+      .then(() => {
+        signOut({ callbackUrl: "/" });
+      })
+      .catch((error) => {
+        console.error("Error during sign out:", error);
+        // Still sign out even if cleanup fails
+        signOut({ callbackUrl: "/" });
+      });
+  };
+
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
@@ -850,7 +867,7 @@ export const Sidebar: React.FC = () => {
         <Button
           variant="ghost"
           className="w-full justify-start"
-          onClick={() => signOut()}
+          onClick={handleSignOut}
         >
           <LogOut className="mr-2 h-4 w-4" />
           Sign out

@@ -11,6 +11,7 @@ import {
   ObjectCannedACL,
 } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
+import { validateAndSanitizeFile } from "@/lib/file-security";
 
 const prisma = new PrismaClient();
 
@@ -85,20 +86,18 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const file = formData.get("pdfFile") as File;
-    const title = formData.get("title") as string;
+    const title = formData.get("title") as string; // Validate and sanitize the uploaded file
+    const { isValid, sanitizedBuffer, error } = await validateAndSanitizeFile(
+      file,
+      {
+        maxSizeBytes: 10 * 1024 * 1024, // 10MB
+        allowedTypes: ["application/pdf"],
+      }
+    );
 
-    if (!file || file.type !== "application/pdf") {
+    if (!isValid || !sanitizedBuffer) {
       return NextResponse.json(
-        { error: "Invalid or missing PDF file." },
-        { status: 400 }
-      );
-    }
-
-    const MAX_FILE_SIZE = 10 * 1024 * 1024;
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    if (fileBuffer.length > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: "File size must be less than 10MB." },
+        { error: error || "Invalid or missing PDF file." },
         { status: 400 }
       );
     }
@@ -132,7 +131,7 @@ export async function POST(request: Request) {
     const uploadParams = {
       Bucket: process.env.AWS_BUCKET_NAME!,
       Key: uniqueFilename,
-      Body: fileBuffer,
+      Body: sanitizedBuffer,
       ContentType: file.type,
       ACL: ObjectCannedACL.public_read,
     };

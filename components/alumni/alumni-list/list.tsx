@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
@@ -94,6 +95,23 @@ interface AlumnusDetailsProps {
   alumnus: Alumnus;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+}
+
+class AlumniManagementError extends Error {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message);
+    this.name = "AlumniManagementError";
+
+    if (context) {
+      Sentry.withScope((scope) => {
+        Object.entries(context).forEach(([key, value]) => {
+          scope.setTag(key, value);
+        });
+        scope.setLevel("error");
+        Sentry.captureException(this);
+      });
+    }
+  }
 }
 
 const SearchInput: React.FC<SearchInputProps> = ({
@@ -331,15 +349,33 @@ export default function AlumniList() {
 
   const fetchDepartments = async () => {
     try {
-      const response = await fetch("/api/alumni/dept");
-      if (response.ok) {
-        const data = await response.json();
-        setDepartments(data);
-      } else {
-        throw new Error("Failed to fetch departments");
-      }
+      await Sentry.startSpan(
+        {
+          name: "Fetch Departments",
+          op: "http",
+        },
+        async () => {
+          const response = await fetch("/api/alumni/dept");
+          if (!response.ok) {
+            throw new AlumniManagementError("Failed to fetch departments", {
+              status: response.status,
+              statusText: response.statusText,
+            });
+          }
+          const data = await response.json();
+          setDepartments(data);
+        }
+      );
     } catch (error) {
       console.error("Error fetching departments:", error);
+      if (!(error instanceof AlumniManagementError)) {
+        Sentry.captureException(
+          new AlumniManagementError("Failed to fetch departments", {
+            originalError:
+              error instanceof Error ? error.message : String(error),
+          })
+        );
+      }
       toast({
         title: "Error",
         description: "Failed to fetch departments",
@@ -351,16 +387,33 @@ export default function AlumniList() {
   const fetchAlumni = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch(`/api/alumni`);
-      if (response.ok) {
-        const data = await response.json();
-        setAlumni(data);
-        console.log("alumni", data);
-      } else {
-        throw new Error("Failed to fetch alumni");
-      }
+      await Sentry.startSpan(
+        {
+          name: "Fetch Alumni",
+          op: "http",
+        },
+        async () => {
+          const response = await fetch(`/api/alumni`);
+          if (!response.ok) {
+            throw new AlumniManagementError("Failed to fetch alumni", {
+              status: response.status,
+              statusText: response.statusText,
+            });
+          }
+          const data = await response.json();
+          setAlumni(data);
+        }
+      );
     } catch (error) {
       console.error("Error fetching alumni:", error);
+      if (!(error instanceof AlumniManagementError)) {
+        Sentry.captureException(
+          new AlumniManagementError("Failed to fetch alumni", {
+            originalError:
+              error instanceof Error ? error.message : String(error),
+          })
+        );
+      }
       toast({
         title: "Error",
         description: "Failed to fetch alumni",
@@ -372,24 +425,38 @@ export default function AlumniList() {
   };
 
   const filterAlumni = () => {
-    let filtered = alumni;
-    if (selectedDepartment !== "all") {
-      filtered = filtered.filter((a) => a.department === selectedDepartment);
-    }
-    if (verificationStatus !== "all") {
-      filtered = filtered.filter(
-        (a) => a.verified === (verificationStatus === "verified")
+    try {
+      let filtered = alumni;
+      if (selectedDepartment !== "all") {
+        filtered = filtered.filter((a) => a.department === selectedDepartment);
+      }
+      if (verificationStatus !== "all") {
+        filtered = filtered.filter(
+          (a) => a.verified === (verificationStatus === "verified")
+        );
+      }
+      if (searchTerm) {
+        const lowercasedSearch = searchTerm.toLowerCase();
+        filtered = filtered.filter(
+          (a) =>
+            a.name.toLowerCase().includes(lowercasedSearch) ||
+            a.email.toLowerCase().includes(lowercasedSearch)
+        );
+      }
+      setFilteredAlumni(filtered);
+    } catch (error) {
+      console.error("Error filtering alumni:", error);
+      Sentry.captureException(
+        new AlumniManagementError("Failed to filter alumni", {
+          originalError: error instanceof Error ? error.message : String(error),
+          filterParams: {
+            selectedDepartment,
+            verificationStatus,
+            searchTerm,
+          },
+        })
       );
     }
-    if (searchTerm) {
-      const lowercasedSearch = searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (a) =>
-          a.name.toLowerCase().includes(lowercasedSearch) ||
-          a.email.toLowerCase().includes(lowercasedSearch)
-      );
-    }
-    setFilteredAlumni(filtered);
   };
 
   const handleToggleVerification = async (
@@ -397,34 +464,59 @@ export default function AlumniList() {
     currentStatus: boolean
   ) => {
     try {
-      const response = await fetch(`/api/alumni/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ verified: !currentStatus }),
-      });
+      await Sentry.startSpan(
+        {
+          name: "Toggle Verification",
+          op: "http",
+        },
+        async () => {
+          const response = await fetch(`/api/alumni/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ verified: !currentStatus }),
+          });
 
-      if (response.ok) {
-        setAlumni(
-          alumni.map((a) =>
-            a.id === id ? { ...a, verified: !currentStatus } : a
-          )
-        );
-        toast({
-          title: "Success",
-          description: `Alumnus ${
-            !currentStatus ? "verified" : "unverified"
-          } successfully`,
-        });
-      } else {
-        throw new Error(
-          `Failed to ${!currentStatus ? "verify" : "unverify"} alumnus`
-        );
-      }
+          if (!response.ok) {
+            throw new AlumniManagementError(
+              `Failed to ${!currentStatus ? "verify" : "unverify"} alumnus`,
+              {
+                alumnusId: id,
+                newStatus: !currentStatus,
+                status: response.status,
+              }
+            );
+          }
+
+          setAlumni(
+            alumni.map((a) =>
+              a.id === id ? { ...a, verified: !currentStatus } : a
+            )
+          );
+          toast({
+            title: "Success",
+            description: `Alumnus ${
+              !currentStatus ? "verified" : "unverified"
+            } successfully`,
+          });
+        }
+      );
     } catch (error) {
       console.error(
         `Error ${!currentStatus ? "verifying" : "unverifying"} alumnus:`,
         error
       );
+      if (!(error instanceof AlumniManagementError)) {
+        Sentry.captureException(
+          new AlumniManagementError(
+            `Failed to ${!currentStatus ? "verify" : "unverify"} alumnus`,
+            {
+              alumnusId: id,
+              originalError:
+                error instanceof Error ? error.message : String(error),
+            }
+          )
+        );
+      }
       toast({
         title: "Error",
         description: `Failed to ${
@@ -437,21 +529,41 @@ export default function AlumniList() {
 
   const handleDelete = async (id: string) => {
     try {
-      const response = await fetch(`/api/alumni/${id}`, {
-        method: "DELETE",
-      });
+      await Sentry.startSpan(
+        {
+          name: "Delete Alumnus",
+          op: "http",
+        },
+        async () => {
+          const response = await fetch(`/api/alumni/${id}`, {
+            method: "DELETE",
+          });
 
-      if (response.ok) {
-        setAlumni(alumni.filter((a) => a.id !== id));
-        toast({
-          title: "Success",
-          description: "Alumnus deleted successfully",
-        });
-      } else {
-        throw new Error("Failed to delete alumnus");
-      }
+          if (!response.ok) {
+            throw new AlumniManagementError("Failed to delete alumnus", {
+              alumnusId: id,
+              status: response.status,
+            });
+          }
+
+          setAlumni(alumni.filter((a) => a.id !== id));
+          toast({
+            title: "Success",
+            description: "Alumnus deleted successfully",
+          });
+        }
+      );
     } catch (error) {
       console.error("Error deleting alumnus:", error);
+      if (!(error instanceof AlumniManagementError)) {
+        Sentry.captureException(
+          new AlumniManagementError("Failed to delete alumnus", {
+            alumnusId: id,
+            originalError:
+              error instanceof Error ? error.message : String(error),
+          })
+        );
+      }
       toast({
         title: "Error",
         description: "Failed to delete alumnus",

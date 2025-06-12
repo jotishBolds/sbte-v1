@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -64,6 +65,23 @@ const formSchema = z.object({
   achievements: z.string().optional(),
 });
 
+class AlumniRegistrationError extends Error {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message);
+    this.name = "AlumniRegistrationError";
+
+    if (context) {
+      Sentry.withScope((scope) => {
+        Object.entries(context).forEach(([key, value]) => {
+          scope.setTag(key, value);
+        });
+        scope.setLevel("error");
+        Sentry.captureException(this);
+      });
+    }
+  }
+}
+
 export default function AlumniRegistrationForm() {
   const router = useRouter();
   const [programs, setPrograms] = useState<Program[]>([]);
@@ -106,23 +124,41 @@ export default function AlumniRegistrationForm() {
     const fetchDepartments = async () => {
       setIsLoadingDepartments(true);
       try {
-        const response = await fetch("/api/departments/alumni");
-        if (!response.ok) {
-          throw new Error("Failed to fetch departments");
-        }
-        const data = await response.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setDepartments(data);
-        } else {
-          console.error("Received empty or invalid departments data:", data);
-          toast({
-            title: "Error",
-            description: "Failed to load departments. Please try again later.",
-            variant: "destructive",
-          });
-        }
+        await Sentry.startSpan(
+          {
+            name: "Fetch Departments",
+            op: "http",
+          },
+          async () => {
+            const response = await fetch("/api/departments/alumni");
+            if (!response.ok) {
+              throw new AlumniRegistrationError("Failed to fetch departments", {
+                status: response.status,
+                statusText: response.statusText,
+              });
+            }
+            const data = await response.json();
+            if (Array.isArray(data) && data.length > 0) {
+              setDepartments(data);
+            } else {
+              const errorMessage = "Received empty or invalid departments data";
+              console.error(errorMessage, data);
+              throw new AlumniRegistrationError(errorMessage, {
+                responseData: data,
+              });
+            }
+          }
+        );
       } catch (error) {
         console.error("Error fetching departments:", error);
+        if (!(error instanceof AlumniRegistrationError)) {
+          Sentry.captureException(
+            new AlumniRegistrationError("Failed to load departments", {
+              originalError:
+                error instanceof Error ? error.message : String(error),
+            })
+          );
+        }
         toast({
           title: "Error",
           description: "Failed to load departments. Please try again later.",
@@ -144,29 +180,60 @@ export default function AlumniRegistrationForm() {
         setIsLoadingAdmissionYears(true);
 
         try {
-          const [programsRes, batchYearsRes, admissionYearsRes] =
-            await Promise.all([
-              fetch(`/api/programs/alumni/${form.watch("departmentId")}`),
-              fetch(`/api/batchYear/alumni/${form.watch("departmentId")}`),
-              fetch(`/api/admissionYear/alumni/${form.watch("departmentId")}`),
-            ]);
+          await Sentry.startSpan(
+            {
+              name: "Fetch Related Data",
+              op: "http",
+            },
+            async () => {
+              const [programsRes, batchYearsRes, admissionYearsRes] =
+                await Promise.all([
+                  fetch(`/api/programs/alumni/${form.watch("departmentId")}`),
+                  fetch(`/api/batchYear/alumni/${form.watch("departmentId")}`),
+                  fetch(
+                    `/api/admissionYear/alumni/${form.watch("departmentId")}`
+                  ),
+                ]);
 
-          if (!programsRes.ok || !batchYearsRes.ok || !admissionYearsRes.ok) {
-            throw new Error("Failed to fetch related data");
-          }
+              if (
+                !programsRes.ok ||
+                !batchYearsRes.ok ||
+                !admissionYearsRes.ok
+              ) {
+                throw new AlumniRegistrationError(
+                  "Failed to fetch related data",
+                  {
+                    departmentId: form.watch("departmentId"),
+                    programsStatus: programsRes.status,
+                    batchYearsStatus: batchYearsRes.status,
+                    admissionYearsStatus: admissionYearsRes.status,
+                  }
+                );
+              }
 
-          const [programsData, batchYearsData, admissionYearsData] =
-            await Promise.all([
-              programsRes.json(),
-              batchYearsRes.json(),
-              admissionYearsRes.json(),
-            ]);
+              const [programsData, batchYearsData, admissionYearsData] =
+                await Promise.all([
+                  programsRes.json(),
+                  batchYearsRes.json(),
+                  admissionYearsRes.json(),
+                ]);
 
-          setPrograms(programsData);
-          setBatchYears(batchYearsData);
-          setAdmissionYears(admissionYearsData);
+              setPrograms(programsData);
+              setBatchYears(batchYearsData);
+              setAdmissionYears(admissionYearsData);
+            }
+          );
         } catch (error) {
           console.error("Error fetching related data:", error);
+          if (!(error instanceof AlumniRegistrationError)) {
+            Sentry.captureException(
+              new AlumniRegistrationError("Failed to load related data", {
+                departmentId: form.watch("departmentId"),
+                originalError:
+                  error instanceof Error ? error.message : String(error),
+              })
+            );
+          }
           toast({
             title: "Error",
             description: "Failed to load related data. Please try again later.",
@@ -186,36 +253,72 @@ export default function AlumniRegistrationForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/register-alumni", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
+      await Sentry.startSpan(
+        {
+          name: "Alumni Registration",
+          op: "auth",
+        },
+        async () => {
+          const response = await fetch("/api/register-alumni", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(values),
+          });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Registration failed");
-      }
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new AlumniRegistrationError(
+              errorData.error || "Registration failed",
+              {
+                status: response.status,
+                errorData,
+                formValues: {
+                  username: values.username,
+                  email: values.email,
+                  departmentId: values.departmentId,
+                },
+              }
+            );
+          }
 
-      toast({
-        title: "Registration Successful",
-        description: "You have successfully registered as an alumnus.",
-      });
-      router.push("/login");
+          toast({
+            title: "Registration Successful",
+            description: "You have successfully registered as an alumnus.",
+          });
+          router.push("/login");
+        }
+      );
     } catch (error) {
       console.error("Registration error:", error);
-      toast({
-        title: "Registration Failed",
-        description:
-          error instanceof Error
-            ? error.message
-            : "There was an error during registration. Please try again.",
-        variant: "destructive",
-      });
+      if (error instanceof AlumniRegistrationError) {
+        toast({
+          title: "Registration Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Registration Failed",
+          description:
+            "There was an error during registration. Please try again.",
+          variant: "destructive",
+        });
+        Sentry.captureException(
+          new AlumniRegistrationError("Unexpected registration error", {
+            originalError:
+              error instanceof Error ? error.message : String(error),
+            formValues: {
+              username: values.username,
+              email: values.email,
+            },
+          })
+        );
+      }
     } finally {
       setIsLoading(false);
     }
   }
+
   return (
     <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">

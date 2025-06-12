@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import {
   Dialog,
   DialogContent,
@@ -27,7 +28,7 @@ interface Subject {
   qualityPoint: number;
   internalMarks?: number;
   externalMarks?: number;
-  classType: "THEORY" | "PRACTICAL" | "BOTH"; // Added class type
+  classType: "THEORY" | "PRACTICAL" | "BOTH";
 }
 
 interface GradeCardData {
@@ -51,6 +52,23 @@ interface GradeCardModalProps {
   studentName: string;
 }
 
+class GradeCardError extends Error {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message);
+    this.name = "GradeCardError";
+
+    if (context) {
+      Sentry.withScope((scope) => {
+        Object.entries(context).forEach(([key, value]) => {
+          scope.setTag(key, value);
+        });
+        scope.setLevel("error");
+        Sentry.captureException(this);
+      });
+    }
+  }
+}
+
 const GradeCardModal: React.FC<GradeCardModalProps> = ({
   studentId,
   studentName,
@@ -65,19 +83,47 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(
-        `/api/gradeCard/grade-card?studentId=${studentId}`
-      );
-      if (!response.ok) throw new Error("Failed to fetch grade cards");
-      const data = await response.json();
-      setGradeCards(data);
+      await Sentry.startSpan(
+        {
+          name: "Fetch Grade Cards",
+          op: "http",
+        },
+        async () => {
+          const response = await fetch(
+            `/api/gradeCard/grade-card?studentId=${studentId}`
+          );
 
-      // Select the most recent grade card by default (assuming they're returned in order)
-      if (data && data.length > 0) {
-        setSelectedGradeCardId(data[0].id);
-      }
+          if (!response.ok) {
+            throw new GradeCardError("Failed to fetch grade cards", {
+              studentId,
+              status: response.status,
+              statusText: response.statusText,
+            });
+          }
+
+          const data = await response.json();
+          setGradeCards(data);
+
+          if (data && data.length > 0) {
+            setSelectedGradeCardId(data[0].id);
+          }
+        }
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      console.error("Error fetching grade cards:", err);
+      const errorMessage =
+        err instanceof Error ? err.message : "An error occurred";
+      setError(errorMessage);
+
+      if (!(err instanceof GradeCardError)) {
+        Sentry.captureException(
+          new GradeCardError(errorMessage, {
+            studentId,
+            component: "GradeCardModal",
+            action: "fetchGradeCards",
+          })
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -91,32 +137,58 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
   };
 
   const handlePrint = () => {
-    window.print();
+    try {
+      Sentry.startSpan(
+        {
+          name: "Print Grade Card",
+          op: "ui.action",
+        },
+        () => {
+          window.print();
+        }
+      );
+    } catch (err) {
+      console.error("Error during print:", err);
+      Sentry.captureException(
+        new GradeCardError("Print failed", {
+          studentId,
+          selectedGradeCardId,
+        })
+      );
+    }
   };
 
-  // Get the currently selected grade card
   const selectedGradeCard = gradeCards.find(
     (card) => card.id === selectedGradeCardId
   );
 
-  // Function to filter and sort subjects by class type
   const getTheoryAndPracticalSubjects = (subjects: Subject[]) => {
-    const theorySubjects = subjects.filter(
-      (subject) =>
-        subject.classType === "THEORY" || subject.classType === "BOTH"
-    );
+    try {
+      const theorySubjects = subjects.filter(
+        (subject) =>
+          subject.classType === "THEORY" || subject.classType === "BOTH"
+      );
 
-    const practicalSubjects = subjects.filter(
-      (subject) =>
-        subject.classType === "PRACTICAL" || subject.classType === "BOTH"
-    );
+      const practicalSubjects = subjects.filter(
+        (subject) =>
+          subject.classType === "PRACTICAL" || subject.classType === "BOTH"
+      );
 
-    // If a subject is "BOTH", it appears in both arrays
-    // Make sure we have subjects for rendering
-    return {
-      theorySubjects: theorySubjects.length > 0 ? theorySubjects : [],
-      practicalSubjects: practicalSubjects.length > 0 ? practicalSubjects : [],
-    };
+      return {
+        theorySubjects: theorySubjects.length > 0 ? theorySubjects : [],
+        practicalSubjects:
+          practicalSubjects.length > 0 ? practicalSubjects : [],
+      };
+    } catch (err) {
+      console.error("Error processing subjects:", err);
+      Sentry.captureException(
+        new GradeCardError("Subject processing failed", {
+          studentId,
+          selectedGradeCardId,
+        })
+      );
+      return { theorySubjects: [], practicalSubjects: [] };
+    }
   };
 
   return (
@@ -155,7 +227,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
 
         {gradeCards.length > 0 && !loading && (
           <div className="font-sans">
-            {/* Grade Card Selection - Hidden when printing */}
             <div className="mb-4 print:hidden">
               <label className="text-sm font-medium block mb-2">
                 Select Semester Grade Card:
@@ -177,7 +248,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
               </Select>
             </div>
 
-            {/* Printable Section */}
             {selectedGradeCard && (
               <div className="printable-section">
                 <h2 className="text-center text-lg font-bold mb-2">
@@ -206,7 +276,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
                   </div>
                 </div>
 
-                {/* Split subjects into theory and practical groups */}
                 {selectedGradeCard.subjects.length > 0 &&
                   (() => {
                     const { theorySubjects, practicalSubjects } =
@@ -240,7 +309,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
                             )}
                           </tr>
                           <tr>
-                            {/* Theory Subject Headers */}
                             {theorySubjects.map((subject, index) => (
                               <th
                                 key={`theory-${index}`}
@@ -250,7 +318,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
                               </th>
                             ))}
 
-                            {/* Practical Subject Headers */}
                             {practicalSubjects.map((subject, index) => (
                               <th
                                 key={`practical-${index}`}
@@ -262,7 +329,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
                           </tr>
                         </thead>
                         <tbody>
-                          {/* Credits Row */}
                           <tr>
                             <td className="border border-gray-800 dark:border-gray-300 p-2">
                               CREDIT
@@ -285,7 +351,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
                             ))}
                           </tr>
 
-                          {/* Grade Row */}
                           <tr>
                             <td className="border border-gray-800 dark:border-gray-300 p-2">
                               GRADE
@@ -308,7 +373,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
                             ))}
                           </tr>
 
-                          {/* Grade Point Row */}
                           <tr>
                             <td className="border border-gray-800 dark:border-gray-300 p-2">
                               GRADE POINT
@@ -331,7 +395,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
                             ))}
                           </tr>
 
-                          {/* Quality Point Row */}
                           <tr>
                             <td className="border border-gray-800 dark:border-gray-300 p-2">
                               QUALITY POINT
@@ -394,21 +457,17 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
         )}
       </DialogContent>
 
-      {/* Print-Specific Styles */}
       <style jsx global>{`
         @media print {
-          /* Hide everything except printable section */
           body * {
             visibility: hidden;
           }
 
-          /* Show only the printable content */
           .printable-section,
           .printable-section * {
             visibility: visible;
           }
 
-          /* Position the printable content */
           .printable-section {
             position: absolute;
             left: 0;
@@ -417,7 +476,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
             padding: 20px;
           }
 
-          /* Ensure dialog content is visible */
           [role="dialog"] {
             position: absolute;
             left: 0;
@@ -430,7 +488,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
             background: white;
           }
 
-          /* Fix table borders */
           table,
           th,
           td {
@@ -439,7 +496,6 @@ const GradeCardModal: React.FC<GradeCardModalProps> = ({
             print-color-adjust: exact;
           }
 
-          /* Remove unnecessary dialog styling */
           [role="dialog"] {
             transform: none !important;
             max-width: 100% !important;

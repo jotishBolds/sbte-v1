@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { ControllerRenderProps, useForm } from "react-hook-form";
@@ -61,6 +62,23 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+class CollegeCreationError extends Error {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message);
+    this.name = "CollegeCreationError";
+
+    if (context) {
+      Sentry.withScope((scope) => {
+        Object.entries(context).forEach(([key, value]) => {
+          scope.setTag(key, value);
+        });
+        scope.setLevel("error");
+        Sentry.captureException(this);
+      });
+    }
+  }
+}
+
 const CreateCollegePage: React.FC = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -100,7 +118,6 @@ const CreateCollegePage: React.FC = () => {
   const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file type and size
       const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif"];
       const maxSize = 5 * 1024 * 1024; // 5MB
 
@@ -114,14 +131,12 @@ const CreateCollegePage: React.FC = () => {
         return;
       }
 
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setLogoPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
 
-      // Set file for upload
       setLogoFile(file);
       form.setValue("logo", file);
       setError(null);
@@ -133,55 +148,92 @@ const CreateCollegePage: React.FC = () => {
     setError(null);
 
     try {
-      let logoPath = "";
-
-      // Upload logo if exists
-      if (logoFile) {
-        const logoFormData = new FormData();
-        logoFormData.append("logo", logoFile);
-        logoFormData.append("abbreviation", values.abbreviation);
-
-        const logoResponse = await fetch("/api/colleges/logoUpload", {
-          method: "POST",
-          body: logoFormData,
-        });
-
-        if (!logoResponse.ok) {
-          const errorData = await logoResponse.json();
-          throw new Error(errorData.error || "Failed to upload logo");
-        }
-
-        const logoData = await logoResponse.json();
-        logoPath = logoData.logoPath;
-      }
-
-      // Prepare submission data
-      const submissionData = {
-        ...values,
-        logo: logoPath,
-      };
-
-      // Submit college and super admin data
-      const response = await fetch("/api/colleges", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
+      await Sentry.startSpan(
+        {
+          name: "Create College",
+          op: "http",
         },
-        body: JSON.stringify(submissionData),
-      });
+        async () => {
+          let logoPath = "";
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-          errorData.error || "Failed to create college and super admin"
+          // Upload logo if exists
+          if (logoFile) {
+            await Sentry.startSpan(
+              {
+                name: "Upload College Logo",
+                op: "file",
+              },
+              async () => {
+                const logoFormData = new FormData();
+                logoFormData.append("logo", logoFile);
+                logoFormData.append("abbreviation", values.abbreviation);
+
+                const logoResponse = await fetch("/api/colleges/logoUpload", {
+                  method: "POST",
+                  body: logoFormData,
+                });
+
+                if (!logoResponse.ok) {
+                  const errorData = await logoResponse.json();
+                  throw new CollegeCreationError(
+                    errorData.error || "Failed to upload logo",
+                    {
+                      collegeAbbreviation: values.abbreviation,
+                      logoSize: logoFile.size,
+                      logoType: logoFile.type,
+                    }
+                  );
+                }
+
+                const logoData = await logoResponse.json();
+                logoPath = logoData.logoPath;
+              }
+            );
+          }
+
+          // Submit college and super admin data
+          const response = await fetch("/api/colleges", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              ...values,
+              logo: logoPath,
+            }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new CollegeCreationError(
+              errorData.error || "Failed to create college and super admin",
+              {
+                collegeName: values.name,
+                adminEmail: values.superAdminEmail,
+                status: response.status,
+              }
+            );
+          }
+
+          router.push("/colleges");
+        }
+      );
+    } catch (err) {
+      console.error("College creation error:", err);
+      if (err instanceof CollegeCreationError) {
+        setError(err.message);
+      } else {
+        setError("An unexpected error occurred");
+        Sentry.captureException(
+          new CollegeCreationError("Unexpected college creation error", {
+            originalError: err instanceof Error ? err.message : String(err),
+            formValues: {
+              collegeName: values.name,
+              abbreviation: values.abbreviation,
+            },
+          })
         );
       }
-
-      router.push("/colleges");
-    } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
-      );
     } finally {
       setIsLoading(false);
     }

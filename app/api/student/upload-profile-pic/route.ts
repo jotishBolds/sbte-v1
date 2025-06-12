@@ -7,6 +7,7 @@ import {
   ObjectCannedACL,
 } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
+import { validateAndSanitizeFile } from "@/lib/file-security";
 
 // Validate environment variables
 function validateEnvVariables() {
@@ -65,28 +66,21 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
+    } // Validate and sanitize the uploaded file
+    const { isValid, sanitizedBuffer, error } = await validateAndSanitizeFile(
+      file,
+      {
+        maxSizeBytes: 5 * 1024 * 1024, // 5MB
+        allowedTypes: ["image/jpeg", "image/png", "image/gif"],
+      }
+    );
 
-    // Validate file type
-    const validTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif"];
-    if (!validTypes.includes(file.type)) {
+    if (!isValid || !sanitizedBuffer) {
       return NextResponse.json(
-        { error: "Invalid file type. Please upload a valid image file." },
+        { error: error || "Invalid or missing image file." },
         { status: 400 }
       );
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      return NextResponse.json(
-        { error: "File size too large. Maximum size is 5MB." },
-        { status: 400 }
-      );
-    }
-
-    // Get the file bytes
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    } // Use the sanitized buffer directly
 
     // Create unique filename
     const fileExtension = file.name.split(".").pop();
@@ -96,7 +90,7 @@ export async function POST(request: NextRequest) {
     const uploadParams = {
       Bucket: process.env.AWS_BUCKET_NAME!, // Use AWS_BUCKET_NAME consistently
       Key: uniqueFilename,
-      Body: buffer,
+      Body: sanitizedBuffer,
       ContentType: file.type,
       ACL: ObjectCannedACL.public_read,
     };

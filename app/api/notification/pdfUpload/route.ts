@@ -8,6 +8,7 @@ import {
   PutObjectCommand,
   ObjectCannedACL,
 } from "@aws-sdk/client-s3";
+import { validateAndSanitizeFile } from "@/lib/file-security";
 
 // Configure AWS S3 client
 const createS3Client = () => {
@@ -29,6 +30,7 @@ const NotificationSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  // Outer try-catch for authentication and authorization
   try {
     const session = await getServerSession(authOptions);
 
@@ -40,89 +42,93 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Parse form data
-    const formData = await request.formData();
-    const file = formData.get("pdfFile") as File;
-    const title = formData.get("title") as string;
-    const collegeIds = JSON.parse(formData.get("collegeIds") as string);
+    // Inner try-catch for file processing and database operations
+    try {
+      const formData = await request.formData();
+      const file = formData.get("pdfFile") as File;
+      const title = formData.get("title") as string;
+      const collegeIds = JSON.parse(formData.get("collegeIds") as string);
 
-    // Validate PDF file
-    if (!file || file.type !== "application/pdf") {
+      // Validate and sanitize the uploaded file
+      const { isValid, sanitizedBuffer, error } = await validateAndSanitizeFile(
+        file,
+        {
+          maxSizeBytes: 10 * 1024 * 1024, // 10MB
+          allowedTypes: ["application/pdf"],
+        }
+      );
+
+      if (!isValid || !sanitizedBuffer) {
+        return NextResponse.json(
+          { error: error || "Invalid or missing PDF file." },
+          { status: 400 }
+        );
+      }
+
+      // Validate form fields using Zod
+      const validation = NotificationSchema.safeParse({ title, collegeIds });
+      if (!validation.success) {
+        return NextResponse.json(
+          {
+            errors: validation.error?.errors.map((err) => err.message) || [
+              "Invalid input",
+            ],
+          },
+          { status: 400 }
+        );
+      }
+
+      // Generate unique filename and upload to S3
+      const fileName = `notifications/${Date.now()}-${file.name}`;
+      const s3Client = createS3Client();
+      const uploadParams = {
+        Bucket: process.env.AWS_BUCKET_NAME!,
+        Key: fileName,
+        Body: sanitizedBuffer,
+        ContentType: "application/pdf",
+        ACL: ObjectCannedACL.public_read,
+      };
+
+      await s3Client.send(new PutObjectCommand(uploadParams));
+      const pdfUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+
+      // Save notification and create college links
+      const notification = await prisma.notification.create({
+        data: {
+          title,
+          pdfPath: pdfUrl,
+        },
+      });
+
+      type NotificationLink = {
+        collegeId: string;
+        notificationId: string;
+      };
+
+      const notificationLinks: NotificationLink[] = collegeIds.map(
+        (collegeId: string) => ({
+          collegeId,
+          notificationId: notification.id,
+        })
+      );
+
+      await prisma.$transaction(
+        notificationLinks.map((link: NotificationLink) =>
+          prisma.notifiedCollege.create({ data: link })
+        )
+      );
+
       return NextResponse.json(
-        { error: "Invalid or missing PDF file." },
+        { message: "Notification uploaded successfully.", notification },
+        { status: 201 }
+      );
+    } catch (innerError) {
+      console.error("Error processing upload:", innerError);
+      return NextResponse.json(
+        { error: "An error occurred while processing the upload." },
         { status: 400 }
       );
     }
-
-    // Validate file size (10MB = 10 * 1024 * 1024 bytes)
-    const MAX_FILE_SIZE = 10 * 1024 * 1024;
-    const fileBuffer = Buffer.from(await file.arrayBuffer());
-    if (fileBuffer.length > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: "File size must be less than 10MB." },
-        { status: 400 }
-      );
-    }
-
-    // Validate fields using Zod
-    const validation = NotificationSchema.safeParse({ title, collegeIds });
-    if (!validation.success) {
-      return NextResponse.json(
-        { errors: validation.error.errors.map((err) => err.message) },
-        { status: 400 }
-      );
-    }
-
-    // Generate a unique filename
-    const fileName = `notifications/${Date.now()}-${file.name}`;
-
-    // Upload file to S3
-    const s3Client = createS3Client();
-    const uploadParams = {
-      Bucket: process.env.AWS_BUCKET_NAME!,
-      Key: fileName,
-      Body: fileBuffer,
-      ContentType: "application/pdf",
-      ACL: ObjectCannedACL.public_read,
-    };
-
-    await s3Client.send(new PutObjectCommand(uploadParams));
-
-    // Construct the full S3 URL
-    const pdfUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
-
-    // Save notification in the database with the full URL
-    const notification = await prisma.notification.create({
-      data: {
-        title,
-        pdfPath: pdfUrl, // Store the full S3 URL
-      },
-    });
-
-    // Define the type for notification links
-    type NotificationLink = {
-      collegeId: string;
-      notificationId: string;
-    };
-    // Prepare notification links
-    const notificationLinks: NotificationLink[] = collegeIds.map(
-      (collegeId: string) => ({
-        collegeId,
-        notificationId: notification.id,
-      })
-    );
-
-    // Batch database operation
-    await prisma.$transaction(
-      notificationLinks.map((link: NotificationLink) =>
-        prisma.notifiedCollege.create({ data: link })
-      )
-    );
-
-    return NextResponse.json(
-      { message: "Notification uploaded successfully.", notification },
-      { status: 201 }
-    );
   } catch (error) {
     console.error("Error uploading notification:", error);
     return NextResponse.json(

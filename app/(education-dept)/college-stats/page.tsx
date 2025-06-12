@@ -1,6 +1,7 @@
 "use client";
 import React from "react";
 import { useState, useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -97,6 +98,24 @@ interface ChartDataItem {
   name: string;
   value: number;
 }
+
+class EducationDashboardError extends Error {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message);
+    this.name = "EducationDashboardError";
+
+    if (context) {
+      Sentry.withScope((scope) => {
+        Object.entries(context).forEach(([key, value]) => {
+          scope.setTag(key, value);
+        });
+        scope.setLevel("error");
+        Sentry.captureException(this);
+      });
+    }
+  }
+}
+
 const ITEMS_PER_PAGE = 10;
 const COLORS = [
   "#0088FE",
@@ -117,13 +136,10 @@ const EducationDashboard: React.FC = () => {
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Filter states
   const [searchName, setSearchName] = useState<string>("");
   const [filterDepartment, setFilterDepartment] = useState<string>("all");
   const [filterProgram, setFilterProgram] = useState<string>("all");
   const [filterSemester, setFilterSemester] = useState<string>("all");
-
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [totalPages, setTotalPages] = useState<number>(1);
   const router = useRouter();
@@ -132,46 +148,57 @@ const EducationDashboard: React.FC = () => {
     fetchColleges();
   }, []);
 
-  // Filter effect
   useEffect(() => {
-    let result = [...students];
+    try {
+      let result = [...students];
 
-    // Filter logic remains the same
-    if (searchName) {
-      result = result.filter((student) =>
-        student.name.toLowerCase().includes(searchName.toLowerCase())
+      if (searchName) {
+        result = result.filter((student) =>
+          student.name.toLowerCase().includes(searchName.toLowerCase())
+        );
+      }
+
+      if (filterDepartment !== "all") {
+        result = result.filter(
+          (student) => student.departmentName === filterDepartment
+        );
+      }
+
+      if (filterProgram !== "all") {
+        result = result.filter(
+          (student) => student.programName === filterProgram
+        );
+      }
+
+      if (filterSemester !== "all") {
+        result = result.filter(
+          (student) => student.semesterName === filterSemester
+        );
+      }
+
+      setTotalPages(Math.ceil(result.length / ITEMS_PER_PAGE));
+      const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+      const paginatedResult = result.slice(
+        startIndex,
+        startIndex + ITEMS_PER_PAGE
       );
+      setFilteredStudents(paginatedResult);
+    } catch (error) {
+      console.error("Error in filter effect:", error);
+      Sentry.captureException(error, {
+        tags: {
+          component: "EducationDashboard",
+          action: "filterEffect",
+        },
+        extra: {
+          searchName,
+          filterDepartment,
+          filterProgram,
+          filterSemester,
+          currentPage,
+        },
+      });
     }
-
-    if (filterDepartment !== "all") {
-      result = result.filter(
-        (student) => student.departmentName === filterDepartment
-      );
-    }
-
-    if (filterProgram !== "all") {
-      result = result.filter(
-        (student) => student.programName === filterProgram
-      );
-    }
-
-    if (filterSemester !== "all") {
-      result = result.filter(
-        (student) => student.semesterName === filterSemester
-      );
-    }
-
-    // Update total pages based on filtered results
-    setTotalPages(Math.ceil(result.length / ITEMS_PER_PAGE));
-
-    // Paginate the results
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-    const paginatedResult = result.slice(
-      startIndex,
-      startIndex + ITEMS_PER_PAGE
-    );
-
-    setFilteredStudents(paginatedResult);
   }, [
     students,
     searchName,
@@ -180,70 +207,150 @@ const EducationDashboard: React.FC = () => {
     filterSemester,
     currentPage,
   ]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [searchName, filterDepartment, filterProgram, filterSemester]);
 
   const fetchColleges = async () => {
     try {
-      const response = await fetch("/api/colleges");
-      const result = await response.json();
+      await Sentry.startSpan(
+        {
+          name: "Fetch Colleges",
+          op: "http",
+        },
+        async () => {
+          const response = await fetch("/api/colleges");
+          if (!response.ok) {
+            throw new EducationDashboardError(
+              `Failed to fetch colleges: ${response.status} ${response.statusText}`,
+              {
+                status: response.status,
+                statusText: response.statusText,
+              }
+            );
+          }
 
-      // Handle different possible response structures
-      let collegesList: CollegeListItem[] = [];
+          const result = await response.json();
+          let collegesList: CollegeListItem[] = [];
 
-      if (Array.isArray(result)) {
-        collegesList = result;
-      } else if (result.data && Array.isArray(result.data)) {
-        collegesList = result.data;
-      } else if (typeof result === "object" && result !== null) {
-        // If the response is an object with college data
-        collegesList = Object.values(result).filter(
-          (item) =>
-            item && typeof item === "object" && "id" in item && "name" in item
-        ) as CollegeListItem[];
-      }
+          if (Array.isArray(result)) {
+            collegesList = result;
+          } else if (result.data && Array.isArray(result.data)) {
+            collegesList = result.data;
+          } else if (typeof result === "object" && result !== null) {
+            collegesList = Object.values(result).filter(
+              (item) =>
+                item &&
+                typeof item === "object" &&
+                "id" in item &&
+                "name" in item
+            ) as CollegeListItem[];
+          }
 
-      setColleges(collegesList);
-      setLoading(false);
+          setColleges(collegesList);
+          setLoading(false);
+        }
+      );
     } catch (error) {
       console.error("Error fetching colleges:", error);
       setError("Failed to load colleges");
       setLoading(false);
+
+      Sentry.withScope((scope) => {
+        scope.setTag("component", "EducationDashboard");
+        scope.setTag("action", "fetchColleges");
+        scope.setLevel("error");
+        Sentry.captureException(error);
+      });
     }
   };
 
   const fetchCollegeStats = async (collegeId: string) => {
     try {
-      const response = await fetch(
-        `/api/educationDepartment/college/${collegeId}`
+      await Sentry.startSpan(
+        {
+          name: "Fetch College Stats",
+          op: "http",
+        },
+        async () => {
+          const response = await fetch(
+            `/api/educationDepartment/college/${collegeId}`
+          );
+
+          if (!response.ok) {
+            throw new EducationDashboardError(
+              `Failed to fetch college stats: ${response.status} ${response.statusText}`,
+              {
+                collegeId,
+                status: response.status,
+                statusText: response.statusText,
+              }
+            );
+          }
+
+          const data: CollegeResponse = await response.json();
+          setCollegeStats(data);
+        }
       );
-      const data: CollegeResponse = await response.json();
-      setCollegeStats(data);
     } catch (error) {
       console.error("Error fetching college stats:", error);
       setError("Failed to load college statistics");
+
+      Sentry.withScope((scope) => {
+        scope.setTag("component", "EducationDashboard");
+        scope.setTag("action", "fetchCollegeStats");
+        scope.setExtra("collegeId", collegeId);
+        scope.setLevel("error");
+        Sentry.captureException(error);
+      });
     }
   };
 
   const fetchStudents = async (collegeId: string) => {
     try {
-      const response = await fetch(
-        `/api/educationDepartment/student?collegeId=${collegeId}`
+      await Sentry.startSpan(
+        {
+          name: "Fetch Students",
+          op: "http",
+        },
+        async () => {
+          const response = await fetch(
+            `/api/educationDepartment/student?collegeId=${collegeId}`
+          );
+
+          if (!response.ok) {
+            throw new EducationDashboardError(
+              `Failed to fetch students: ${response.status} ${response.statusText}`,
+              {
+                collegeId,
+                status: response.status,
+                statusText: response.statusText,
+              }
+            );
+          }
+
+          const data = await response.json();
+          const studentsArray = Array.isArray(data) ? data : [];
+          setStudents(studentsArray);
+          setFilteredStudents(studentsArray.slice(0, ITEMS_PER_PAGE));
+          setTotalPages(Math.ceil(studentsArray.length / ITEMS_PER_PAGE));
+        }
       );
-      const data = await response.json();
-      // Ensure data is an array before setting state
-      const studentsArray = Array.isArray(data) ? data : [];
-      setStudents(studentsArray);
-      setFilteredStudents(studentsArray.slice(0, ITEMS_PER_PAGE)); // Initialize filtered students with first page
-      setTotalPages(Math.ceil(studentsArray.length / ITEMS_PER_PAGE));
     } catch (error) {
       console.error("Error fetching students:", error);
       setError("Failed to load students");
-      // Set empty arrays on error
       setStudents([]);
       setFilteredStudents([]);
       setTotalPages(0);
+
+      Sentry.withScope((scope) => {
+        scope.setTag("component", "EducationDashboard");
+        scope.setTag("action", "fetchStudents");
+        scope.setExtra("collegeId", collegeId);
+        scope.setLevel("error");
+        Sentry.captureException(error);
+      });
     }
   };
 
@@ -256,43 +363,52 @@ const EducationDashboard: React.FC = () => {
         fetchCollegeStats(collegeId),
         fetchStudents(collegeId),
       ]);
+    } catch (error) {
+      console.error("Error in handleCollegeChange:", error);
+      Sentry.captureException(error, {
+        tags: {
+          component: "EducationDashboard",
+          action: "handleCollegeChange",
+        },
+        extra: {
+          collegeId,
+        },
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const prepareChartData = (statistics: CollegeStatistics): ChartDataItem[] => {
-    return [
-      { name: "Students", value: statistics.totalStudents },
-      { name: "Teachers", value: statistics.totalTeachers },
-      { name: "Staff", value: statistics.totalStaff },
-      { name: "Departments", value: statistics.totalDepartments },
-      { name: "Subjects", value: statistics.totalSubjects },
-    ];
+    try {
+      return [
+        { name: "Students", value: statistics.totalStudents },
+        { name: "Teachers", value: statistics.totalTeachers },
+        { name: "Staff", value: statistics.totalStaff },
+        { name: "Departments", value: statistics.totalDepartments },
+        { name: "Subjects", value: statistics.totalSubjects },
+      ];
+    } catch (error) {
+      console.error("Error preparing chart data:", error);
+      Sentry.captureException(error, {
+        tags: {
+          component: "EducationDashboard",
+          action: "prepareChartData",
+        },
+        extra: {
+          statistics,
+        },
+      });
+      return [];
+    }
   };
 
-  // Get unique values for filters
   const departments = Array.from(
-    new Set(
-      (Array.isArray(students) ? students : []).map((s) => s.departmentName)
-    )
+    new Set(students.map((s) => s.departmentName))
   );
-  const programs = Array.from(
-    new Set((Array.isArray(students) ? students : []).map((s) => s.programName))
-  );
-  const semesters = Array.from(
-    new Set(
-      (Array.isArray(students) ? students : []).map((s) => s.semesterName)
-    )
-  );
+  const programs = Array.from(new Set(students.map((s) => s.programName)));
+  const semesters = Array.from(new Set(students.map((s) => s.semesterName)));
 
-  if (loading && !selectedCollege) {
-    return <div className="container mx-auto p-6">Loading colleges...</div>;
-  }
-
-  if (error && !selectedCollege) {
-    return <div className="container mx-auto p-6 text-red-500">{error}</div>;
-  }
   const handleNextPage = () => {
     setCurrentPage((prevPage) =>
       prevPage < totalPages ? prevPage + 1 : prevPage
@@ -302,6 +418,15 @@ const EducationDashboard: React.FC = () => {
   const handlePreviousPage = () => {
     setCurrentPage((prevPage) => (prevPage > 1 ? prevPage - 1 : prevPage));
   };
+
+  if (loading && !selectedCollege) {
+    return <div className="container mx-auto p-6">Loading colleges...</div>;
+  }
+
+  if (error && !selectedCollege) {
+    return <div className="container mx-auto p-6 text-red-500">{error}</div>;
+  }
+
   return (
     <SideBarLayout>
       <div className="container mx-auto p-4 space-y-6">
@@ -311,7 +436,7 @@ const EducationDashboard: React.FC = () => {
               <SelectValue placeholder="Select a college" />
             </SelectTrigger>
             <SelectContent>
-              {Array.isArray(colleges) && colleges.length > 0 ? (
+              {colleges.length > 0 ? (
                 colleges.map((college) => (
                   <SelectItem key={college.id} value={college.id}>
                     {college.name}{" "}
@@ -392,27 +517,27 @@ const EducationDashboard: React.FC = () => {
               <StatsCard
                 title="Total Students"
                 value={collegeStats.statistics.totalStudents}
-                icon={<Users className="w-4 h-4 " />}
+                icon={<Users className="w-4 h-4" />}
               />
               <StatsCard
                 title="Total Teachers"
                 value={collegeStats.statistics.totalTeachers}
-                icon={<GraduationCap className="w-4 h-4 " />}
+                icon={<GraduationCap className="w-4 h-4" />}
               />
               <StatsCard
                 title="Total Departments"
                 value={collegeStats.statistics.totalDepartments}
-                icon={<BookOpen className="w-4 h-4 " />}
+                icon={<BookOpen className="w-4 h-4" />}
               />
               <StatsCard
                 title="Total Subjects"
                 value={collegeStats.statistics.totalSubjects}
-                icon={<Calculator className="w-4 h-4 " />}
+                icon={<Calculator className="w-4 h-4" />}
               />
               <StatsCard
                 title="Total Staff"
                 value={collegeStats.statistics.totalStaff}
-                icon={<UserCog className="w-4 h-4 " />}
+                icon={<UserCog className="w-4 h-4" />}
               />
             </div>
 
@@ -421,8 +546,6 @@ const EducationDashboard: React.FC = () => {
                 <CardTitle>Students List</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4"></div>
-                {/* Filter Controls */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
                   <Input
                     placeholder="Search by name..."
@@ -499,8 +622,7 @@ const EducationDashboard: React.FC = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Array.isArray(filteredStudents) &&
-                      filteredStudents.length > 0 ? (
+                      {filteredStudents.length > 0 ? (
                         filteredStudents.map((student) => (
                           <TableRow
                             key={student.id}
@@ -542,7 +664,6 @@ const EducationDashboard: React.FC = () => {
                     </TableBody>
                   </Table>
                 </div>
-                {/* Pagination Controls */}
                 <div className="flex flex-col sm:flex-row justify-between items-center mt-4 space-y-2 sm:space-y-0">
                   <div className="text-sm text-gray-500">
                     Page {currentPage} of {totalPages}

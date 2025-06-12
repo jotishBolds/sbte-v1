@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import * as Sentry from "@sentry/nextjs";
 import { useParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -9,7 +10,6 @@ import {
   UserCheck,
   Percent,
   AlertCircle,
-  LucideIcon,
 } from "lucide-react";
 import {
   Table,
@@ -92,25 +92,22 @@ interface BarChartDataItem {
   Alumni: number;
 }
 
-const StatsCard: React.FC<StatsCardProps> = ({
-  title,
-  value,
-  icon,
-  description,
-}) => (
-  <Card className="hover:shadow-lg transition-shadow duration-200">
-    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      <div className="p-2 bg-primary/10 rounded-full">{icon}</div>
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">{value}</div>
-      {description && (
-        <p className="text-xs text-muted-foreground mt-1">{description}</p>
-      )}
-    </CardContent>
-  </Card>
-);
+class DepartmentStatsError extends Error {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message);
+    this.name = "DepartmentStatsError";
+
+    if (context) {
+      Sentry.withScope((scope) => {
+        Object.entries(context).forEach(([key, value]) => {
+          scope.setTag(key, value);
+        });
+        scope.setLevel("error");
+        Sentry.captureException(this);
+      });
+    }
+  }
+}
 
 const COLORS = [
   "#0088FE",
@@ -131,15 +128,43 @@ const DepartmentStatsPage: React.FC = () => {
   React.useEffect(() => {
     const fetchDepartmentStats = async () => {
       try {
-        const response = await fetch(
-          `/api/educationDepartment/department/${params.id}`
+        await Sentry.startSpan(
+          {
+            name: "Fetch Department Stats",
+            op: "http",
+          },
+          async () => {
+            const response = await fetch(
+              `/api/educationDepartment/department/${params.id}`
+            );
+
+            if (!response.ok) {
+              throw new DepartmentStatsError(
+                `Failed to fetch department statistics: ${response.status} ${response.statusText}`,
+                {
+                  departmentId: params.id,
+                  status: response.status,
+                  statusText: response.statusText,
+                }
+              );
+            }
+
+            const data: DepartmentData = await response.json();
+            setDepartmentData(data);
+          }
         );
-        if (!response.ok)
-          throw new Error("Failed to fetch department statistics");
-        const data: DepartmentData = await response.json();
-        setDepartmentData(data);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "An error occurred");
+        const errorMessage =
+          err instanceof Error ? err.message : "An error occurred";
+        setError(errorMessage);
+
+        Sentry.withScope((scope) => {
+          scope.setTag("component", "DepartmentStatsPage");
+          scope.setTag("action", "fetchDepartmentStats");
+          scope.setExtra("departmentId", params.id);
+          scope.setLevel("error");
+          Sentry.captureException(err);
+        });
       } finally {
         setLoading(false);
       }
@@ -403,5 +428,25 @@ const DepartmentStatsPage: React.FC = () => {
     </SideBarLayout>
   );
 };
+
+const StatsCard: React.FC<StatsCardProps> = ({
+  title,
+  value,
+  icon,
+  description,
+}) => (
+  <Card className="hover:shadow-lg transition-shadow duration-200">
+    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+      <CardTitle className="text-sm font-medium">{title}</CardTitle>
+      <div className="p-2 bg-primary/10 rounded-full">{icon}</div>
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">{value}</div>
+      {description && (
+        <p className="text-xs text-muted-foreground mt-1">{description}</p>
+      )}
+    </CardContent>
+  </Card>
+);
 
 export default DepartmentStatsPage;

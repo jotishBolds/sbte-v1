@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
@@ -48,6 +49,23 @@ interface StatsCardProps {
   icon: React.ReactNode;
 }
 
+class DepartmentDashboardError extends Error {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message);
+    this.name = "DepartmentDashboardError";
+
+    if (context) {
+      Sentry.withScope((scope) => {
+        Object.entries(context).forEach(([key, value]) => {
+          scope.setTag(key, value);
+        });
+        scope.setLevel("error");
+        Sentry.captureException(this);
+      });
+    }
+  }
+}
+
 const DepartmentDashboard: React.FC = () => {
   const [colleges, setColleges] = useState<College[]>([]);
   const [selectedCollege, setSelectedCollege] = useState<string | null>(null);
@@ -55,38 +73,90 @@ const DepartmentDashboard: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+
   useEffect(() => {
     fetchColleges();
   }, []);
 
   const fetchColleges = async () => {
     try {
-      const response = await fetch("/api/colleges");
-      const result = await response.json();
-      const collegesList = Array.isArray(result) ? result : result.data || [];
-      setColleges(collegesList);
-      setLoading(false);
+      await Sentry.startSpan(
+        {
+          name: "Fetch Colleges",
+          op: "http",
+        },
+        async () => {
+          const response = await fetch("/api/colleges");
+          if (!response.ok) {
+            throw new DepartmentDashboardError(
+              `Failed to fetch colleges: ${response.status} ${response.statusText}`,
+              {
+                status: response.status,
+                statusText: response.statusText,
+              }
+            );
+          }
+
+          const result = await response.json();
+          const collegesList = Array.isArray(result)
+            ? result
+            : result.data || [];
+          setColleges(collegesList);
+          setLoading(false);
+        }
+      );
     } catch (error) {
       console.error("Error fetching colleges:", error);
       setError("Failed to load colleges");
       setLoading(false);
+
+      Sentry.withScope((scope) => {
+        scope.setTag("component", "DepartmentDashboard");
+        scope.setTag("action", "fetchColleges");
+        scope.setLevel("error");
+        Sentry.captureException(error);
+      });
     }
   };
 
   const fetchDepartments = async (collegeId: string) => {
     try {
-      const response = await fetch(
-        `/api/educationDepartment/department?collegeId=${collegeId}`
+      await Sentry.startSpan(
+        {
+          name: "Fetch Departments",
+          op: "http",
+        },
+        async () => {
+          const response = await fetch(
+            `/api/educationDepartment/department?collegeId=${collegeId}`
+          );
+
+          if (!response.ok) {
+            throw new DepartmentDashboardError(
+              `Failed to fetch departments: ${response.status} ${response.statusText}`,
+              {
+                collegeId,
+                status: response.status,
+                statusText: response.statusText,
+              }
+            );
+          }
+
+          const data = await response.json();
+          setDepartments(Array.isArray(data) ? data : []);
+        }
       );
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        setDepartments(data);
-      } else {
-        setDepartments([]);
-      }
     } catch (error) {
       console.error("Error fetching departments:", error);
       setError("Failed to load departments");
+
+      Sentry.withScope((scope) => {
+        scope.setTag("component", "DepartmentDashboard");
+        scope.setTag("action", "fetchDepartments");
+        scope.setExtra("collegeId", collegeId);
+        scope.setLevel("error");
+        Sentry.captureException(error);
+      });
     }
   };
 
@@ -96,18 +166,40 @@ const DepartmentDashboard: React.FC = () => {
     setError(null);
     try {
       await fetchDepartments(collegeId);
+    } catch (error) {
+      console.error("Error in handleCollegeChange:", error);
+      Sentry.captureException(error, {
+        tags: {
+          component: "DepartmentDashboard",
+          action: "handleCollegeChange",
+        },
+        extra: {
+          collegeId,
+        },
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const prepareChartData = () => {
-    const activeCount = departments.filter((dept) => dept.isActive).length;
-    const inactiveCount = departments.length - activeCount;
-    return [
-      { name: "Active Departments", value: activeCount },
-      { name: "Inactive Departments", value: inactiveCount },
-    ];
+    try {
+      const activeCount = departments.filter((dept) => dept.isActive).length;
+      const inactiveCount = departments.length - activeCount;
+      return [
+        { name: "Active Departments", value: activeCount },
+        { name: "Inactive Departments", value: inactiveCount },
+      ];
+    } catch (error) {
+      console.error("Error preparing chart data:", error);
+      Sentry.captureException(error, {
+        tags: {
+          component: "DepartmentDashboard",
+          action: "prepareChartData",
+        },
+      });
+      return [];
+    }
   };
 
   if (loading && !selectedCollege) {

@@ -23,6 +23,19 @@ import {
 } from "@/components/ui/select";
 import SideBarLayout from "@/components/sidebar/layout";
 import { Switch } from "@/components/ui/switch";
+import { CheckCircle, XCircle, AlertCircle, Eye, EyeOff } from "lucide-react";
+
+interface ValidationError {
+  validation: string;
+  code: string;
+  message: string;
+  path: string[];
+}
+
+interface ApiError {
+  message: string;
+  errors?: ValidationError[];
+}
 
 interface ProfileData {
   username: string;
@@ -75,6 +88,36 @@ type TeacherDesignation = {
   alias: string;
   description?: string;
 };
+
+// Password validation rules
+const passwordRules = [
+  {
+    test: (password: string) => password.length >= 8,
+    message: "At least 8 characters long",
+    key: "length",
+  },
+  {
+    test: (password: string) => /[A-Z]/.test(password),
+    message: "At least one uppercase letter",
+    key: "uppercase",
+  },
+  {
+    test: (password: string) => /[a-z]/.test(password),
+    message: "At least one lowercase letter",
+    key: "lowercase",
+  },
+  {
+    test: (password: string) => /[!@#$%^&*(),.?":{}|<>]/.test(password),
+    message: "At least one special character",
+    key: "special",
+  },
+  {
+    test: (password: string) => /[0-9]/.test(password),
+    message: "At least one number",
+    key: "number",
+  },
+];
+
 export default function ProfilePage() {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<ProfileData>({
@@ -85,8 +128,21 @@ export default function ProfilePage() {
     confirmPassword: "",
   });
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"success" | "error" | "info">(
+    "info"
+  );
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>(
+    []
+  );
   const [designations, setDesignations] = useState<TeacherDesignation[]>([]);
   const [categories, setCategories] = useState<EmployeeCategory[]>([]);
+  const [showPassword, setShowPassword] = useState({
+    current: false,
+    new: false,
+    confirm: false,
+  });
+  const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
     const fetchProfileAndOptions = async () => {
       if (session?.user) {
@@ -116,12 +172,18 @@ export default function ProfilePage() {
         } catch (error) {
           console.error("Error fetching data:", error);
           setMessage("Failed to load profile data.");
+          setMessageType("error");
         }
       }
     };
 
     fetchProfileAndOptions();
   }, [session]);
+
+  const clearMessages = () => {
+    setMessage("");
+    setValidationErrors([]);
+  };
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
@@ -131,6 +193,11 @@ export default function ProfilePage() {
       ...prevProfile,
       [name]: value,
     }));
+
+    // Clear messages when user starts typing
+    if (message || validationErrors.length > 0) {
+      clearMessages();
+    }
   };
 
   const handleTeacherChange = (
@@ -144,6 +211,7 @@ export default function ProfilePage() {
         [name]: value,
       },
     }));
+    clearMessages();
   };
 
   const handleTeacherSelectChange = (name: string, value: string) => {
@@ -154,6 +222,7 @@ export default function ProfilePage() {
         [name]: value,
       },
     }));
+    clearMessages();
   };
 
   const handleTeacherCheckboxChange = (name: string, checked: boolean) => {
@@ -164,6 +233,7 @@ export default function ProfilePage() {
         [name]: checked,
       },
     }));
+    clearMessages();
   };
 
   const handleHODChange = (
@@ -177,7 +247,9 @@ export default function ProfilePage() {
         [name]: value,
       },
     }));
+    clearMessages();
   };
+
   const handleAlumnusChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -189,9 +261,56 @@ export default function ProfilePage() {
         [name]: value,
       },
     }));
+    clearMessages();
   };
+
+  const validatePasswords = () => {
+    const errors: string[] = [];
+
+    if (
+      profile.newPassword &&
+      profile.confirmPassword &&
+      profile.newPassword !== profile.confirmPassword
+    ) {
+      errors.push("New password and confirmation password do not match");
+    }
+
+    return errors;
+  };
+
+  const getPasswordStrength = (password: string) => {
+    const passedRules = passwordRules.filter((rule) => rule.test(password));
+    return {
+      score: passedRules.length,
+      total: passwordRules.length,
+      percentage: (passedRules.length / passwordRules.length) * 100,
+    };
+  };
+
+  const getFieldError = (fieldPath: string) => {
+    return validationErrors.find((error) => error.path.join(".") === fieldPath);
+  };
+
+  const getFieldErrors = (fieldPath: string) => {
+    return validationErrors.filter(
+      (error) => error.path.join(".") === fieldPath
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
+    clearMessages();
+
+    // Client-side validation
+    const clientErrors = validatePasswords();
+    if (clientErrors.length > 0) {
+      setMessage(clientErrors[0]);
+      setMessageType("error");
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch("/api/profile", {
         method: "PUT",
@@ -199,22 +318,47 @@ export default function ProfilePage() {
         body: JSON.stringify(profile),
       });
 
-      console.log("this is profile", profile);
-      const data = await response.json();
-      setMessage(data.message);
+      const data: ApiError = await response.json();
 
       if (response.ok) {
+        setMessage("Profile updated successfully!");
+        setMessageType("success");
         setProfile((prevProfile) => ({
           ...prevProfile,
           currentPassword: "",
           newPassword: "",
           confirmPassword: "",
         }));
+      } else {
+        // Handle validation errors
+        if (data.errors && data.errors.length > 0) {
+          setValidationErrors(data.errors);
+          setMessage("Please fix the validation errors below");
+          setMessageType("error");
+        } else {
+          setMessage(
+            data.message || "An error occurred while updating the profile."
+          );
+          setMessageType("error");
+        }
       }
     } catch (error) {
       setMessage("An error occurred while updating the profile.");
+      setMessageType("error");
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const togglePasswordVisibility = (field: "current" | "new" | "confirm") => {
+    setShowPassword((prev) => ({
+      ...prev,
+      [field]: !prev[field],
+    }));
+  };
+
+  const passwordStrength = getPasswordStrength(profile.newPassword);
+  const newPasswordErrors = getFieldErrors("newPassword");
 
   return (
     <SideBarLayout>
@@ -250,8 +394,18 @@ export default function ProfilePage() {
                       value={profile.username}
                       onChange={handleChange}
                       placeholder="Enter your username"
+                      className={
+                        getFieldError("username") ? "border-red-500" : ""
+                      }
                     />
+                    {getFieldError("username") && (
+                      <p className="text-sm text-red-600 flex items-center gap-1">
+                        <XCircle className="h-4 w-4" />
+                        {getFieldError("username")?.message}
+                      </p>
+                    )}
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
                     <Input
@@ -261,52 +415,208 @@ export default function ProfilePage() {
                       value={profile.email}
                       onChange={handleChange}
                       placeholder="Enter your email"
+                      className={getFieldError("email") ? "border-red-500" : ""}
                     />
+                    {getFieldError("email") && (
+                      <p className="text-sm text-red-600 flex items-center gap-1">
+                        <XCircle className="h-4 w-4" />
+                        {getFieldError("email")?.message}
+                      </p>
+                    )}
                   </div>
+
                   <Separator />
                   <h3 className="text-lg font-medium">Change Password</h3>
+
                   <div className="space-y-2">
                     <Label htmlFor="currentPassword">Current Password</Label>
-                    <Input
-                      id="currentPassword"
-                      name="currentPassword"
-                      type="password"
-                      value={profile.currentPassword}
-                      onChange={handleChange}
-                      placeholder="Enter your current password"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="currentPassword"
+                        name="currentPassword"
+                        type={showPassword.current ? "text" : "password"}
+                        value={profile.currentPassword}
+                        onChange={handleChange}
+                        placeholder="Enter your current password"
+                        className={
+                          getFieldError("currentPassword")
+                            ? "border-red-500 pr-10"
+                            : "pr-10"
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility("current")}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showPassword.current ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    {getFieldError("currentPassword") && (
+                      <p className="text-sm text-red-600 flex items-center gap-1">
+                        <XCircle className="h-4 w-4" />
+                        {getFieldError("currentPassword")?.message}
+                      </p>
+                    )}
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="newPassword">New Password</Label>
-                    <Input
-                      id="newPassword"
-                      name="newPassword"
-                      type="password"
-                      value={profile.newPassword}
-                      onChange={handleChange}
-                      placeholder="Enter your new password"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        name="newPassword"
+                        type={showPassword.new ? "text" : "password"}
+                        value={profile.newPassword}
+                        onChange={handleChange}
+                        placeholder="Enter your new password"
+                        className={
+                          newPasswordErrors.length > 0
+                            ? "border-red-500 pr-10"
+                            : "pr-10"
+                        }
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility("new")}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showPassword.new ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Password strength indicator */}
+                    {profile.newPassword && (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-200 rounded-full h-2">
+                            <div
+                              className={`h-2 rounded-full transition-all duration-300 ${
+                                passwordStrength.percentage < 40
+                                  ? "bg-red-500"
+                                  : passwordStrength.percentage < 70
+                                  ? "bg-yellow-500"
+                                  : "bg-green-500"
+                              }`}
+                              style={{
+                                width: `${passwordStrength.percentage}%`,
+                              }}
+                            />
+                          </div>
+                          <span className="text-sm text-gray-600">
+                            {passwordStrength.score}/{passwordStrength.total}
+                          </span>
+                        </div>
+
+                        {/* Password requirements */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 text-sm">
+                          {passwordRules.map((rule) => {
+                            const isValid = rule.test(profile.newPassword);
+                            return (
+                              <div
+                                key={rule.key}
+                                className={`flex items-center gap-1 ${
+                                  isValid ? "text-green-600" : "text-gray-500"
+                                }`}
+                              >
+                                {isValid ? (
+                                  <CheckCircle className="h-3 w-3" />
+                                ) : (
+                                  <XCircle className="h-3 w-3" />
+                                )}
+                                {rule.message}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Server validation errors for new password */}
+                    {newPasswordErrors.map((error, index) => (
+                      <p
+                        key={index}
+                        className="text-sm text-red-600 flex items-center gap-1"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        {error.message}
+                      </p>
+                    ))}
                   </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="confirmPassword">
                       Confirm New Password
                     </Label>
-                    <Input
-                      id="confirmPassword"
-                      name="confirmPassword"
-                      type="password"
-                      value={profile.confirmPassword}
-                      onChange={handleChange}
-                      placeholder="Confirm your new password"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        name="confirmPassword"
+                        type={showPassword.confirm ? "text" : "password"}
+                        value={profile.confirmPassword}
+                        onChange={handleChange}
+                        placeholder="Confirm your new password"
+                        className={`pr-10 ${
+                          profile.newPassword &&
+                          profile.confirmPassword &&
+                          profile.newPassword !== profile.confirmPassword
+                            ? "border-red-500"
+                            : ""
+                        }`}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => togglePasswordVisibility("confirm")}
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                      >
+                        {showPassword.confirm ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+
+                    {/* Password match indicator */}
+                    {profile.newPassword && profile.confirmPassword && (
+                      <div
+                        className={`text-sm flex items-center gap-1 ${
+                          profile.newPassword === profile.confirmPassword
+                            ? "text-green-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {profile.newPassword === profile.confirmPassword ? (
+                          <CheckCircle className="h-3 w-3" />
+                        ) : (
+                          <XCircle className="h-3 w-3" />
+                        )}
+                        {profile.newPassword === profile.confirmPassword
+                          ? "Passwords match"
+                          : "Passwords do not match"}
+                      </div>
+                    )}
                   </div>
+
                   <CardFooter className="flex justify-end pt-4">
-                    <Button type="submit">Update Account</Button>
+                    <Button type="submit" disabled={isLoading}>
+                      {isLoading ? "Updating..." : "Update Account"}
+                    </Button>
                   </CardFooter>
                 </form>
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Rest of the tabs remain the same */}
           {/* Alumnus Information Tab */}
           {session?.user?.role === "ALUMNUS" && (
             <TabsContent value="alumnus">
@@ -357,13 +667,18 @@ export default function ProfilePage() {
                       />
                     </div>
                     <CardFooter className="flex justify-end pt-4">
-                      <Button type="submit">Update Alumni Information</Button>
+                      <Button type="submit" disabled={isLoading}>
+                        {isLoading
+                          ? "Updating..."
+                          : "Update Alumni Information"}
+                      </Button>
                     </CardFooter>
                   </form>
                 </CardContent>
               </Card>
             </TabsContent>
           )}
+
           {/* Teacher Information Tab */}
           {session?.user?.role === "TEACHER" && (
             <TabsContent value="teacher">
@@ -586,7 +901,11 @@ export default function ProfilePage() {
                       <Label htmlFor="hasResigned">Has Resigned</Label>
                     </div>
                     <CardFooter className="flex justify-end pt-4">
-                      <Button type="submit">Update Teacher Information</Button>
+                      <Button type="submit" disabled={isLoading}>
+                        {isLoading
+                          ? "Updating..."
+                          : "Update Teacher Information"}
+                      </Button>
                     </CardFooter>
                   </form>
                 </CardContent>
@@ -654,7 +973,9 @@ export default function ProfilePage() {
                       />
                     </div>
                     <CardFooter className="flex justify-end pt-4">
-                      <Button type="submit">Update HOD Information</Button>
+                      <Button type="submit" disabled={isLoading}>
+                        {isLoading ? "Updating..." : "Update HOD Information"}
+                      </Button>
                     </CardFooter>
                   </form>
                 </CardContent>
@@ -662,9 +983,60 @@ export default function ProfilePage() {
             </TabsContent>
           )}
         </Tabs>
-        {message && (
-          <Alert className="mt-4">
-            <AlertDescription>{message}</AlertDescription>
+
+        {/* Enhanced Message Display */}
+        {(message || validationErrors.length > 0) && (
+          <Alert
+            className={`mt-4 ${
+              messageType === "success"
+                ? "border-green-500 bg-green-50"
+                : messageType === "error"
+                ? "border-red-500 bg-red-50"
+                : "border-blue-500 bg-blue-50"
+            }`}
+          >
+            <div className="flex items-start gap-2">
+              {messageType === "success" && (
+                <CheckCircle className="h-4 w-4 text-green-600 mt-0.5" />
+              )}
+              {messageType === "error" && (
+                <XCircle className="h-4 w-4 text-red-600 mt-0.5" />
+              )}
+              {messageType === "info" && (
+                <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5" />
+              )}
+              <div className="flex-1">
+                {message && (
+                  <AlertDescription
+                    className={`${
+                      messageType === "success"
+                        ? "text-green-800"
+                        : messageType === "error"
+                        ? "text-red-800"
+                        : "text-blue-800"
+                    }`}
+                  >
+                    {message}
+                  </AlertDescription>
+                )}
+                {validationErrors.length > 0 && (
+                  <div className="space-y-1 mt-2">
+                    {validationErrors.map((error, index) => (
+                      <div
+                        key={index}
+                        className="text-sm text-red-700 flex items-center gap-1"
+                      >
+                        <XCircle className="h-3 w-3" />
+                        <span className="font-medium">
+                          {error.path.join(".")}:
+                        </span>
+                        {error.message}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </Alert>
         )}
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,23 @@ import {
 import { UserPlus, CheckCircle2, ArrowLeft } from "lucide-react";
 import { ClipLoader } from "react-spinners";
 import { useTheme } from "next-themes";
+
+class RegistrationError extends Error {
+  constructor(message: string, context?: Record<string, any>) {
+    super(message);
+    this.name = "RegistrationError";
+
+    if (context) {
+      Sentry.withScope((scope) => {
+        Object.entries(context).forEach(([key, value]) => {
+          scope.setTag(key, value);
+        });
+        scope.setLevel("error");
+        Sentry.captureException(this);
+      });
+    }
+  }
+}
 
 export default function RegisterPage() {
   const { theme } = useTheme();
@@ -42,30 +60,67 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     if (formData.password !== formData.confirmPassword) {
-      setError("Passwords do not match. Please try again.");
+      const errorMessage = "Passwords do not match. Please try again.";
+      setError(errorMessage);
       setIsLoading(false);
+      Sentry.captureException(
+        new RegistrationError(errorMessage, {
+          username: formData.username,
+          email: formData.email,
+          errorType: "password_mismatch",
+        })
+      );
       return;
     }
 
     try {
-      const response = await fetch("/api/sbte-auth/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: formData.username,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+      await Sentry.startSpan(
+        {
+          name: "User Registration",
+          op: "auth",
+        },
+        async () => {
+          const response = await fetch("/api/sbte-auth/register", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              username: formData.username,
+              email: formData.email,
+              password: formData.password,
+            }),
+          });
 
-      if (response.ok) {
-        router.push("/login");
-      } else {
-        const errorData = await response.json();
-        setError(errorData.message || "Registration failed. Please try again.");
-      }
+          if (!response.ok) {
+            const errorData = await response.json();
+            const errorMessage =
+              errorData.message || "Registration failed. Please try again.";
+            throw new RegistrationError(errorMessage, {
+              username: formData.username,
+              email: formData.email,
+              status: response.status,
+              errorData: errorData,
+            });
+          }
+
+          // Registration successful
+          router.push("/login");
+        }
+      );
     } catch (error) {
-      setError("An unexpected error occurred. Please try again.");
+      console.error("Registration error:", error);
+      if (error instanceof RegistrationError) {
+        setError(error.message);
+      } else {
+        const errorMessage = "An unexpected error occurred. Please try again.";
+        setError(errorMessage);
+        Sentry.captureException(
+          new RegistrationError(errorMessage, {
+            username: formData.username,
+            email: formData.email,
+            errorType: "unexpected_error",
+          })
+        );
+      }
     } finally {
       setIsLoading(false);
     }

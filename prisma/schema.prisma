@@ -4,8 +4,8 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("NEON_URL")
-  // url = env("DATABASE_URL_LOCAL")
+  // url      = env("NEON_URL")
+  url = env("DATABASE_URL_LOCAL")
 }
 
 enum Role {
@@ -88,12 +88,27 @@ model User {
   otp                        String?
   otpExpiresAt               DateTime?
   lastOtpRequestAt           DateTime?
+  lastLoginAt                DateTime?
+  lastLogout                DateTime?
+  isLoggedIn                Boolean              @default(false)
+  isLocked                   Boolean              @default(false)
+  lockedUntil                DateTime?
+  failedLoginAttempts        Int                 @default(0)
+  lastFailedLoginAt          DateTime?
+  lockoutCount               Int                 @default(0)
+  resetOtp                   String?              // For password reset
+  resetOtpExpiresAt         DateTime?            // Reset OTP expiration
+  passwordHistory            PasswordHistory[]
   createdBatches             Batch[]               @relation("CreatedBy")
   updatedBatches             Batch[]               @relation("UpdatedBy")
   createdSubjects            Subject[]             @relation("SubjectCreatedBy")
   updatedSubjects            Subject[]             @relation("SubjectUpdatedBy")
   createdStudentBatchExamFee StudentBatchExamFee[] @relation("StudentBatchExamFeeCreatedBy")
   updatedStudentBatchExamFee StudentBatchExamFee[] @relation("StudentBatchExamFeeUpdatedBy")
+  otpVerifyAttempts          Int?
+  otpVerifyLockedUntil       DateTime?
+  lastOtpVerifiedAt          DateTime?
+  lastSuccessfulVerification VerificationHistory?
 }
 
 model College {
@@ -737,3 +752,25 @@ model SubjectGradeDetail {
 
   @@unique([studentGradeCardId, batchSubjectId])
 }
+
+model PasswordHistory {
+  id             String   @id @default(cuid())
+  userId         String
+  hashedPassword String
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationHistory {
+  id            String   @id @default(cuid())
+  user          User     @relation(fields: [userId], references: [id])
+  userId        String   @unique
+  verifiedAt    DateTime @default(now())
+  ipAddress     String
+  userAgent     String
+  createdAt     DateTime @default(now())
+}
+
+
