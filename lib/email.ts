@@ -50,16 +50,6 @@ const getBaseTemplate = () => `
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-
-        .header img {
-            max-width: 150px;
-            height: auto;
-        }
-
         .content {
             color: #374151;
         }
@@ -116,11 +106,7 @@ const getBaseTemplate = () => `
         }
     </style>
 </head>
-<body>
-    <div class="container">
-        <div class="header">
-            <img src="cid:logo" alt="SBTE Logo" />
-        </div>
+<body>    <div class="container">
         {{content}}
         <div class="footer">
             <p>&copy; ${new Date().getFullYear()} SBTE. All rights reserved.</p>
@@ -225,13 +211,6 @@ export async function sendEmail(
       text: `${subject}\n\n${
         data?.otp ? `Your OTP is: ${data.otp}\n\n` : ""
       }This is an automated message, please do not reply.`,
-      attachments: [
-        {
-          filename: "sbte-logo.png",
-          path: "./public/sbte-logo.png",
-          cid: "logo",
-        },
-      ],
     };
 
     await transporter.sendMail(mailOptions); // Log success with masked email and OTP if present
