@@ -100,7 +100,7 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
         imagePosition: { x: 0, y: 0 },
         zoomLevel: 100,
         layout: null,
-        frameThickness: 1,
+        frameThickness: undefined,
         panelImages: {},
         panelEffects: {},
     });
@@ -125,6 +125,90 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
 
         fetchProductData();
     }, []);
+
+    // Convert initial string/invalid values to proper numeric IDs after product data loads
+    useEffect(() => {
+        if (!productData) return;
+
+        let needsUpdate = false;
+        const updates: any = {};
+
+        // Fix imageEffect if it's a string
+        if (typeof data.imageEffect === "string") {
+            const originalEffect = productData.baseImageEffects?.find(
+                (effect: any) => effect.name === "Original"
+            );
+
+            if (originalEffect) {
+                console.log(
+                    "Converting imageEffect from string to ID:",
+                    originalEffect.id
+                );
+                updates.imageEffect = originalEffect.id;
+                needsUpdate = true;
+            } else {
+                const firstEffect = productData.baseImageEffects?.[0];
+                if (firstEffect) {
+                    console.log(
+                        "No 'Original' effect found, using first available:",
+                        firstEffect.id
+                    );
+                    updates.imageEffect = firstEffect.id;
+                    needsUpdate = true;
+                }
+            }
+        }
+
+        // Fix edgeDesign if it's a string
+        if (typeof data.edgeDesign === "string") {
+            const foldedEdge = productData.baseEdgeDesigns?.find(
+                (edge: any) => edge.name === "Folded"
+            );
+
+            if (foldedEdge) {
+                console.log(
+                    "Converting edgeDesign from string to ID:",
+                    foldedEdge.id
+                );
+                updates.edgeDesign = foldedEdge.id;
+                needsUpdate = true;
+            } else {
+                const firstEdge = productData.baseEdgeDesigns?.[0];
+                if (firstEdge) {
+                    console.log(
+                        "No 'Folded' edge found, using first available:",
+                        firstEdge.id
+                    );
+                    updates.edgeDesign = firstEdge.id;
+                    needsUpdate = true;
+                }
+            }
+        }
+
+        // Fix frameThickness if it's not set or not a valid ID
+        if (
+            !data.frameThickness ||
+            (typeof data.frameThickness === "number" &&
+                data.frameThickness <= 1)
+        ) {
+            const firstThickness = productData.baseFrameThicknesses?.[0];
+            if (firstThickness) {
+                console.log(
+                    "Setting frameThickness to valid ID:",
+                    firstThickness.id
+                );
+                updates.frameThickness = firstThickness.id;
+                needsUpdate = true;
+            }
+        }
+
+        // Apply all updates at once
+        if (needsUpdate) {
+            Object.keys(updates).forEach((key) => {
+                setData(key, updates[key]);
+            });
+        }
+    }, [productData, data.imageEffect, data.edgeDesign, data.frameThickness]);
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -478,6 +562,7 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                             <h1 className="text-2xl font-bold text-[#68b94c] mb-4">
                                 Canvas Prints
                             </h1>
+
                             <div className="flex flex-wrap gap-2 mb-4">
                                 <a
                                     href="#"
@@ -816,6 +901,7 @@ const MultiCanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
                                             }
                                         }}
                                         productData={productData}
+                                        imageUrl={imageUrl}
                                     />
                                 </CardContent>
                             </Card>

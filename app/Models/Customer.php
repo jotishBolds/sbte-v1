@@ -24,4 +24,14 @@ class Customer extends Model
     {
         return $this->hasMany(ShoppingCartItem::class);
     }
+
+    public function orders()
+    {
+        return $this->hasMany(Order::class);
+    }
+
+    public function savedDesigns()
+    {
+        return $this->hasMany(SavedDesign::class);
+    }
 }

@@ -142,4 +142,68 @@ class ProductController extends Controller
             ]);
         }
     }
+
+    /**
+     * Get valid edge designs for a product variation
+     */
+    public function getEdgeDesigns($id)
+    {
+        try {
+            // Get the product variation
+            $productVariation = \App\Models\ProductVariation::with('product')->find($id);
+            
+            if (!$productVariation || !$productVariation->product) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Product variation not found',
+                ], 404);
+            }
+            
+            $product = $productVariation->product;
+            
+            // Get edge designs for this product
+            $edgeDesigns = EdgeDesign::query()
+                ->when(true, function ($query) {
+                    $query->where('status', 'active');
+                })
+                ->where(function ($query) use ($product) {
+                    $query->where('applicability', 'all')
+                        ->orWhere('applicability', $product->category)
+                        ->orWhere(function ($q) use ($product) {
+                            $q->where('applicability', 'specific')
+                                ->where('product_id', $product->id);
+                        });
+                })
+                ->get(['id', 'name', 'description', 'applicability']);
+                
+            // Also get any edge designs from the product variation relationship
+            $variationEdgeDesigns = $productVariation->edgeDesigns()->with('edgeDesign')->get()
+                ->map(function($item) {
+                    return [
+                        'id' => $item->edge_design_id,
+                        'name' => $item->edgeDesign->name ?? null,
+                        'description' => $item->edgeDesign->description ?? null,
+                        'applicability' => $item->edgeDesign->applicability ?? null,
+                    ];
+                });
+                
+            // Merge both collections
+            $mergedDesigns = $edgeDesigns->concat($variationEdgeDesigns)
+                ->unique('id')
+                ->values();
+            
+            return response()->json([
+                'status' => 'success',
+                'data' => $mergedDesigns,
+                'product_id' => $product->id,
+                'product_name' => $product->name,
+                'variation_id' => $productVariation->id,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Failed to fetch edge designs: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

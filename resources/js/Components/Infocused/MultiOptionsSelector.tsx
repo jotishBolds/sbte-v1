@@ -32,6 +32,7 @@ interface MultiOptionSelectorsProps {
     activePanel: string | null;
     onPanelEffectChange?: (effect: string | number) => void;
     productData: ProductData | null;
+    imageUrl?: string | null;
 }
 
 export const MultiOptionSelectors: React.FC<MultiOptionSelectorsProps> = ({
@@ -45,36 +46,45 @@ export const MultiOptionSelectors: React.FC<MultiOptionSelectorsProps> = ({
     activePanel,
     onPanelEffectChange,
     productData,
+    imageUrl,
 }) => {
-    const { addToCart } = useCart();
+    const { addToCart, checkAuthentication } = useCart();
 
     // Find the selected product variation
     const selectedVariation = productData?.product?.product_variations?.find(
         (variation: any) => variation.label === data.size
     );
 
-    // Get available edge designs for the selected variation
+    // Get available edge designs (prefer variation-specific, fall back to base)
     const availableEdgeDesigns =
-        selectedVariation?.edge_designs?.map((ed: any) => ed.edge_design) ||
-        productData?.baseEdgeDesigns ||
-        [];
+        (selectedVariation?.edge_designs?.length ?? 0) > 0
+            ? selectedVariation!.edge_designs.map((ed: any) => ed.edge_design)
+            : productData?.baseEdgeDesigns || [];
 
-    // Get available image effects for the selected variation
+    // Get available image effects (prefer variation-specific, fall back to base)
     const availableImageEffects =
-        selectedVariation?.image_effects?.map((ie: any) => ie.image_effect) ||
-        productData?.baseImageEffects ||
-        [];
+        (selectedVariation?.image_effects?.length ?? 0) > 0
+            ? selectedVariation!.image_effects.map((ie: any) => ie.image_effect)
+            : productData?.baseImageEffects || [];
+
+    // Get available frame thicknesses (prefer variation-specific, fall back to base)
+    const availableFrameThicknesses =
+        (selectedVariation?.frame_thicknesses?.length ?? 0) > 0
+            ? selectedVariation!.frame_thicknesses.map(
+                  (ft: any) => ft.frame_thickness
+              )
+            : productData?.baseFrameThicknesses || [];
 
     // Check if hanging mechanism is available for this variation
     const hasHangingMechanism =
         selectedVariation?.hanging_price !== null ||
         productData?.hangingBasePrice !== null ||
-        selectedVariation?.hanging_varieties?.length > 0 ||
-        productData?.baseHangingVarieties?.length > 0;
+        (selectedVariation?.hanging_varieties?.length ?? 0) > 0 ||
+        (productData?.baseHangingVarieties?.length ?? 0) > 0;
 
-    // Get hanging varieties (from variation or base)
+    // Get hanging varieties (prefer variation-specific, fall back to base)
     const hangingVarieties =
-        (selectedVariation?.hanging_varieties ?? []).length > 0
+        (selectedVariation?.hanging_varieties?.length ?? 0) > 0
             ? selectedVariation?.hanging_varieties?.map(
                   (hv: any) => hv.hanging_mechanism_variety
               ) ?? []
@@ -108,6 +118,10 @@ export const MultiOptionSelectors: React.FC<MultiOptionSelectorsProps> = ({
     const handleAddToCart = () => {
         if (!hasImage) return;
 
+        console.log(
+            "MultiOptionSelector frameThickness value:",
+            data.frameThickness
+        );
         addToCart({
             productId: productData?.product?.id || 0,
             size: data.size,
@@ -116,7 +130,7 @@ export const MultiOptionSelectors: React.FC<MultiOptionSelectorsProps> = ({
             edgeDesign: data.edgeDesign,
             hangingMechanism: data.hangingMechanism,
             hangingVariety: data.hangingVariety,
-            imageUrl: data.imageUrl || "",
+            imageUrl: imageUrl || data.imageUrl || "",
             imagePosition: data.imagePosition,
             zoomLevel: data.zoomLevel,
             price: priceInfo.total / data.quantity,
@@ -126,6 +140,40 @@ export const MultiOptionSelectors: React.FC<MultiOptionSelectorsProps> = ({
             panelImages: data.panelImages || {},
             panelEffects: data.panelEffects || {},
         });
+        console.log("Adding to cart", data, priceInfo);
+    };
+
+    const handleCheckout = async () => {
+        if (!hasImage) return;
+
+        // Check authentication before proceeding to checkout
+        const isAuthenticated = await checkAuthentication();
+        if (!isAuthenticated) {
+            return; // checkAuthentication will handle redirect to login
+        }
+
+        // Add item to cart first
+        await addToCart({
+            productId: productData?.product?.id || 0,
+            size: data.size,
+            quantity: data.quantity,
+            imageEffect: data.imageEffect,
+            edgeDesign: data.edgeDesign,
+            hangingMechanism: data.hangingMechanism,
+            hangingVariety: data.hangingVariety,
+            imageUrl: imageUrl || data.imageUrl || "",
+            imagePosition: data.imagePosition,
+            zoomLevel: data.zoomLevel,
+            price: priceInfo.total / data.quantity,
+            productData: productData,
+            layout: selectedLayout,
+            frameThickness: data.frameThickness,
+            panelImages: data.panelImages || {},
+            panelEffects: data.panelEffects || {},
+        });
+
+        // Redirect to checkout page
+        window.location.href = "/checkout";
     };
 
     return (
@@ -139,45 +187,7 @@ export const MultiOptionSelectors: React.FC<MultiOptionSelectorsProps> = ({
                 />
             </div>
 
-            {/* Size Selection */}
-            <div>
-                <div className="flex items-center justify-between mb-2">
-                    <label className="text-sm font-medium">Size</label>
-                    <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger>
-                                <span className="text-gray-500 text-sm">ⓘ</span>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                                <p>Select the size for your canvas print</p>
-                            </TooltipContent>
-                        </Tooltip>
-                    </TooltipProvider>
-                </div>
-                <Select
-                    value={data.size}
-                    onValueChange={(value) => setData("size", value)}
-                >
-                    <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select size" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {productData?.product?.product_variations?.map(
-                            (variation: any) => (
-                                <SelectItem
-                                    key={variation.id}
-                                    value={variation.label}
-                                >
-                                    {variation.label} (
-                                    {variation.horizontal_length}x
-                                    {variation.vertical_length}{" "}
-                                    {variation.length_unit.name})
-                                </SelectItem>
-                            )
-                        )}
-                    </SelectContent>
-                </Select>
-            </div>
+            {/* Size section completely hidden for multi-layout canvas */}
 
             {/* Quantity */}
             <div>
@@ -195,27 +205,34 @@ export const MultiOptionSelectors: React.FC<MultiOptionSelectorsProps> = ({
                 />
             </div>
 
-            {/* Frame Thickness */}
-            <div>
-                <label className="block text-sm font-medium mb-2">
-                    Frame Thickness
-                </label>
-                <Select
-                    value={data.frameThickness.toString()}
-                    onValueChange={(value) =>
-                        setData("frameThickness", parseInt(value))
-                    }
-                >
-                    <SelectTrigger className="w-full">
-                        <SelectValue placeholder="Select thickness" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="1">1 Inch</SelectItem>
-                        <SelectItem value="1.5">1.5 Inch</SelectItem>
-                        <SelectItem value="2">2 Inch</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
+            {/* Frame Thickness - Only show if product has frame thickness options */}
+            {availableFrameThicknesses.length > 0 && (
+                <div>
+                    <label className="block text-sm font-medium mb-2">
+                        Frame Thickness
+                    </label>
+                    <Select
+                        value={data.frameThickness?.toString() || ""}
+                        onValueChange={(value) =>
+                            setData("frameThickness", parseInt(value))
+                        }
+                    >
+                        <SelectTrigger className="w-full">
+                            <SelectValue placeholder="Select thickness" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {availableFrameThicknesses.map((thickness: any) => (
+                                <SelectItem
+                                    key={thickness.id}
+                                    value={thickness.id.toString()}
+                                >
+                                    {thickness.name}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                </div>
+            )}
 
             {/* Image Effects */}
             {availableImageEffects.length > 0 && (
@@ -456,9 +473,8 @@ export const MultiOptionSelectors: React.FC<MultiOptionSelectorsProps> = ({
                     Add to Cart
                 </Button>
                 <Button
-                    type="submit"
+                    onClick={handleCheckout}
                     className="flex-1 bg-[#68b94c] hover:bg-[#5ba33e] text-white"
-                    onClick={onSubmit}
                     disabled={processing || !hasImage}
                 >
                     Checkout

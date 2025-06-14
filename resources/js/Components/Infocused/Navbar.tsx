@@ -8,6 +8,7 @@ import {
     ShoppingCart,
     ChevronDown,
     X,
+    LogOut,
 } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/Components/ui/sheet";
 import {
@@ -16,7 +17,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/Components/ui/dropdown-menu";
-import { Link } from "@inertiajs/react";
+import { Link, usePage } from "@inertiajs/react";
 import { NavItem } from "@/types/types";
 
 import { useCart } from "@/context/CartContext";
@@ -26,6 +27,8 @@ export const Navbar: React.FC = () => {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const { cartCount } = useCart();
     const [cartOpen, setCartOpen] = useState(false);
+    const { auth } = usePage().props as any;
+    const user = auth?.user;
     const navItems: NavItem[] = [
         { label: "Home", href: "/" },
         {
@@ -148,14 +151,40 @@ export const Navbar: React.FC = () => {
                                                 )}
                                             </li>
                                         ))}
-                                        <li className="py-2">
-                                            <Link
-                                                href="/dashboard"
-                                                className="text-gray-800 font-medium hover:text-black transition-colors"
-                                            >
-                                                Account
-                                            </Link>
-                                        </li>
+                                        {user ? (
+                                            <>
+                                                <li className="py-2 border-t pt-4 mt-4">
+                                                    <div className="text-gray-800 font-medium mb-2">
+                                                        Logged in as:{" "}
+                                                        {user.name}
+                                                    </div>
+                                                    <Link
+                                                        href="/dashboard"
+                                                        className="text-gray-800 font-medium hover:text-black transition-colors block mb-2"
+                                                    >
+                                                        Dashboard
+                                                    </Link>
+                                                    <Link
+                                                        href="/logout"
+                                                        method="post"
+                                                        as="button"
+                                                        className="text-red-600 font-medium hover:text-red-800 transition-colors flex items-center gap-2"
+                                                    >
+                                                        <LogOut size={16} />
+                                                        Logout
+                                                    </Link>
+                                                </li>
+                                            </>
+                                        ) : (
+                                            <li className="py-2 border-t pt-4 mt-4">
+                                                <Link
+                                                    href="/login"
+                                                    className="text-gray-800 font-medium hover:text-black transition-colors"
+                                                >
+                                                    Login / Register
+                                                </Link>
+                                            </li>
+                                        )}
                                     </ul>
                                 </div>
                             </SheetContent>
@@ -231,12 +260,14 @@ export const Navbar: React.FC = () => {
                                 )}
                             </div>
                         ))}
-                        <Link
-                            href="/login"
-                            className="text-gray-800 font-medium hover:text-black transition-colors text-sm"
-                        >
-                            Login / Register
-                        </Link>
+                        {!user && (
+                            <Link
+                                href="/login"
+                                className="text-gray-800 font-medium hover:text-black transition-colors text-sm"
+                            >
+                                Login / Register
+                            </Link>
+                        )}
                     </div>
 
                     {/* Right side - Icons */}
@@ -265,13 +296,55 @@ export const Navbar: React.FC = () => {
                                 >
                                     <Search size={20} />
                                 </button>
-                                <Link
-                                    href="/dashboard"
-                                    className="text-gray-700 hover:text-black transition-colors hidden md:block"
-                                    aria-label="Account"
-                                >
-                                    <User size={20} />
-                                </Link>
+                                {user ? (
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <button className="flex items-center text-gray-700 hover:text-black transition-colors">
+                                                <User size={20} />
+                                            </button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent
+                                            align="end"
+                                            className="w-48 bg-white shadow-lg rounded-md p-2"
+                                        >
+                                            <div className="px-4 py-2 border-b border-gray-200 mb-2">
+                                                <p className="text-sm font-medium text-gray-900">
+                                                    Logged in as:
+                                                </p>
+                                                <p className="text-sm text-gray-600">
+                                                    {user.name}
+                                                </p>
+                                            </div>
+                                            <DropdownMenuItem asChild>
+                                                <Link
+                                                    href="/dashboard"
+                                                    className="block px-4 py-2 text-gray-700 hover:bg-[#c7e7bd] rounded-md transition-colors w-full"
+                                                >
+                                                    Dashboard
+                                                </Link>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem asChild>
+                                                <Link
+                                                    href="/logout"
+                                                    method="post"
+                                                    as="button"
+                                                    className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-md transition-colors w-full"
+                                                >
+                                                    <LogOut size={16} />
+                                                    Logout
+                                                </Link>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                ) : (
+                                    <Link
+                                        href="/login"
+                                        className="text-gray-700 hover:text-black transition-colors"
+                                        aria-label="Login"
+                                    >
+                                        <User size={20} />
+                                    </Link>
+                                )}
                                 <Link
                                     href="/wishlist"
                                     className="text-gray-700 hover:text-black transition-colors relative"

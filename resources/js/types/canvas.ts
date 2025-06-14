@@ -14,8 +14,8 @@ export type HangingMechanism = "Yes" | "No";
 export interface CanvasFormData {
     size: string;
     quantity: number;
-    imageEffect: ImageEffect;
-    edgeDesign: EdgeDesign;
+    imageEffect: ImageEffect | string | number;
+    edgeDesign: EdgeDesign | string | number;
     hangingMechanism: HangingMechanism;
     hangingVariety?: number; // Added this new field
     imageFile: File | null;
@@ -183,7 +183,7 @@ export interface MultiCanvasFormData {
     imagePosition: Position;
     zoomLevel: number;
     layout: PanelLayout | null;
-    frameThickness: number;
+    frameThickness?: number;
     panelImages: Record<string, string>;
     panelEffects: Record<string, string | number>;
     [key: string]: any;
@@ -204,7 +204,7 @@ export interface CartItem {
     productData: ProductData | null;
     createdAt: number;
     layout: PanelLayout | null;
-    frameThickness: number;
+    frameThickness?: number;
     panelImages: Record<string, string>;
     panelEffects: Record<string, string | number>;
 }

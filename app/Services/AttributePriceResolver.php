@@ -45,7 +45,6 @@ class AttributePriceResolver
                 })
                 ->orderByRaw("FIELD(applicability, 'specific', '{$product->category}', 'all')") // prioritize specific > category > all
                 ->value('price');
-            dd($basePrice);
 
             return (float) $basePrice;
         }

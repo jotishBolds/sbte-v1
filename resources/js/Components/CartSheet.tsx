@@ -11,9 +11,10 @@ import { Button } from "@/Components/ui/button";
 
 import { formatCurrency } from "@/types/utils";
 
-import { useCart } from "@/context/CartContext";
-import { Link } from "@inertiajs/react";
+import { Link, router } from "@inertiajs/react";
 import { CartItem } from "./CartItem";
+import { useCart } from "@/context/CartContext";
+import axios from "axios";
 
 interface CartSheetProps {
     open: boolean;
@@ -21,8 +22,16 @@ interface CartSheetProps {
 }
 
 export const CartSheet: React.FC<CartSheetProps> = ({ open, onOpenChange }) => {
-    const { cart, cartTotal, removeFromCart, updateQuantity, clearCart } =
-        useCart();
+    const {
+        cart,
+        cartTotal,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        isLoading,
+        isAuthenticated,
+        checkAuthentication,
+    } = useCart();
 
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
@@ -34,7 +43,43 @@ export const CartSheet: React.FC<CartSheetProps> = ({ open, onOpenChange }) => {
                 </SheetHeader>
 
                 <div className="flex flex-col h-full">
-                    {cart.length === 0 ? (
+                    {isLoading ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+                            <p className="mb-4">Loading your cart...</p>
+                        </div>
+                    ) : !isAuthenticated ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
+                            <p className="mb-4">
+                                Please login to view your cart
+                            </p>
+                            <Button
+                                onClick={async () => {
+                                    onOpenChange(false);
+
+                                    // Set the current URL as intended URL for post-login redirect
+                                    try {
+                                        const currentUrl = window.location.href;
+                                        await axios.post(
+                                            "/shopping-cart/set-intended-url",
+                                            {
+                                                intended_url: currentUrl,
+                                            }
+                                        );
+                                    } catch (error) {
+                                        console.error(
+                                            "Failed to set intended URL:",
+                                            error
+                                        );
+                                    }
+
+                                    router.visit("/login");
+                                }}
+                                className="bg-[#68b94c] hover:bg-[#5ba33e]"
+                            >
+                                Login
+                            </Button>
+                        </div>
+                    ) : cart.length === 0 ? (
                         <div className="flex-1 flex flex-col items-center justify-center text-gray-500">
                             <p className="mb-4">Your cart is empty</p>
                             <Button
@@ -78,12 +123,20 @@ export const CartSheet: React.FC<CartSheetProps> = ({ open, onOpenChange }) => {
                                             Clear Cart
                                         </Button>
                                         <Button
-                                            asChild
                                             className="flex-1 bg-[#68b94c] hover:bg-[#5ba33e]"
+                                            onClick={async () => {
+                                                // Verify authentication before checkout
+                                                const isAuth =
+                                                    await checkAuthentication();
+                                                if (!isAuth) {
+                                                    return; // The checkAuthentication will handle redirect
+                                                }
+                                                // Navigate to checkout
+                                                window.location.href =
+                                                    "/checkout";
+                                            }}
                                         >
-                                            <Link href="/checkout">
-                                                Checkout
-                                            </Link>
+                                            Checkout
                                         </Button>
                                     </div>
                                 </div>

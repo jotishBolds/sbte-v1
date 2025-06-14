@@ -42,9 +42,21 @@ class RegisteredUserController extends Controller
             'password' => Hash::make($request->password),
         ]);
 
+        // Create a customer record for the new user
+        $customer = \App\Models\Customer::create([
+            'user_id' => $user->id,
+            'name' => $request->name,
+            'status' => 'Active'
+        ]);
+
         event(new Registered($user));
 
         Auth::login($user);
+
+        // Check if there's an intended URL to redirect back to
+        if ($request->session()->has('url.intended')) {
+            return redirect()->intended(session('url.intended'));
+        }
 
         return redirect(route('dashboard', absolute: false));
     }

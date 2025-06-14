@@ -26,15 +26,12 @@ class ProductVariation extends Model
         return $this->hasOne(ProductVariationLayoutDetail::class);
     }
 
-    // public function imageEffect()
-    // {
-    //     return $this->hasMany(ProductVariationImageEffect::class);
-    // }
     public function imageEffects()
     {
         return $this->hasMany(ProductVariationImageEffect::class)
             ->with('imageEffect'); // eager load actual effect details
     }
+    
     public function edgeDesigns()
     {
         return $this->hasMany(ProductVariationEdgeDesign::class)->with('edgeDesign');

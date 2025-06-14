@@ -11,7 +11,7 @@ interface SplitPreviewProps {
     imageEffect: string;
     edgeDesign: string;
     selectedLayout: PanelLayout | null;
-    frameThickness: number;
+    frameThickness?: number;
     onPositionChange: (position: Position) => void;
     onZoomChange: (zoom: number) => void;
 }
@@ -59,7 +59,7 @@ export const SplitPreview: React.FC<SplitPreviewProps> = ({
     };
 
     const getBorderStyle = () => {
-        const borderWidth = `${frameThickness}px`;
+        const borderWidth = `${frameThickness || 0}px`;
         switch (edgeDesign) {
             case "Folded":
                 return {

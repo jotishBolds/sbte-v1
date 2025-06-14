@@ -61,4 +61,69 @@ class OrderController extends Controller
             ], 500);
         }
     }
+
+    public function getCustomerOrders(Request $request)
+    {
+        try {
+            $customer = Auth::user()->customer;
+
+            if (!$customer) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Authenticated customer not found.',
+                ], 404);
+            }
+
+            $orders = $customer->orders()
+                ->with(['orderItems.productVariation.product', 'shippingType'])
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            $ordersData = $orders->map(function ($order) {
+                return [
+                    'id' => $order->id,
+                    'total_amount' => $order->total_amount,
+                    'order_status' => $order->order_status,
+                    'payment_status' => $order->payment_status,
+                    'created_at' => $order->created_at,
+                    'updated_at' => $order->updated_at,
+                    'shipping_type' => $order->shippingType ? [
+                        'id' => $order->shippingType->id,
+                        'name' => $order->shippingType->name,
+                        'price' => $order->shippingType->price,
+                    ] : null,
+                    'orderItems' => $order->orderItems->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'quantity' => $item->quantity,
+                            'unit_price' => $item->unit_price,
+                            'total_price' => $item->total_price,
+                            'thumbnail' => $item->thumbnail ? asset('storage/' . $item->thumbnail) : null,
+                            'product_variation' => [
+                                'id' => $item->productVariation->id,
+                                'label' => $item->productVariation->label,
+                                'product' => [
+                                    'id' => $item->productVariation->product->id,
+                                    'name' => $item->productVariation->product->name,
+                                    'category' => $item->productVariation->product->category,
+                                ],
+                            ],
+                        ];
+                    }),
+                ];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Customer orders retrieved successfully.',
+                'data' => $ordersData,
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An unexpected error occurred while retrieving orders.',
+                'details' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

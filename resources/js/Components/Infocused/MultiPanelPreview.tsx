@@ -12,7 +12,7 @@ interface CanvasPreviewProps {
     imageEffect: string | number;
     edgeDesign: string | number;
     selectedLayout: PanelLayout | null;
-    frameThickness: number;
+    frameThickness?: number;
     panelImages: Record<string, string>;
     panelEffects: Record<string, string | number>;
     onPositionChange: (position: Position) => void;
@@ -119,7 +119,7 @@ export const MultiCanvasPreview: React.FC<CanvasPreviewProps> = ({
                   )?.edge_design?.name
                 : edgeDesign;
 
-        const borderWidth = `${frameThickness}px`;
+        const borderWidth = `${frameThickness || 0}px`;
         switch (edgeName) {
             case "Folded":
                 return {

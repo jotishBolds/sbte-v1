@@ -71,6 +71,11 @@ Route::get('/fetchCSRF', [ProductController::class, 'csrf']);
 
 Route::get('/canvas-product/{productName}', [ProductController::class, 'showCanvasProduct']);
 
+// Product API routes
+Route::prefix('api')->group(function() {
+    Route::get('/product-variations/{id}/edge-designs', [ProductController::class, 'getEdgeDesigns']);
+});
+
 //Blogs
 Route::get('/blogs', [BlogController::class, 'index']);
 Route::get('/blogs/{id}', [BlogController::class, 'getBlogById']);
@@ -108,15 +113,48 @@ Route::middleware('auth:sanctum')->group(function () {
 });
 
 //Shopping Cart Routes
-Route::middleware('auth:sanctum')->prefix('shopping-cart')->group(function () {
-    Route::post('/add', [ShoppingCartController::class, 'addItem']);
-    Route::put('/update/{id}', [ShoppingCartController::class, 'updateItem']);
-    Route::delete('/delete/{id}', [ShoppingCartController::class, 'deleteItem']);
-    Route::get('/customer', [ShoppingCartController::class, 'getCustomerCart']);
+Route::prefix('shopping-cart')->group(function () {
+    Route::middleware(['auth:sanctum', 'check.cart.auth'])->group(function () {
+        Route::post('/add', [ShoppingCartController::class, 'addItem']);
+        Route::put('/update/{id}', [ShoppingCartController::class, 'updateItem']);
+        Route::delete('/delete/{id}', [ShoppingCartController::class, 'deleteItem']);
+        Route::get('/customer', [ShoppingCartController::class, 'getCustomerCart']);
+    });
+    
+    // Endpoint to check auth status for cart operations
+    Route::get('/check-auth', [ShoppingCartController::class, 'checkAuth']);
+    
+    // Endpoint to set intended URL for post-login redirect
+    Route::post('/set-intended-url', [ShoppingCartController::class, 'setIntendedUrl']);
 });
 
 //Shipping Type Fetch Route 
 Route::get('/shipping-types', [ShippingTypeController::class, 'getActiveShippingTypes']);
+
+// Checkout route
+Route::get('/checkout', function () {
+    return Inertia::render('Checkout', [
+        'auth' => [
+            'user' => auth()->user()
+        ]
+    ]);
+})->middleware(['auth', 'verified'])->name('checkout');
+
+// Checkout API routes (session-based authentication)
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Address routes for checkout
+    Route::prefix('addresses')->group(function () {
+        Route::post('/', [AddressController::class, 'store']); // Create
+        Route::put('/{id}', [AddressController::class, 'update']); // Update
+        Route::delete('/{id}', [AddressController::class, 'destroy']); // Delete
+        Route::get('/customer', [AddressController::class, 'getByCustomer']); // Get all for customer
+        Route::get('/{id}', [AddressController::class, 'show']); // Get by ID
+    });
+    
+    // Order routes for checkout
+    Route::post('/orders', [OrderController::class, 'placeOrder']);
+    Route::get('/orders/customer', [OrderController::class, 'getCustomerOrders']); // Get customer orders for dashboard
+});
 
 Route::post('/orders', [OrderController::class, 'placeOrder'])->middleware('auth:sanctum');
 

@@ -40,7 +40,7 @@ export const OptionSelectors: React.FC<OptionSelectorsProps> = ({
     productData,
     imageUrl,
 }) => {
-    const { addToCart } = useCart();
+    const { addToCart, checkAuthentication } = useCart();
     const priceInfo = calculatePrice(data.size, data.quantity, productData, {
         imageEffect:
             typeof data.imageEffect === "number" ? data.imageEffect : undefined,
@@ -49,9 +49,14 @@ export const OptionSelectors: React.FC<OptionSelectorsProps> = ({
         hangingMechanism: data.hangingMechanism === "Yes",
         hangingVariety: data.hangingVariety,
     });
+
     const handleAddToCart = () => {
         if (!hasImage || !imageUrl) return;
 
+        console.log(
+            "OptionsSelector frameThickness value:",
+            data.frameThickness
+        );
         addToCart({
             productId: productData?.product?.id || 0,
             size: data.size,
@@ -66,11 +71,44 @@ export const OptionSelectors: React.FC<OptionSelectorsProps> = ({
             price: priceInfo.total / data.quantity,
             productData: productData,
             layout: null, // Single canvas doesn't use layout
-            frameThickness: data.frameThickness || 1, // Default to 1 inch if not specified
+            frameThickness: data.frameThickness, // Only include if explicitly set
             panelImages: {}, // Single canvas doesn't use panel images
             panelEffects: {}, // Single canvas doesn't use panel effects
         });
         console.log("Adding to cart", data, priceInfo);
+    };
+
+    const handleCheckout = async () => {
+        if (!hasImage || !imageUrl) return;
+
+        // Check authentication before proceeding to checkout
+        const isAuthenticated = await checkAuthentication();
+        if (!isAuthenticated) {
+            return; // checkAuthentication will handle redirect to login
+        }
+
+        // Add item to cart first
+        await addToCart({
+            productId: productData?.product?.id || 0,
+            size: data.size,
+            quantity: data.quantity,
+            imageEffect: data.imageEffect,
+            edgeDesign: data.edgeDesign,
+            hangingMechanism: data.hangingMechanism,
+            hangingVariety: data.hangingVariety,
+            imageUrl: imageUrl,
+            imagePosition: data.imagePosition,
+            zoomLevel: data.zoomLevel,
+            price: priceInfo.total / data.quantity,
+            productData: productData,
+            layout: null,
+            frameThickness: data.frameThickness,
+            panelImages: {},
+            panelEffects: {},
+        });
+
+        // Redirect to checkout page
+        window.location.href = "/checkout";
     };
     // Find the selected product variation
     const selectedVariation = productData?.product?.product_variations?.find(
@@ -393,9 +431,8 @@ export const OptionSelectors: React.FC<OptionSelectorsProps> = ({
                     Add to Cart
                 </Button>
                 <Button
-                    type="submit"
+                    onClick={handleCheckout}
                     className="flex-1 bg-[#68b94c] hover:bg-[#5ba33e] text-white"
-                    onClick={onSubmit}
                     disabled={processing || !hasImage}
                 >
                     Checkout

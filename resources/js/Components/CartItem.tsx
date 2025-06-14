@@ -1,6 +1,5 @@
 // Components/CartItem.tsx
 import React from "react";
-
 import { Input } from "@/Components/ui/input";
 import { X } from "lucide-react";
 import { formatCurrency } from "@/types/utils";
@@ -32,6 +31,7 @@ export const CartItem: React.FC<CartItemProps> = ({
     onQuantityChange,
 }) => {
     const getEdgeDesignName = () => {
+        if (!item.edgeDesign) return "Folded";
         if (typeof item.edgeDesign === "number") {
             const edge =
                 item.productData?.baseEdgeDesigns?.find(
@@ -46,6 +46,7 @@ export const CartItem: React.FC<CartItemProps> = ({
     };
 
     const getImageEffectName = () => {
+        if (!item.imageEffect) return "Original";
         if (typeof item.imageEffect === "number") {
             const effect =
                 item.productData?.baseImageEffects?.find(
@@ -62,7 +63,7 @@ export const CartItem: React.FC<CartItemProps> = ({
     return (
         <div className="flex gap-4 py-4 border-b">
             <div className="relative w-24 h-24 flex-shrink-0 border rounded-md overflow-hidden">
-                {item.imageUrl.startsWith("data:image") ? (
+                {item.imageUrl ? (
                     <img
                         src={item.imageUrl}
                         alt="Product preview"
@@ -74,6 +75,20 @@ export const CartItem: React.FC<CartItemProps> = ({
                                 item.zoomLevel / 100
                             })`,
                             transformOrigin: "center",
+                        }}
+                        onError={(e) => {
+                            console.error(
+                                `Failed to load cart image: ${item.imageUrl}`
+                            );
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = "none";
+                            if (target.parentElement) {
+                                const errorDiv = document.createElement("div");
+                                errorDiv.className =
+                                    "absolute inset-0 flex items-center justify-center bg-gray-100 text-gray-400 text-xs";
+                                errorDiv.textContent = "Image load failed";
+                                target.parentElement.appendChild(errorDiv);
+                            }
                         }}
                     />
                 ) : (
@@ -98,6 +113,9 @@ export const CartItem: React.FC<CartItemProps> = ({
                     <p>Effect: {getImageEffectName()}</p>
                     <p>Edge: {getEdgeDesignName()}</p>
                     <p>Hanging: {item.hangingMechanism}</p>
+                    {item.hangingVariety && (
+                        <p>Hanging Style: {item.hangingVariety}</p>
+                    )}
                 </div>
 
                 <div className="flex items-center justify-between mt-2">

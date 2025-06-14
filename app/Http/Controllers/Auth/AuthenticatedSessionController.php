@@ -33,6 +33,13 @@ class AuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        // Check if there's an intended URL to redirect back to
+        // Session::get('url.intended') should contain any URL set by our cart authentication check
+        if ($request->session()->has('url.intended')) {
+            return redirect()->intended(session('url.intended'));
+        }
+
+        // Default fallback
         return redirect()->intended(route('dashboard', absolute: false));
     }
 

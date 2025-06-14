@@ -1,14 +1,20 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useForm } from "@inertiajs/react";
 import { Card, CardContent } from "@/Components/ui/card";
-import { MultiCanvasFormData, PanelLayout, Position } from "@/types/canvas";
-import { SIZE_OPTIONS } from "@/types/constants";
+import {
+    MultiCanvasFormData,
+    PanelLayout,
+    Position,
+    ProductData,
+    SizeOption,
+} from "@/types/canvas";
 import { ImageUploader } from "@/Components/Infocused/ImageUploader";
 import InfocusLayout from "@/Components/Layouts/InfocusLayout";
 import { SPLIT_LAYOUTS } from "@/Components/Infocused/SplitLayoutSelector";
 import { SplitPreview } from "@/Components/Infocused/SplitPreview";
 import { SplitOptionSelectors } from "@/Components/Infocused/SplitOptionSelector";
 import { ImagePlus } from "lucide-react";
+import axios from "axios";
 
 const ROOM_MOCKS = [
     {
@@ -44,6 +50,7 @@ const SplitPrint: React.FC = () => {
     const [selectedLayout, setSelectedLayout] = useState<PanelLayout | null>(
         SPLIT_LAYOUTS[0]
     );
+    const [productData, setProductData] = useState<ProductData | null>(null);
     const mockPreviewRef = useRef<HTMLDivElement>(null);
     const [mockDimensions, setMockDimensions] = useState({
         width: 0,
@@ -57,7 +64,7 @@ const SplitPrint: React.FC = () => {
         processing,
         errors,
     } = useForm<MultiCanvasFormData>({
-        size: SIZE_OPTIONS[0].label,
+        size: "",
         quantity: 1,
         imageEffect: "Original",
         edgeDesign: "Folded",
@@ -67,10 +74,115 @@ const SplitPrint: React.FC = () => {
         imagePosition: { x: 0, y: 0 },
         zoomLevel: 100,
         layout: SPLIT_LAYOUTS[0],
-        frameThickness: 1,
+        frameThickness: undefined,
         panelImages: {},
         panelEffects: {},
     });
+
+    useEffect(() => {
+        const fetchProductData = async () => {
+            try {
+                const response = await axios.get(
+                    "/canvas-product/canvas_split"
+                );
+                setProductData(response.data);
+                if (response.data?.product?.product_variations?.length > 0) {
+                    setData(
+                        "size",
+                        response.data.product.product_variations[0].label
+                    );
+                }
+            } catch (error) {
+                console.error("Error fetching product data:", error);
+            }
+        };
+
+        fetchProductData();
+    }, []);
+
+    // Convert initial string/invalid values to proper numeric IDs after product data loads
+    useEffect(() => {
+        if (!productData) return;
+
+        let needsUpdate = false;
+        const updates: any = {};
+
+        // Fix imageEffect if it's a string
+        if (typeof data.imageEffect === "string") {
+            const originalEffect = productData.baseImageEffects?.find(
+                (effect: any) => effect.name === "Original"
+            );
+
+            if (originalEffect) {
+                console.log(
+                    "Converting imageEffect from string to ID:",
+                    originalEffect.id
+                );
+                updates.imageEffect = originalEffect.id;
+                needsUpdate = true;
+            } else {
+                const firstEffect = productData.baseImageEffects?.[0];
+                if (firstEffect) {
+                    console.log(
+                        "No 'Original' effect found, using first available:",
+                        firstEffect.id
+                    );
+                    updates.imageEffect = firstEffect.id;
+                    needsUpdate = true;
+                }
+            }
+        }
+
+        // Fix edgeDesign if it's a string
+        if (typeof data.edgeDesign === "string") {
+            const foldedEdge = productData.baseEdgeDesigns?.find(
+                (edge: any) => edge.name === "Folded"
+            );
+
+            if (foldedEdge) {
+                console.log(
+                    "Converting edgeDesign from string to ID:",
+                    foldedEdge.id
+                );
+                updates.edgeDesign = foldedEdge.id;
+                needsUpdate = true;
+            } else {
+                const firstEdge = productData.baseEdgeDesigns?.[0];
+                if (firstEdge) {
+                    console.log(
+                        "No 'Folded' edge found, using first available:",
+                        firstEdge.id
+                    );
+                    updates.edgeDesign = firstEdge.id;
+                    needsUpdate = true;
+                }
+            }
+        }
+
+        // Fix frameThickness if it's not set or not a valid ID
+        if (
+            !data.frameThickness ||
+            (typeof data.frameThickness === "number" &&
+                data.frameThickness <= 1)
+        ) {
+            const firstThickness = productData.baseFrameThicknesses?.[0];
+            if (firstThickness) {
+                console.log(
+                    "Setting frameThickness to valid ID:",
+                    firstThickness.id
+                );
+                updates.frameThickness = firstThickness.id;
+                needsUpdate = true;
+            }
+        }
+
+        // Apply all updates at once
+        if (needsUpdate) {
+            Object.keys(updates).forEach((key) => {
+                setData(key, updates[key]);
+            });
+        }
+    }, [productData, data.imageEffect, data.edgeDesign, data.frameThickness]);
 
     useEffect(() => {
         const updateDimensions = () => {
@@ -206,12 +318,54 @@ const SplitPrint: React.FC = () => {
         };
     }, [imageUrl]);
 
-    const selectedSize =
-        SIZE_OPTIONS.find((size) => size.label === data.size) ||
-        SIZE_OPTIONS[0];
+    const getSelectedSize = (): SizeOption & { length_unit?: any } => {
+        if (!productData?.product?.product_variations) {
+            return {
+                id: "default",
+                label: "Default",
+                width: 16,
+                height: 20,
+                price: 0,
+                orientation: "Portrait",
+            };
+        }
+        const selectedVariation = productData.product.product_variations.find(
+            (variation: any) => variation.label === data.size
+        );
+        if (selectedVariation) {
+            return {
+                id: selectedVariation.id.toString(),
+                label: selectedVariation.label,
+                width: parseFloat(selectedVariation.horizontal_length),
+                height: parseFloat(selectedVariation.vertical_length),
+                price: parseFloat(selectedVariation.price),
+                orientation:
+                    parseFloat(selectedVariation.horizontal_length) >
+                    parseFloat(selectedVariation.vertical_length)
+                        ? "Landscape"
+                        : "Portrait",
+                length_unit: selectedVariation.length_unit,
+            };
+        }
+        const firstVariation = productData.product.product_variations[0];
+        return {
+            id: firstVariation.id.toString(),
+            label: firstVariation.label,
+            width: parseFloat(firstVariation.horizontal_length),
+            height: parseFloat(firstVariation.vertical_length),
+            price: parseFloat(firstVariation.price),
+            orientation:
+                parseFloat(firstVariation.horizontal_length) >
+                parseFloat(firstVariation.vertical_length)
+                    ? "Landscape"
+                    : "Portrait",
+            length_unit: firstVariation.length_unit,
+        };
+    };
 
     const getCanvasDimensions = () => {
         const baseSize = Math.min(mockDimensions.width, mockDimensions.height);
+        const selectedSize = getSelectedSize();
         const aspectRatio = selectedLayout
             ? selectedLayout.totalWidth / selectedLayout.totalHeight
             : selectedSize.width / selectedSize.height;
@@ -238,7 +392,7 @@ const SplitPrint: React.FC = () => {
     };
 
     const getBorderStyle = () => {
-        const borderWidth = `${data.frameThickness}px`;
+        const borderWidth = `${data.frameThickness || 0}px`;
         switch (data.edgeDesign) {
             case "Folded":
                 return {
@@ -276,6 +430,27 @@ const SplitPrint: React.FC = () => {
                             <h1 className="text-2xl font-bold text-[#68b94c] mb-4">
                                 Split Canvas Prints
                             </h1>
+
+                            {/* Display current size selection */}
+                            {productData && data.size && (
+                                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-2">
+                                        Selected Size: {data.size}
+                                    </h3>
+                                    <p className="text-sm text-gray-600">
+                                        Dimensions: {getSelectedSize().width}" ×{" "}
+                                        {getSelectedSize().height}" (
+                                        {getSelectedSize().length_unit?.name ||
+                                            "INCH"}
+                                        )
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                        Orientation:{" "}
+                                        {getSelectedSize().orientation}
+                                    </p>
+                                </div>
+                            )}
+
                             <div className="flex flex-wrap gap-2 mb-4">
                                 <a
                                     href="#"
@@ -308,7 +483,7 @@ const SplitPrint: React.FC = () => {
                                         imageUrl={imageUrl}
                                         imagePosition={imagePosition}
                                         zoomLevel={zoomLevel}
-                                        selectedSize={selectedSize}
+                                        selectedSize={getSelectedSize()}
                                         imageEffect={String(data.imageEffect)}
                                         edgeDesign={String(data.edgeDesign)}
                                         selectedLayout={selectedLayout}
@@ -536,6 +711,8 @@ const SplitPrint: React.FC = () => {
                                         onSelectLayout={handleLayoutSelect}
                                         activePanel={null}
                                         onPanelEffectChange={() => {}}
+                                        productData={productData}
+                                        imageUrl={imageUrl}
                                     />
                                 </CardContent>
                             </Card>

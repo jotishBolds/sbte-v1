@@ -4,12 +4,65 @@ namespace App\Http\Controllers;
 
 use App\Models\SavedDesign;
 use App\Models\ShoppingCartItem;
+use App\Models\ImageEffect;
+use App\Models\EdgeDesign;
+use App\Models\HangingMechanismVariety;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class ShoppingCartController extends Controller
 {
+    // GET /shopping-cart/check-auth
+    public function checkAuth()
+    {
+        if (Auth::check()) {
+            $user = Auth::user();
+            $customer = $user->customer;
+            
+            if (!$customer) {
+                // Create customer record for the authenticated user if it doesn't exist
+                $customer = \App\Models\Customer::create([
+                    'user_id' => $user->id,
+                    'name' => $user->name,
+                    'status' => 'Active'
+                ]);
+                
+                // Associate the customer with the user
+                $user->customer()->associate($customer);
+                $user->save();
+            }
+            
+            return response()->json([
+                'status' => 'success',
+                'authenticated' => true,
+                'user' => $user,
+                'customer' => $customer
+            ]);
+        }
+        
+        return response()->json([
+            'status' => 'error',
+            'authenticated' => false,
+            'redirect' => route('login')
+        ], 401);
+    }
+
+    // POST /shopping-cart/set-intended-url
+    public function setIntendedUrl(Request $request)
+    {
+        $request->validate([
+            'intended_url' => 'required|string'
+        ]);
+
+        // Store the intended URL in the session for post-login redirect
+        $request->session()->put('url.intended', $request->intended_url);
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Intended URL set successfully'
+        ]);
+    }
 
     // POST /shopping-cart/add
     public function addItem(Request $request)
@@ -106,24 +159,80 @@ class ShoppingCartController extends Controller
             }
 
             $cartData = $cartItems->map(function ($item) {
+                // Calculate unit price from product variation + attributes
+                $basePrice = (float) $item->savedDesign->productVariation->price;
+                $attributeTotal = 0;
+                
+                // Add attribute prices using the same logic as OrderService
+                foreach ($item->savedDesign->attributes as $attr) {
+                    $attributeTotal += app(\App\Services\AttributePriceResolver::class)
+                        ->resolve($attr->attribute_name, $attr->attribute_value, $item->savedDesign->productVariation);
+                }
+                
+                $unitPrice = $basePrice + $attributeTotal;
+                $totalPrice = $unitPrice * $item->quantity;
+                
+                // Extract image effect and edge design from attributes
+                $imageEffect = null;
+                $edgeDesign = null;
+                $hangingMechanism = false;
+                $hangingVariety = null;
+                
+                foreach ($item->savedDesign->attributes as $attribute) {
+                    if ($attribute->attribute_name === 'image_effect_id') {
+                        $imageEffectModel = \App\Models\ImageEffect::find($attribute->attribute_value);
+                        if ($imageEffectModel) {
+                            $imageEffect = [
+                                'id' => $imageEffectModel->id,
+                                'name' => $imageEffectModel->name,
+                            ];
+                        }
+                    } elseif ($attribute->attribute_name === 'edge_design_id') {
+                        $edgeDesignModel = \App\Models\EdgeDesign::find($attribute->attribute_value);
+                        if ($edgeDesignModel) {
+                            $edgeDesign = [
+                                'id' => $edgeDesignModel->id,
+                                'name' => $edgeDesignModel->name,
+                            ];
+                        }
+                    } elseif ($attribute->attribute_name === 'hanging_mechanism') {
+                        $hangingMechanism = $attribute->attribute_value === 'true' || $attribute->attribute_value === '1';
+                    } elseif ($attribute->attribute_name === 'hanging_variety_id') {
+                        $hangingVarietyModel = \App\Models\HangingMechanismVariety::find($attribute->attribute_value);
+                        if ($hangingVarietyModel) {
+                            $hangingVariety = [
+                                'id' => $hangingVarietyModel->id,
+                                'name' => $hangingVarietyModel->name,
+                            ];
+                        }
+                    }
+                }
+                
                 return [
                     'cart_item_id' => $item->id,
                     'quantity' => $item->quantity,
+                    'unit_price' => $unitPrice,
+                    'total_price' => $totalPrice,
                     'added_at' => $item->created_at,
                     'saved_design' => [
                         'id' => $item->savedDesign->id,
-                        'thumbnail' => $item->savedDesign->thumbnail,
+                        'thumbnail' => $item->savedDesign->thumbnail ? asset('storage/' . $item->savedDesign->thumbnail) : null,
                         'status' => $item->savedDesign->status,
                         'created_at' => $item->savedDesign->created_at,
                         'product_variation' => [
                             'id' => $item->savedDesign->productVariation->id,
                             'label' => $item->savedDesign->productVariation->label,
+                            'price' => $item->savedDesign->productVariation->price,
                             'product' => [
                                 'id' => $item->savedDesign->productVariation->product->id,
                                 'name' => $item->savedDesign->productVariation->product->name,
                                 'category' => $item->savedDesign->productVariation->product->category,
                             ],
                         ],
+                        'image_effect' => $imageEffect,
+                        'edge_design' => $edgeDesign,
+                        'hanging_mechanism' => $hangingMechanism,
+                        'hanging_variety' => $hangingVariety,
                         'attributes' => $item->savedDesign->attributes->map(function ($attribute) {
                             return [
                                 'attribute_name' => $attribute->attribute_name,

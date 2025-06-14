@@ -63,10 +63,38 @@ class SavedDesignController extends Controller
                 'acrylic_cover',
             ];
 
+            // Define optional attributes that can be null or empty
+            $optionalAttributes = [
+                'edge_design_id',
+                'image_effect_id',
+                'frame_color_id',
+                'frame_thickness_id',
+                'frame_type_id',
+                'floating_frame_color_id',
+                'product_type_id',
+                'hanging_mechanism_variety_id',
+            ];
+
             if (!empty($validatedData['attributes'])) {
                 foreach ($validatedData['attributes'] as $attribute) {
                     $attributeName = $attribute['attribute_name'];
                     $attributeValue = $attribute['attribute_value'];
+
+                    // Skip validation for optional attributes that are null or empty
+                    if (in_array($attributeName, $optionalAttributes) && (
+                        is_null($attributeValue) || 
+                        $attributeValue === '' || 
+                        $attributeValue === '0' || 
+                        $attributeValue === 0 || 
+                        $attributeValue === 'null' || 
+                        $attributeValue === 'undefined' ||
+                        trim($attributeValue) === '' ||
+                        trim($attributeValue) === '0' ||
+                        trim($attributeValue) === 'null' ||
+                        trim($attributeValue) === 'undefined'
+                    )) {
+                        continue;
+                    }
 
                     if (in_array($attributeName, $booleanAttributes)) {
                         if (!in_array($attributeValue, ['yes', 'no'])) {
@@ -161,9 +189,7 @@ class SavedDesignController extends Controller
             return response()->json([
                 'status' => 'success',
                 'message' => 'Design saved successfully.',
-                'data' => [
-                    'saved_design_id' => $savedDesign->id,
-                ],
+                'data' => $savedDesign->load(['attributes', 'images']),
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -193,7 +219,7 @@ class SavedDesignController extends Controller
                 ], 404);
             }
 
-            $savedDesigns = SavedDesign::with(['attributes', 'images'])
+            $savedDesigns = SavedDesign::with(['productVariation.product', 'attributes', 'images'])
                 ->where('customer_id', $customer->id)
                 ->get();
 

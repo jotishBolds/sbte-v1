@@ -183,6 +183,73 @@ const CanvasPrintDesigner: React.FC<CanvasPrintDesignerProps> = () => {
         fetchProductData();
     }, []);
 
+    // Convert initial string values to proper numeric IDs after product data loads
+    useEffect(() => {
+        if (!productData) return;
+
+        let needsUpdate = false;
+        const updates: any = {};
+
+        // Fix imageEffect if it's a string
+        if (typeof data.imageEffect === "string") {
+            const originalEffect = productData.baseImageEffects?.find(
+                (effect: any) => effect.name === "Original"
+            );
+
+            if (originalEffect) {
+                console.log(
+                    "CanvasPrint: Converting imageEffect from string to ID:",
+                    originalEffect.id
+                );
+                updates.imageEffect = originalEffect.id;
+                needsUpdate = true;
+            } else {
+                const firstEffect = productData.baseImageEffects?.[0];
+                if (firstEffect) {
+                    console.log(
+                        "CanvasPrint: No 'Original' effect found, using first available:",
+                        firstEffect.id
+                    );
+                    updates.imageEffect = firstEffect.id;
+                    needsUpdate = true;
+                }
+            }
+        }
+
+        // Fix edgeDesign if it's a string
+        if (typeof data.edgeDesign === "string") {
+            const foldedEdge = productData.baseEdgeDesigns?.find(
+                (edge: any) => edge.name === "Folded"
+            );
+
+            if (foldedEdge) {
+                console.log(
+                    "CanvasPrint: Converting edgeDesign from string to ID:",
+                    foldedEdge.id
+                );
+                updates.edgeDesign = foldedEdge.id;
+                needsUpdate = true;
+            } else {
+                const firstEdge = productData.baseEdgeDesigns?.[0];
+                if (firstEdge) {
+                    console.log(
+                        "CanvasPrint: No 'Folded' edge found, using first available:",
+                        firstEdge.id
+                    );
+                    updates.edgeDesign = firstEdge.id;
+                    needsUpdate = true;
+                }
+            }
+        }
+
+        // Apply all updates at once
+        if (needsUpdate) {
+            Object.keys(updates).forEach((key) => {
+                setData(key as keyof CanvasFormData, updates[key]);
+            });
+        }
+    }, [productData, data.imageEffect, data.edgeDesign]);
+
     useEffect(() => {
         const updateDimensions = () => {
             if (mockPreviewRef.current) {
