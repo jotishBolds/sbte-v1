@@ -8,10 +8,18 @@ import { passwordSchema } from "@/lib/password-validation";
 
 const createUserSchema = z
   .object({
-    username: z.string().min(3, "Username must be at least 3 characters"),
-    email: z.string().email("Invalid email address"),
+    username: z
+      .string()
+      .min(3, "Username must be at least 3 characters")
+      .max(50, "Username must not exceed 50 characters")
+      .trim(),
+    email: z
+      .string()
+      .email("Invalid email address")
+      .max(100, "Email must not exceed 100 characters")
+      .trim(),
     password: passwordSchema,
-    confirmPassword: z.string(),
+    confirmPassword: z.string().min(1).max(128),
     role: z.enum([
       "HOD",
       "TEACHER",
@@ -20,7 +28,7 @@ const createUserSchema = z
       "ALUMNUS",
       "ADM",
     ]),
-    departmentId: z.string().optional(),
+    departmentId: z.string().cuid().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",

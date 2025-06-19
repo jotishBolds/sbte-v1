@@ -8,6 +8,7 @@ import prisma from "@/src/lib/prisma";
 import { authOptions } from "../auth/[...nextauth]/auth";
 import { log } from "console";
 import { passwordSchema } from "@/lib/password-validation";
+import { validateInput, sanitizers, baseSchemas } from "@/lib/input-validation";
 
 const SALT_ROUNDS = 12; // Increase security with higher salt rounds
 const PASSWORD_HISTORY_LIMIT = 5; // Number of old passwords to check against
@@ -21,46 +22,70 @@ const MaritalStatusEnum = z.enum(["SINGLE", "MARRIED", "DIVORCED", "WIDOWED"]);
 const CasteEnum = z.enum(["GENERAL", "OBC", "SC", "ST"]);
 const GenderEnum = z.enum(["MALE", "FEMALE", "OTHER"]);
 
-// Updated schema with password validation
+// Updated schema with enhanced input validation and length restrictions
 const updateProfileSchema = z
   .object({
-    username: z.string().optional().nullable(),
-    email: z.string().optional().nullable(),
-    currentPassword: z.string().optional().nullable(),
+    username: z.string().min(1).max(50).trim().optional().nullable(),
+    email: z.string().email().max(100).trim().optional().nullable(),
+    currentPassword: z.string().min(1).max(128).optional().nullable(),
     newPassword: passwordSchema.optional().nullable(),
-    confirmPassword: z.string().optional().nullable(),
+    confirmPassword: z.string().min(1).max(128).optional().nullable(),
     headOfDepartment: z
       .object({
-        name: z.string().optional().nullable(),
-        phoneNo: z.string().optional().nullable(),
-        address: z.string().optional().nullable(),
-        qualification: z.string().optional().nullable(),
-        experience: z.string().optional().nullable(),
+        name: z.string().min(1).max(100).trim().optional().nullable(),
+        phoneNo: z
+          .string()
+          .min(10)
+          .max(15)
+          .regex(/^[0-9+\-\s()]+$/)
+          .optional()
+          .nullable(),
+        address: z.string().min(1).max(500).trim().optional().nullable(),
+        qualification: z.string().min(1).max(200).trim().optional().nullable(),
+        experience: z.string().min(1).max(100).trim().optional().nullable(),
       })
       .optional()
       .nullable(),
     alumnus: z
       .object({
-        jobStatus: z.string().optional().nullable(),
-        currentEmployer: z.string().optional().nullable(),
-        currentPosition: z.string().optional().nullable(),
-        industry: z.string().optional().nullable(),
+        jobStatus: z.string().min(1).max(100).trim().optional().nullable(),
+        currentEmployer: z
+          .string()
+          .min(1)
+          .max(200)
+          .trim()
+          .optional()
+          .nullable(),
+        currentPosition: z
+          .string()
+          .min(1)
+          .max(100)
+          .trim()
+          .optional()
+          .nullable(),
+        industry: z.string().min(1).max(100).trim().optional().nullable(),
       })
       .optional()
       .nullable(),
     teacher: z
       .object({
-        name: z.string().optional().nullable(),
-        phoneNo: z.string().optional().nullable(),
-        address: z.string().optional().nullable(),
-        qualification: z.string().optional().nullable(),
-        designationId: z.string().optional().nullable(),
-        categoryId: z.string().optional().nullable(),
-        experience: z.string().optional().nullable(),
+        name: z.string().min(1).max(100).trim().optional().nullable(),
+        phoneNo: z
+          .string()
+          .min(10)
+          .max(15)
+          .regex(/^[0-9+\-\s()]+$/)
+          .optional()
+          .nullable(),
+        address: z.string().min(1).max(500).trim().optional().nullable(),
+        qualification: z.string().min(1).max(200).trim().optional().nullable(),
+        designationId: z.string().cuid().optional().nullable(),
+        categoryId: z.string().cuid().optional().nullable(),
+        experience: z.string().min(1).max(100).trim().optional().nullable(),
         maritalStatus: MaritalStatusEnum.optional().nullable(),
-        joiningDate: z.string().optional().nullable(),
+        joiningDate: z.string().datetime().optional().nullable(),
         gender: GenderEnum.optional().nullable(),
-        religion: z.string().optional().nullable(),
+        religion: z.string().min(1).max(50).trim().optional().nullable(),
         caste: CasteEnum.optional().nullable(),
         isLocalResident: z.boolean().optional().nullable(),
         isDifferentlyAbled: z.boolean().optional().nullable(),
@@ -155,18 +180,104 @@ export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
 
+    // Apply input sanitization to prevent XSS and injection attacks
+    const sanitizedBody = {
+      ...body,
+      username: body.username
+        ? sanitizers.sanitizeGeneral(body.username)
+        : body.username,
+      email: body.email ? sanitizers.sanitizeGeneral(body.email) : body.email,
+      headOfDepartment: body.headOfDepartment
+        ? {
+            ...body.headOfDepartment,
+            name: body.headOfDepartment.name
+              ? sanitizers.sanitizeGeneral(body.headOfDepartment.name)
+              : body.headOfDepartment.name,
+            phoneNo: body.headOfDepartment.phoneNo
+              ? sanitizers.sanitizeGeneral(body.headOfDepartment.phoneNo)
+              : body.headOfDepartment.phoneNo,
+            address: body.headOfDepartment.address
+              ? sanitizers.sanitizeGeneral(body.headOfDepartment.address)
+              : body.headOfDepartment.address,
+            qualification: body.headOfDepartment.qualification
+              ? sanitizers.sanitizeGeneral(body.headOfDepartment.qualification)
+              : body.headOfDepartment.qualification,
+            experience: body.headOfDepartment.experience
+              ? sanitizers.sanitizeGeneral(body.headOfDepartment.experience)
+              : body.headOfDepartment.experience,
+          }
+        : body.headOfDepartment,
+      alumnus: body.alumnus
+        ? {
+            ...body.alumnus,
+            jobStatus: body.alumnus.jobStatus
+              ? sanitizers.sanitizeGeneral(body.alumnus.jobStatus)
+              : body.alumnus.jobStatus,
+            currentEmployer: body.alumnus.currentEmployer
+              ? sanitizers.sanitizeGeneral(body.alumnus.currentEmployer)
+              : body.alumnus.currentEmployer,
+            currentPosition: body.alumnus.currentPosition
+              ? sanitizers.sanitizeGeneral(body.alumnus.currentPosition)
+              : body.alumnus.currentPosition,
+            industry: body.alumnus.industry
+              ? sanitizers.sanitizeGeneral(body.alumnus.industry)
+              : body.alumnus.industry,
+          }
+        : body.alumnus,
+      teacher: body.teacher
+        ? {
+            ...body.teacher,
+            name: body.teacher.name
+              ? sanitizers.sanitizeGeneral(body.teacher.name)
+              : body.teacher.name,
+            phoneNo: body.teacher.phoneNo
+              ? sanitizers.sanitizeGeneral(body.teacher.phoneNo)
+              : body.teacher.phoneNo,
+            address: body.teacher.address
+              ? sanitizers.sanitizeGeneral(body.teacher.address)
+              : body.teacher.address,
+            qualification: body.teacher.qualification
+              ? sanitizers.sanitizeGeneral(body.teacher.qualification)
+              : body.teacher.qualification,
+            experience: body.teacher.experience
+              ? sanitizers.sanitizeGeneral(body.teacher.experience)
+              : body.teacher.experience,
+            religion: body.teacher.religion
+              ? sanitizers.sanitizeGeneral(body.teacher.religion)
+              : body.teacher.religion,
+          }
+        : body.teacher,
+    };
+
     // Transform null values to undefined
     const transformedBody = {
-      ...body,
-      teacher: body.teacher
+      ...sanitizedBody,
+      teacher: sanitizedBody.teacher
         ? Object.fromEntries(
-            Object.entries(body.teacher).map(([key, value]) => [
+            Object.entries(sanitizedBody.teacher).map(([key, value]) => [
               key,
               value === null ? undefined : value,
             ])
           )
         : undefined,
     };
+
+    // Validate input using our validation system
+    const validationResult = validateInput(
+      updateProfileSchema,
+      transformedBody,
+      false
+    );
+
+    if (!validationResult.success) {
+      return NextResponse.json(
+        {
+          message: "Invalid input data",
+          errors: validationResult.errors,
+        },
+        { status: 400 }
+      );
+    }
 
     const result = updateProfileSchema.safeParse(transformedBody);
 

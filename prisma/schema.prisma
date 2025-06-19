@@ -91,6 +91,7 @@ model User {
   lastLoginAt                DateTime?
   lastLogout                DateTime?
   isLoggedIn                Boolean              @default(false)
+  sessionToken              String?              // For single session enforcement
   isLocked                   Boolean              @default(false)
   lockedUntil                DateTime?
   failedLoginAttempts        Int                 @default(0)

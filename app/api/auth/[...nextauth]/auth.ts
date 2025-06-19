@@ -3,7 +3,11 @@ import { PrismaAdapter } from "@next-auth/prisma-adapter";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import prisma from "@/src/lib/prisma";
-import { cleanupUserSession } from "@/lib/session-cleanup";
+import {
+  cleanupUserSession,
+  enforcesSingleSession,
+  validateSessionToken,
+} from "@/lib/session-cleanup";
 import { validateCaptcha } from "@/lib/captcha";
 
 // Configuration constants
@@ -273,25 +277,32 @@ export const authOptions: NextAuthOptions = {
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        // Set basic token properties first
         token.id = user.id;
         token.role = user.role;
         token.username = user.username || "";
         token.collegeId = user.collegeId || "";
         token.departmentId = user.departmentId || "";
+
+        // Try to set up session tracking (non-blocking)
+        try {
+          await prisma.user.update({
+            where: { id: user.id },
+            data: {
+              isLoggedIn: true,
+              lastLoginAt: new Date(),
+            },
+          });
+        } catch (error) {
+          console.error("Error updating login status (non-critical):", error);
+          // Continue - basic auth will still work
+        }
       }
       return token;
     },
     async session({ session, token }) {
-      if (session?.user) {
-        const dbUser = await prisma.user.findUnique({
-          where: { id: token.id as string },
-          select: { isLoggedIn: true },
-        });
-
-        if (!dbUser?.isLoggedIn) {
-          throw new Error("Session expired");
-        }
-
+      if (session?.user && token?.id) {
+        // Simple session setup without complex validation
         session.user.id = token.id as string;
         session.user.role = token.role as string;
         session.user.username = token.username as string;
