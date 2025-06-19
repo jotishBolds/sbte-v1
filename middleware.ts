@@ -60,10 +60,38 @@ export async function middleware(request: NextRequest) {
   const method = request.method;
   const clientIp =
     request.ip || request.headers.get("x-forwarded-for") || "unknown";
-
-  // Skip middleware for NextAuth routes
+  // Skip middleware for NextAuth routes and login page with callback
   if (pathname.startsWith("/api/auth")) {
     console.log("Skipping middleware for NextAuth route:", pathname);
+    return response;
+  }
+  // Skip auth check for login page to prevent redirect loops, but check if user is already authenticated
+  if (pathname === "/login") {
+    try {
+      const token = await getToken({
+        req: request,
+        secret: process.env.NEXTAUTH_SECRET,
+        cookieName:
+          process.env.NODE_ENV === "production"
+            ? "__Secure-next-auth.session-token"
+            : "next-auth.session-token",
+      });
+
+      // If user is already authenticated and accessing login page, redirect to callback or dashboard
+      if (token && token.id) {
+        const callbackUrl =
+          request.nextUrl.searchParams.get("callbackUrl") || "/dashboard";
+        console.log(
+          "Authenticated user accessing login, redirecting to:",
+          callbackUrl
+        );
+        return NextResponse.redirect(new URL(callbackUrl, request.url));
+      }
+    } catch (error) {
+      console.error("Error checking authentication for login page:", error);
+    }
+
+    console.log("Allowing access to login page");
     return response;
   }
 
@@ -205,43 +233,50 @@ export async function middleware(request: NextRequest) {
         },
       });
     }
-  }
-
-  // Authentication check for protected routes
+  } // Authentication check for protected routes
   if (protectedRoutes.some((route) => pathname.startsWith(route))) {
-    const token = await getToken({
-      req: request,
-      secret: process.env.NEXTAUTH_SECRET,
-    });
-
-    if (!token) {
-      // Redirect to login for protected pages
-      if (!pathname.startsWith("/api/")) {
-        const loginUrl = new URL("/login", request.url);
-        loginUrl.searchParams.set("callbackUrl", pathname);
-        return NextResponse.redirect(loginUrl);
-      }
-
-      // Return 401 for API routes
-      return new NextResponse("Unauthorized", {
-        status: 401,
-        headers: {
-          ...Object.fromEntries(
-            Object.entries(securityHeaders).map(([key, value]) => [key, value])
-          ),
-        },
+    try {
+      const token = await getToken({
+        req: request,
+        secret: process.env.NEXTAUTH_SECRET,
+        cookieName:
+          process.env.NODE_ENV === "production"
+            ? "__Secure-next-auth.session-token"
+            : "next-auth.session-token",
       });
-    }
 
-    // Additional session validation for enhanced single-session enforcement
-    if (token.email) {
-      try {
-        // This will be handled by the NextAuth session callback
-        // but we can add additional checks here if needed
+      console.log("Auth check for", pathname, "- Token exists:", !!token);
+
+      if (!token || !token.id) {
+        // Only redirect if not already on login page to prevent loops
+        if (!pathname.startsWith("/api/")) {
+          console.log("Redirecting to login from:", pathname);
+          const loginUrl = new URL("/login", request.url);
+          loginUrl.searchParams.set("callbackUrl", pathname);
+          return NextResponse.redirect(loginUrl);
+        }
+
+        // Return 401 for API routes
+        if (pathname.startsWith("/api/")) {
+          return new NextResponse("Unauthorized", {
+            status: 401,
+            headers: {
+              ...Object.fromEntries(
+                Object.entries(securityHeaders).map(([key, value]) => [
+                  key,
+                  value,
+                ])
+              ),
+            },
+          });
+        }
+      } else {
+        // Set session validation header
         response.headers.set("X-User-Session", "validated");
-      } catch (error) {
-        console.error("Session validation error:", error);
       }
+    } catch (error) {
+      console.error("Token validation error:", error);
+      // On error, allow through to avoid breaking the app
     }
   }
 

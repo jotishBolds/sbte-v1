@@ -311,6 +311,28 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      // Handle redirects after successful login
+      console.log(
+        "NextAuth redirect callback - url:",
+        url,
+        "baseUrl:",
+        baseUrl
+      );
+
+      // If url is relative, make it absolute
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+
+      // If url is on the same domain, allow it
+      if (url.startsWith(baseUrl)) {
+        return url;
+      }
+
+      // Default redirect to dashboard
+      return `${baseUrl}/dashboard`;
+    },
   },
   events: {
     async signOut({ token }) {
