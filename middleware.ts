@@ -147,6 +147,9 @@ const publicRoutes = [
   "/auth-debug",
   "/subjects-",
   "/fee",
+  "/privacy",
+  "/terms",
+  "/Organization-Chart",
 
   // Pages under (pages) group
   "/pages/about-us",
@@ -161,7 +164,15 @@ const publicRoutes = [
 ];
 
 // Role-based protected frontend routes (exhaustive, including dynamic)
-const protectedRoutes = {
+const protectedRoutes: { [key: string]: string[] } = {
+  "/api/statistics": ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
+  "/college-stats": ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
+  "/api/colleges": ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
+  "/api/educationDepartment/college": ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
+  "/api/educationDepartment/student": ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
+  "/api/notification": ["ALL"],
+  "/403": ["ALL"],
+
   // Super Admin
   "/super-admin/collage-creation": ["SBTE_ADMIN"],
   "/super-admin/colleges": ["SBTE_ADMIN"],
@@ -260,7 +271,6 @@ const protectedRoutes = {
   ],
   "/profile": ["ALL"],
   "/csa-dashboard": ["ALL"],
-  "/college-stats": ["SBTE_ADMIN", "EDUCATION_DEPARTMENT"],
   "/user-creation": ["SBTE_ADMIN"],
   "/view-infrastructure": ["ALL"],
 
@@ -269,7 +279,7 @@ const protectedRoutes = {
   "/api/students": ["ALL"],
   "/api/departments": ["ALL"],
   "/api/college-admin": ["ALL"],
-  "/api/education-dept": ["EDUCATION_DEPARTMENT"],
+  // "/api/education-dept": ["EDUCATION_DEPARTMENT"],
   "/api/super-admin": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
   "/api/infrastructures": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
 };
@@ -300,6 +310,10 @@ const publicApiRoutes = [
   "/api/auth/check-lock-status",
   "/api/auth/verify-captcha",
   "/api/batchYear/alumni/",
+  "/api/admissionYear/alumni/",
+  "/api/programs/alumni/",
+  "/api/alumni/upload-profile-pic",
+  "/api/register-alumni",
 ];
 
 // Allowed HTTP methods for public routes
@@ -568,7 +582,8 @@ export async function middleware(request: NextRequest) {
   // Skip public routes
   if (
     !publicRoutes.includes(normalizedPath) &&
-    !publicApiRoutes.includes(normalizedPath)
+    // !publicApiRoutes.includes(normalizedPath)
+    !publicApiRoutes.some((route) => normalizedPath.startsWith(route))
   ) {
     const token = (await getToken({
       req: request,
@@ -596,18 +611,35 @@ export async function middleware(request: NextRequest) {
       }
     }
 
+    // Step 1: Match the route key using startsWith
+    const matchedRoute = Object.keys(protectedRoutes).find((routeKey) =>
+      normalizedPath.startsWith(routeKey)
+    );
+
+    // Step 2: Use the matched route to get allowed roles
+    const allowedRoles = matchedRoute
+      ? protectedRoutes[matchedRoute]
+      : undefined;
+
     // Check role-based access if defined
-    const allowedRoles = protectedRoutes[normalizedPath];
+    // const allowedRoles = protectedRoutes[normalizedPath];
 
     if (
-      allowedRoles && // if the route is protected
-      allowedRoles.length > 0 &&
-      !(
-        (
-          allowedRoles.includes("ALL") || // 👈 allow all users
+      // allowedRoles && // if the route is protected
+      // allowedRoles.length > 0 &&
+      // !(
+      //   (
+      //     allowedRoles.includes("ALL") || // 👈 allow all users
+      //     allowedRoles.includes(token.role || "")
+      //   ) // 👈 match specific role
+      // )
+
+      !allowedRoles || // 👈 if route is not defined
+      (allowedRoles.length > 0 &&
+        !(
+          allowedRoles.includes("ALL") ||
           allowedRoles.includes(token.role || "")
-        ) // 👈 match specific role
-      )
+        ))
     ) {
       console.warn(`Access denied to ${normalizedPath} for role ${token.role}`);
       if (pathname.startsWith("/api/")) {
