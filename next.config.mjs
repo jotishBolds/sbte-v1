@@ -32,9 +32,14 @@ const nextConfig = {
           {
             key: "Access-Control-Allow-Origin",
             value:
+              // process.env.NODE_ENV === "production"
+              //   ? process.env.NEXTAUTH_URL || "https://yourdomain.com"
+              //   : "*",
+
               process.env.NODE_ENV === "production"
-                ? process.env.NEXTAUTH_URL || "https://yourdomain.com"
-                : "*",
+                ? process.env.NEXTAUTH_URL ||
+                  "https://https://sbte-v1.vercel.app"
+                : "http://localhost:3000",
           },
           {
             key: "Access-Control-Allow-Methods",

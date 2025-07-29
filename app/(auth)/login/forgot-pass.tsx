@@ -85,8 +85,27 @@ export function ForgotPasswordModal({
   const [emailError, setEmailError] = useState<string>("");
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const [otpTimer, setOtpTimer] = useState<number>(0);
-  const { captcha, captchaToken, resetCaptcha, verifyCaptcha } = useCaptcha();
+  // const { captcha, captchaToken, resetCaptcha, verifyCaptcha } = useCaptcha();
+  const { captcha, resetCaptcha, verifyCaptcha } = useCaptcha();
   const [captchaAnswer, setCaptchaAnswer] = useState<string>("");
+
+  useEffect(() => {
+    if (!captcha?.expiresAt) return;
+
+    const now = Date.now();
+    const timeUntilExpiry = captcha.expiresAt - now;
+
+    if (timeUntilExpiry <= 0) {
+      resetCaptcha();
+      return;
+    }
+
+    const timeout = setTimeout(() => {
+      resetCaptcha();
+    }, timeUntilExpiry);
+
+    return () => clearTimeout(timeout);
+  }, [captcha?.expiresAt, resetCaptcha]);
 
   // Timer for OTP resend
   useEffect(() => {
@@ -155,14 +174,14 @@ export function ForgotPasswordModal({
 
     try {
       // Verify CAPTCHA first
-      const isValid = await verifyCaptcha(captchaAnswer.trim());
-      if (!isValid) {
-        setError("Incorrect security answer. Please try again.");
-        resetCaptcha();
-        setCaptchaAnswer("");
-        setIsLoading(false);
-        return;
-      }
+      // const isValid = await verifyCaptcha(captchaAnswer.trim());
+      // if (!isValid) {
+      //   setError("Incorrect security answer. Please try again.");
+      //   resetCaptcha();
+      //   setCaptchaAnswer("");
+      //   setIsLoading(false);
+      //   return;
+      // }
 
       await Sentry.startSpan(
         {
@@ -177,9 +196,16 @@ export function ForgotPasswordModal({
             },
             body: JSON.stringify({
               email,
-              captchaToken,
-              captchaAnswer: captchaAnswer.trim(),
+              answer: captchaAnswer.trim(),
+              hash: captcha?.hash,
+              expiresAt: captcha?.expiresAt,
             }),
+
+            // body: JSON.stringify({
+            //   email,
+            //   captchaToken,
+            //   captchaAnswer: captchaAnswer.trim(),
+            // }),
           });
 
           const result = await response.json();

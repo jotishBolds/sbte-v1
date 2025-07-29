@@ -136,9 +136,10 @@ async function recordSuccessfulLogin(email: string): Promise<void> {
 // Server-side CAPTCHA validation
 async function validateServerCaptcha(
   userAnswer: string,
-  hash: string
+  hash: string,
+  expiresAt: number
 ): Promise<boolean> {
-  return validateCaptcha(userAnswer, hash);
+  return validateCaptcha(userAnswer, hash, expiresAt);
 }
 
 export const authOptions: NextAuthOptions = {
@@ -158,6 +159,7 @@ export const authOptions: NextAuthOptions = {
         otp: { label: "OTP", type: "text" },
         captchaAnswer: { label: "CAPTCHA Answer", type: "text" },
         captchaExpected: { label: "CAPTCHA Expected", type: "text" },
+        captchaExpiresAt: { label: "CAPTCHA Expiry", type: "text" }, // added for expiry
       },
       async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
@@ -180,7 +182,8 @@ export const authOptions: NextAuthOptions = {
         // Server-side CAPTCHA validation
         const isCaptchaValid = await validateServerCaptcha(
           credentials.captchaAnswer,
-          credentials.captchaExpected
+          credentials.captchaExpected,
+          Number(credentials.captchaExpiresAt)
         );
 
         if (!isCaptchaValid) {

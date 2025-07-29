@@ -8,6 +8,7 @@ export async function GET() {
     return NextResponse.json({
       question: captcha.question,
       hash: captcha.hash,
+      expiresAt: captcha.expiresAt,
     });
   } catch (error) {
     return NextResponse.json(

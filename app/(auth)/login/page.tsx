@@ -45,6 +45,7 @@ interface LoginFormData {
 interface CaptchaResponse {
   question: string;
   hash: string;
+  expiresAt: number; //added this new for security issue
 }
 
 interface AccountLockInfo {
@@ -226,11 +227,16 @@ export default function LoginPage() {
           ...prev,
           captchaAnswer: "",
           captchaHash: "",
+          captchaExpiresAt: 0, //added this new for security issue
         }));
 
         const newCaptcha = await fetchCaptcha();
         setCaptcha(newCaptcha);
-        setLoginFormData((prev) => ({ ...prev, captchaHash: newCaptcha.hash }));
+        setLoginFormData((prev) => ({
+          ...prev,
+          captchaHash: newCaptcha.hash,
+          captchaExpiresAt: newCaptcha.expiresAt,
+        }));
       } catch (error) {
         console.error("Failed to load CAPTCHA:", error);
         setError("Failed to load security check. Please refresh the page.");
@@ -268,12 +274,17 @@ export default function LoginPage() {
     setLoginFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const refreshCaptcha = async (e: React.MouseEvent) => {
-    e.preventDefault();
+  const refreshCaptcha = async (e?: React.MouseEvent) => {
+    e?.preventDefault();
     try {
       const newCaptcha = await fetchCaptcha();
       setCaptcha(newCaptcha);
-      setLoginFormData((prev) => ({ ...prev, captchaAnswer: "" }));
+      setLoginFormData((prev) => ({
+        ...prev,
+        captchaAnswer: "",
+        captchaHash: newCaptcha.hash,
+        captchaExpiresAt: newCaptcha.expiresAt,
+      }));
     } catch (error) {
       setError("Failed to refresh security check. Please try again.");
     }
@@ -457,6 +468,7 @@ export default function LoginPage() {
           const result = await signIn("credentials", {
             ...loginFormData,
             captchaExpected: captcha?.hash,
+            captchaExpiresAt: captcha?.expiresAt, // added this for expiry validation
             redirect: false,
           });
 
@@ -585,6 +597,7 @@ export default function LoginPage() {
       }
     } finally {
       setIsLoading(false);
+      refreshCaptcha();
     }
   };
 

@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { checkRateLimit } from "@/lib/input-validation";
+import { JWT } from "next-auth/jwt"; // make sure this is at the top
+
+interface AuthToken {
+  role?: string;
+  name?: string;
+  email?: string;
+  [key: string]: any;
+}
 
 // Security headers configuration
 const securityHeaders = {
@@ -22,7 +30,10 @@ const securityHeaders = {
 // Cache control headers for different route types
 const cacheHeaders = {
   // No cache for sensitive/dynamic content
-  noCache: "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+  // noCache: "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+  noCache:
+    "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0, s-maxage=0, pre-check=0, post-check=0",
+
   // Short cache for API responses
   shortCache: "public, max-age=300, s-maxage=300",
   // Long cache for static assets
@@ -30,25 +41,265 @@ const cacheHeaders = {
 };
 
 // Protected routes that require authentication
-const protectedRoutes = [
-  "/dashboard",
-  "/profile",
-  "/csa-dashboard",
-  "/college-stats",
-  "/api/profile",
-  "/api/dashboard",
-  "/api/students",
-  "/api/college-admin",
-  "/api/education-dept",
-  "/api/super-admin",
+// const protectedRoutes = [
+//   "/dashboard",
+//   "/profile",
+//   "/csa-dashboard",
+//   "/college-stats",
+//   "/api/profile",
+//   "/api/dashboard",
+//   "/api/students",
+//   "/api/departments",
+//   "/api/college-admin",
+//   "/api/education-dept",
+//   "/api/super-admin",
+//   "/api/infrastructures",
+//   "/view-infrastructure",
+//   "/user-creation",
+// ];
+
+{
+  /*{
+ EDUCATION_DEPARTMENT
+  SBTE_ADMIN
+  COLLEGE_SUPER_ADMIN
+  ADM
+  HOD
+  TEACHER
+  FINANCE_MANAGER
+  STUDENT
+  ALUMNUS
+  */
+}
+// // Public routes (accessible without login)
+// const publicRoutes = [
+//   "/",
+//   "/login",
+//   "/register",
+//   "/forgot-password",
+//   "/contact",
+//   "/about-us",
+//   "/organization-chart",
+//   "/who-is-who",
+//   "/affiliated-collages",
+//   "/convocations",
+//   "/notification-circulation",
+//   "/gallery",
+//   "/register-alumni",
+// ];
+
+// // Role-based protected routes
+// const protectedRoutes: { [route: string]: string[] } = {
+//   "/dashboard": [
+//     "EDUCATION_DEPARTMENT",
+//     "SBTE_ADMIN",
+//     "COLLEGE_SUPER_ADMIN",
+//     "ADM",
+//     "HOD",
+//     "TEACHER",
+//     "FINANCE_MANAGER",
+//     "STUDENT",
+//     "ALUMNUS",
+//   ],
+//   "/profile": ["ALL"],
+//   "/csa-dashboard": ["ALL"],
+//   "/college-stats": ["SBTE_ADMIN", "EDUCATION_DEPARTMENT"],
+//   "/user-creation": ["SBTE_ADMIN"],
+//   "/view-infrastructure": ["ALL"],
+//   "/api/dashboard": ["ALL"],
+//   "/api/profile": ["ALL"],
+//   "/api/students": ["ALL"],
+//   "/api/departments": ["ALL"],
+//   "/api/college-admin": ["ALL"],
+//   "/api/education-dept": ["EDUCATION_DEPARTMENT"],
+//   "/api/super-admin": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
+//   "/api/infrastructures": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
+//   // "/api/loginOtp/sendOtp": ["ALL"],
+// };
+
+// // Public API routes that should have restricted HTTP methods
+// const publicApiRoutes = [
+//   "/api/auth",
+//   "/api/register-users",
+//   "/api/password-reset",
+//   "/api/contact",
+//   "/api/loginOtp/sendOtp",
+//   // "/api/auth/captcha",
+// ];
+
+// Public frontend routes
+const publicRoutes = [
+  "/",
+  "/login",
+  "/register",
+  "/forgot-password",
+  "/contact",
+  "/about-us",
+  "/organization-chart",
+  "/who-is-who",
+  "/affiliated-collages",
+  "/convocations",
+  "/notification-circulation",
+  "/gallery",
+  "/register-alumni",
+  "/support",
+  "/sentry-example-page",
+  "/auth-debug",
+  "/subjects-",
+  "/fee",
+
+  // Pages under (pages) group
+  "/pages/about-us",
+  "/pages/contact",
+  "/pages/affiliated-collages",
+  "/pages/convocations",
+  "/pages/gallery",
+  "/pages/notification-circulation",
+  "/pages/organization-chart",
+  "/pages/report-generate",
+  "/pages/who-is-who",
 ];
 
-// Public API routes that should have restricted HTTP methods
+// Role-based protected frontend routes (exhaustive, including dynamic)
+const protectedRoutes = {
+  // Super Admin
+  "/super-admin/collage-creation": ["SBTE_ADMIN"],
+  "/super-admin/colleges": ["SBTE_ADMIN"],
+  "/super-admin/department-creation": ["SBTE_ADMIN"],
+  "/super-admin/departments": ["SBTE_ADMIN"],
+  "/super-admin/departments/[id]": ["SBTE_ADMIN"],
+  "/super-admin/notification": ["SBTE_ADMIN"],
+  "/super-admin/notification/list": ["SBTE_ADMIN"],
+  "/super-admin/notification/load-balance": ["SBTE_ADMIN"],
+  "/super-admin/user-creation": ["SBTE_ADMIN"],
+  "/super-admin/view-eligibility": ["SBTE_ADMIN"],
+  "/super-admin/view-infrastructure": ["SBTE_ADMIN"],
+  "/super-admin/view-schedules": ["SBTE_ADMIN"],
+  // College Admin (exhaustive, including all nested and dynamic)
+  "/college-admin/academic-year": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/admission-year": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/batch": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/batch-type": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/batch-year": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/create-user": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/create-user/users-list": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/csa-dashboard": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/eligibility-upload": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/exam-marks": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/exam-marks/import": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/exam-type": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/infrastructures": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/message": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/profile": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/programs": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/programs/create": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/programs/programs-list": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/schedules-upload": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/semester": ["COLLEGE_SUPER_ADMIN"],
+  // All nested and dynamic routes under (college-admin)
+  "/college-admin/(gradecard)/post-grade-details": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(gradecard)/post-external-marks": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(gradecard)/gradecard-view": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(gradecard)/gradecard-view/[id]": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(gradecard)/import-internal": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(students)/import-students": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(students)/student-register": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(students)/student-list": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(students)/feedbacks-list": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(students)/batchwise-marks-list": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(students)/batchwise-attendance": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(hod)/subjects": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(hod)/batchwisesubattendance": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(hod)/batchwisesubmarks": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(hod)/load-balance": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/batch/student-batch-assign": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/batch/subjects": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/batch/teacher-assign": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/batch/monthly-batchsubject-classes": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/batch/monthly-batchsubject-attendance": [
+    "COLLEGE_SUPER_ADMIN",
+  ],
+  "/college-admin/batch/monthly-batchsubject-attendance/import": [
+    "COLLEGE_SUPER_ADMIN",
+  ],
+  "/college-admin/(student-subjects)/subject-type": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(student-subjects)/student-subjects": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(finance)/batch-base-exam-fees": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(finance)/student-batch-exam-fee": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(teacher)/teacher-designation": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(alumni)/register-alumni": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(alumni)/alumni-list": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(certificates)/certificate": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(certificates)/certificate-types": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(emp)/employee-category": ["COLLEGE_SUPER_ADMIN"],
+  // Education Dept
+  "/education-dept/college-stats": ["EDUCATION_DEPARTMENT"],
+  "/education-dept/college-stats/[id]": ["EDUCATION_DEPARTMENT"],
+  "/education-dept/college-stats/departments-stats": ["EDUCATION_DEPARTMENT"],
+  "/education-dept/college-stats/departments-stats/[id]": [
+    "EDUCATION_DEPARTMENT",
+  ],
+  "/education-dept/grade-card": ["EDUCATION_DEPARTMENT"],
+  // Students
+  "/students/exam-fee": ["STUDENT"],
+  "/students/my-certificates": ["STUDENT"],
+  "/students/my-feedback": ["STUDENT"],
+  "/students/student-attendance": ["STUDENT"],
+  "/students/student-batch-marks": ["STUDENT"],
+  // Dashboard, Profile, etc.
+  "/dashboard": [
+    "EDUCATION_DEPARTMENT",
+    "SBTE_ADMIN",
+    "COLLEGE_SUPER_ADMIN",
+    "ADM",
+    "HOD",
+    "TEACHER",
+    "FINANCE_MANAGER",
+    "STUDENT",
+    "ALUMNUS",
+  ],
+  "/profile": ["ALL"],
+  "/csa-dashboard": ["ALL"],
+  "/college-stats": ["SBTE_ADMIN", "EDUCATION_DEPARTMENT"],
+  "/user-creation": ["SBTE_ADMIN"],
+  "/view-infrastructure": ["ALL"],
+
+  "/api/dashboard": ["ALL"],
+  "/api/profile": ["ALL"],
+  "/api/students": ["ALL"],
+  "/api/departments": ["ALL"],
+  "/api/college-admin": ["ALL"],
+  "/api/education-dept": ["EDUCATION_DEPARTMENT"],
+  "/api/super-admin": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
+  "/api/infrastructures": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
+};
+
+// API routes (protected, exhaustive, including dynamic)
+// const protectedApiRoutes = {
+//   "/api/dashboard": ["ALL"],
+//   "/api/profile": ["ALL"],
+//   "/api/students": ["ALL"],
+//   "/api/departments": ["ALL"],
+//   "/api/college-admin": ["ALL"],
+//   "/api/education-dept": ["EDUCATION_DEPARTMENT"],
+//   "/api/super-admin": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
+//   "/api/infrastructures": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
+
+// };
+
+// Public API routes (exhaustive)
 const publicApiRoutes = [
   "/api/auth",
+  "/api/departments/alumni",
   "/api/register-users",
   "/api/password-reset",
   "/api/contact",
+  "/api/loginOtp/sendOtp",
+  "/api/auth/captcha",
+  "/api/auth/session-cleanup",
+  "/api/auth/check-lock-status",
+  "/api/auth/verify-captcha",
+  "/api/batchYear/alumni/",
 ];
 
 // Allowed HTTP methods for public routes
@@ -58,6 +309,7 @@ export async function middleware(request: NextRequest) {
   const response = NextResponse.next();
   const { pathname } = request.nextUrl;
   const method = request.method;
+
   const clientIp =
     request.ip || request.headers.get("x-forwarded-for") || "unknown";
   // Skip middleware for NextAuth routes and login page with callback
@@ -68,14 +320,28 @@ export async function middleware(request: NextRequest) {
   // Skip auth check for login page to prevent redirect loops, but check if user is already authenticated
   if (pathname === "/login") {
     try {
-      const token = await getToken({
+      // const token = await getToken({
+      //   req: request,
+      //   secret: process.env.NEXTAUTH_SECRET,
+      //   cookieName:
+      //     process.env.NODE_ENV === "production"
+      //       ? "__Secure-next-auth.session-token"
+      //       : "next-auth.session-token",
+      // });
+      const token = (await getToken({
         req: request,
         secret: process.env.NEXTAUTH_SECRET,
         cookieName:
           process.env.NODE_ENV === "production"
             ? "__Secure-next-auth.session-token"
             : "next-auth.session-token",
-      });
+      })) as JWT & {
+        role?: string;
+        id?: string;
+        username?: string;
+        collegeId?: string;
+        departmentId?: string;
+      };
 
       // If user is already authenticated and accessing login page, redirect to callback or dashboard
       if (token && token.id) {
@@ -91,7 +357,14 @@ export async function middleware(request: NextRequest) {
       console.error("Error checking authentication for login page:", error);
     }
 
-    console.log("Allowing access to login page");
+    console.log(
+      "Allowing access to login page after applying security measures"
+    );
+    // Apply security headers manually for the login response
+    Object.entries(securityHeaders).forEach(([key, value]) => {
+      response.headers.set(key, value);
+    });
+    // response.headers.set("Server", "SBTE-Server");
     return response;
   }
 
@@ -193,13 +466,22 @@ export async function middleware(request: NextRequest) {
   });
 
   // Set custom server header to obscure the actual server
-  response.headers.set("Server", "SBTE-Server");
+  // response.headers.set("Server", "SBTE-Server");
 
   // Apply appropriate cache control headers
   if (pathname.startsWith("/api/")) {
     // API routes - no cache for sensitive data
-    if (protectedRoutes.some((route) => pathname.startsWith(route))) {
+    // if (protectedRoutes.some((route) => pathname.startsWith(route))) {
+    //   response.headers.set("Cache-Control", cacheHeaders.noCache);
+    //   response.headers.set("Pragma", "no-cache");
+    //   response.headers.set("Expires", "0");
+    // }
+    if (
+      Object.keys(protectedRoutes).some((route) => pathname.startsWith(route))
+    ) {
       response.headers.set("Cache-Control", cacheHeaders.noCache);
+      response.headers.set("Pragma", "no-cache");
+      response.headers.set("Expires", "0");
     } else {
       response.headers.set("Cache-Control", cacheHeaders.shortCache);
     }
@@ -233,52 +515,157 @@ export async function middleware(request: NextRequest) {
         },
       });
     }
-  } // Authentication check for protected routes
-  if (protectedRoutes.some((route) => pathname.startsWith(route))) {
-    try {
-      const token = await getToken({
-        req: request,
-        secret: process.env.NEXTAUTH_SECRET,
-        cookieName:
-          process.env.NODE_ENV === "production"
-            ? "__Secure-next-auth.session-token"
-            : "next-auth.session-token",
-      });
-
-      console.log("Auth check for", pathname, "- Token exists:", !!token);
-
-      if (!token || !token.id) {
-        // Only redirect if not already on login page to prevent loops
-        if (!pathname.startsWith("/api/")) {
-          console.log("Redirecting to login from:", pathname);
-          const loginUrl = new URL("/login", request.url);
-          loginUrl.searchParams.set("callbackUrl", pathname);
-          return NextResponse.redirect(loginUrl);
-        }
-
-        // Return 401 for API routes
-        if (pathname.startsWith("/api/")) {
-          return new NextResponse("Unauthorized", {
-            status: 401,
-            headers: {
-              ...Object.fromEntries(
-                Object.entries(securityHeaders).map(([key, value]) => [
-                  key,
-                  value,
-                ])
-              ),
-            },
-          });
-        }
-      } else {
-        // Set session validation header
-        response.headers.set("X-User-Session", "validated");
-      }
-    } catch (error) {
-      console.error("Token validation error:", error);
-      // On error, allow through to avoid breaking the app
-    }
   }
+
+  // // We need to implement the following if it is confirmed about adding the remaining all routes into protectedRoutes
+  // // HTTP method restrictions for public API routes
+  // const isPublicRoute = publicApiRoutes.some((route) =>
+  //   pathname.startsWith(route)
+  // );
+
+  // if (pathname.startsWith("/api/") && !pathname.startsWith("/api/auth/")) {
+  //   if (isPublicRoute && !allowedPublicMethods.includes(method)) {
+  //     return new NextResponse("Method Not Allowed", {
+  //       status: 405,
+  //       headers: {
+  //         Allow: allowedPublicMethods.join(", "),
+  //         ...Object.fromEntries(
+  //           Object.entries(securityHeaders).map(([key, value]) => [key, value])
+  //         ),
+  //       },
+  //     });
+  //   }
+  // }
+
+  // // Global blocked method restriction except for protected routes or allowed public routes
+  // const blockedMethods = ["PUT", "DELETE", "PATCH", "TRACE", "CONNECT"];
+  // const isProtectedRoute = protectedRoutes.some((route) =>
+  //   pathname.startsWith(route)
+  // );
+
+  // if (
+  //   blockedMethods.includes(method) &&
+  //   !isProtectedRoute &&
+  //   !(isPublicRoute && allowedPublicMethods.includes(method)) // ✅ this prevents conflict
+  // ) {
+  //   return new NextResponse("Method Not Allowed", {
+  //     status: 405,
+  //     headers: {
+  //       Allow: "GET, POST, OPTIONS",
+  //       ...Object.fromEntries(
+  //         Object.entries(securityHeaders).map(([key, value]) => [key, value])
+  //       ),
+  //     },
+  //   });
+  // }
+
+  // Authentication check for protected routes
+  // Normalize pathname to avoid trailing slash issues
+  const normalizePath = (path: string) =>
+    path.endsWith("/") && path !== "/" ? path.slice(0, -1) : path;
+  const normalizedPath = normalizePath(pathname);
+
+  // Skip public routes
+  if (
+    !publicRoutes.includes(normalizedPath) &&
+    !publicApiRoutes.includes(normalizedPath)
+  ) {
+    const token = (await getToken({
+      req: request,
+      secret: process.env.NEXTAUTH_SECRET,
+      cookieName:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-next-auth.session-token"
+          : "next-auth.session-token",
+    })) as JWT & {
+      role?: string;
+      id?: string;
+      username?: string;
+      collegeId?: string;
+      departmentId?: string;
+    };
+
+    if (!token || !token.role) {
+      console.log("Unauthenticated access attempt to:", normalizedPath);
+      if (pathname.startsWith("/api/")) {
+        return new NextResponse("Unauthorized", { status: 401 });
+      } else {
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("callbackUrl", pathname);
+        return NextResponse.redirect(loginUrl);
+      }
+    }
+
+    // Check role-based access if defined
+    const allowedRoles = protectedRoutes[normalizedPath];
+
+    if (
+      allowedRoles && // if the route is protected
+      allowedRoles.length > 0 &&
+      !(
+        (
+          allowedRoles.includes("ALL") || // 👈 allow all users
+          allowedRoles.includes(token.role || "")
+        ) // 👈 match specific role
+      )
+    ) {
+      console.warn(`Access denied to ${normalizedPath} for role ${token.role}`);
+      if (pathname.startsWith("/api/")) {
+        return new NextResponse("Forbidden", { status: 403 });
+      } else {
+        return NextResponse.redirect(new URL("/403", request.url));
+      }
+    }
+
+    // Optional: Add session validation header
+    response.headers.set("X-User-Session", "validated");
+  }
+
+  // if (protectedRoutes.some((route) => pathname.startsWith(route))) {
+  //   try {
+  //     const token = await getToken({
+  //       req: request,
+  //       secret: process.env.NEXTAUTH_SECRET,
+  //       cookieName:
+  //         process.env.NODE_ENV === "production"
+  //           ? "__Secure-next-auth.session-token"
+  //           : "next-auth.session-token",
+  //     });
+
+  //     console.log("Auth check for", pathname, "- Token exists:", !!token);
+
+  //     if (!token || !token.id) {
+  //       // Only redirect if not already on login page to prevent loops
+  //       if (!pathname.startsWith("/api/")) {
+  //         console.log("Redirecting to login from:", pathname);
+  //         const loginUrl = new URL("/login", request.url);
+  //         loginUrl.searchParams.set("callbackUrl", pathname);
+  //         return NextResponse.redirect(loginUrl);
+  //       }
+
+  //       // Return 401 for API routes
+  //       if (pathname.startsWith("/api/")) {
+  //         return new NextResponse("Unauthorized", {
+  //           status: 401,
+  //           headers: {
+  //             ...Object.fromEntries(
+  //               Object.entries(securityHeaders).map(([key, value]) => [
+  //                 key,
+  //                 value,
+  //               ])
+  //             ),
+  //           },
+  //         });
+  //       }
+  //     } else {
+  //       // Set session validation header
+  //       response.headers.set("X-User-Session", "validated");
+  //     }
+  //   } catch (error) {
+  //     console.error("Token validation error:", error);
+  //     // On error, allow through to avoid breaking the app
+  //   }
+  // }
 
   // Add security headers for file uploads
   if (pathname.startsWith("/api/upload") || pathname.includes("upload")) {

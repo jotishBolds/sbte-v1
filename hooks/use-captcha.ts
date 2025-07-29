@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 interface CaptchaData {
   question: string;
   hash: string;
+  expiresAt: number;
 }
 
 export function useCaptcha() {
@@ -16,38 +17,61 @@ export function useCaptcha() {
       setLoading(true);
       setError(null);
 
-      // Try server-side CAPTCHA first
       const response = await fetch("/api/auth/captcha");
-      if (response.ok) {
-        const data = await response.json();
-        setCaptcha(data);
-        setCaptchaToken(data.hash);
-      } else {
-        // Fallback to client-side CAPTCHA
-        const num1 = Math.floor(Math.random() * 10) + 1;
-        const num2 = Math.floor(Math.random() * 10) + 1;
-        const answer = (num1 + num2).toString();
-        const token = Buffer.from(`${answer}:${Date.now()}`).toString("base64");
-        setCaptcha({
-          question: `${num1} + ${num2} = ?`,
-          hash: token,
-        });
-        setCaptchaToken(token);
+      if (!response.ok) {
+        throw new Error("Failed to generate CAPTCHA");
       }
-    } catch (err) {
-      // Fallback to client-side CAPTCHA on error
-      const num1 = Math.floor(Math.random() * 10) + 1;
-      const num2 = Math.floor(Math.random() * 10) + 1;
-      const answer = (num1 + num2).toString();
-      const token = Buffer.from(`${answer}:${Date.now()}`).toString("base64");
+
+      const data = await response.json();
+
       setCaptcha({
-        question: `${num1} + ${num2} = ?`,
-        hash: token,
+        question: data.question,
+        hash: data.hash,
+        expiresAt: data.expiresAt,
       });
-      setCaptchaToken(token);
+    } catch (err) {
+      console.error("CAPTCHA generation error:", err);
+      setError("Failed to load CAPTCHA. Please try again.");
     } finally {
       setLoading(false);
     }
+    // const generateCaptcha = useCallback(async () => {
+    //   try {
+    //     setLoading(true);
+    //     setError(null);
+
+    //     // Try server-side CAPTCHA first
+    //     const response = await fetch("/api/auth/captcha");
+    //     if (response.ok) {
+    //       const data = await response.json();
+    //       setCaptcha(data);
+    //       setCaptchaToken(data.hash);
+    //     } else {
+    //       // Fallback to client-side CAPTCHA
+    //       const num1 = Math.floor(Math.random() * 10) + 1;
+    //       const num2 = Math.floor(Math.random() * 10) + 1;
+    //       const answer = (num1 + num2).toString();
+    //       const token = Buffer.from(`${answer}:${Date.now()}`).toString("base64");
+    //       setCaptcha({
+    //         question: `${num1} + ${num2} = ?`,
+    //         hash: token,
+    //       });
+    //       setCaptchaToken(token);
+    //     }
+    //   } catch (err) {
+    //     // Fallback to client-side CAPTCHA on error
+    //     const num1 = Math.floor(Math.random() * 10) + 1;
+    //     const num2 = Math.floor(Math.random() * 10) + 1;
+    //     const answer = (num1 + num2).toString();
+    //     const token = Buffer.from(`${answer}:${Date.now()}`).toString("base64");
+    //     setCaptcha({
+    //       question: `${num1} + ${num2} = ?`,
+    //       hash: token,
+    //     });
+    //     setCaptchaToken(token);
+    //   } finally {
+    //     setLoading(false);
+    //   }
   }, []);
 
   const resetCaptcha = useCallback(() => {
@@ -67,9 +91,14 @@ export function useCaptcha() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          captchaToken,
           answer: answer.trim(),
+          hash: captcha.hash,
+          expiresAt: captcha.expiresAt,
         }),
+        // body: JSON.stringify({
+        //   captchaToken,
+        //   answer: answer.trim(),
+        // }),
       });
 
       const result = await response.json();
@@ -83,8 +112,8 @@ export function useCaptcha() {
     captcha,
     loading,
     error,
-    captchaToken,
-    regenerateCaptcha: generateCaptcha,
+    // captchaToken,
+    // regenerateCaptcha: generateCaptcha,
     resetCaptcha,
     verifyCaptcha,
   };

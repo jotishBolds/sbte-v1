@@ -24,10 +24,16 @@ const resetAttempts = new Map<
 >();
 
 // Schema for initiating password reset
+// const initiateResetSchema = z.object({
+//   email: z.string().email("Invalid email address"),
+//   captchaToken: z.string().min(1, "CAPTCHA verification is required"),
+//   captchaAnswer: z.string().min(1, "CAPTCHA answer is required"),
+// });
 const initiateResetSchema = z.object({
   email: z.string().email("Invalid email address"),
-  captchaToken: z.string().min(1, "CAPTCHA verification is required"),
-  captchaAnswer: z.string().min(1, "CAPTCHA answer is required"),
+  answer: z.string().min(1, "CAPTCHA answer is required"),
+  hash: z.string().min(1, "CAPTCHA hash is required"),
+  expiresAt: z.number().min(1, "CAPTCHA expiry is required"),
 });
 
 function checkRateLimit(
@@ -125,7 +131,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, captchaToken, captchaAnswer } = validationResult.data;
+    // const { email, captchaToken, captchaAnswer } = validationResult.data;
+    const { email, answer, hash, expiresAt } = validationResult.data;
+
     const clientIp =
       request.headers.get("x-forwarded-for") || request.ip || "unknown";
 
@@ -149,7 +157,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify CAPTCHA
-    const isCaptchaValid = validateCaptcha(captchaAnswer.trim(), captchaToken);
+    // const isCaptchaValid = validateCaptcha(captchaAnswer.trim(), captchaToken);
+    const isCaptchaValid = validateCaptcha(answer.trim(), hash, expiresAt);
+
     if (!isCaptchaValid) {
       recordResetAttempt(email, false);
       return NextResponse.json(
