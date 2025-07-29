@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Concurrent Session Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+      .test-section {
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+      }
+      .button {
+        padding: 10px 15px;
+        margin: 5px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .button:hover {
+        background: #0056b3;
+      }
+      .result {
+        margin: 10px 0;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 3px;
+      }
+      .success {
+        background: #d4edda;
+        color: #155724;
+      }
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Concurrent Session Testing Tool</h1>
+
+    <div class="test-section">
+      <h2>Test 1: Check Active Sessions</h2>
+      <p>Enter an email to check if there are active sessions:</p>
+      <input
+        type="email"
+        id="emailInput"
+        placeholder="Enter email"
+        style="padding: 8px; width: 200px"
+      />
+      <button class="button" onclick="checkActiveSession()">
+        Check Session
+      </button>
+      <div id="sessionResult" class="result" style="display: none"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>Test 2: Terminate Sessions</h2>
+      <p>Enter a user ID to terminate all sessions:</p>
+      <input
+        type="text"
+        id="userIdInput"
+        placeholder="Enter user ID"
+        style="padding: 8px; width: 200px"
+      />
+      <button class="button" onclick="terminateSessions()">
+        Terminate Sessions
+      </button>
+      <div id="terminateResult" class="result" style="display: none"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>Test 3: Session Validation</h2>
+      <p>Test if your current session is valid:</p>
+      <button class="button" onclick="validateSession()">
+        Validate Session
+      </button>
+      <div id="validateResult" class="result" style="display: none"></div>
+    </div>
+
+    <div class="test-section">
+      <h2>Test 4: Real-time Session Monitor</h2>
+      <p>Monitor session status every 10 seconds:</p>
+      <button class="button" onclick="startMonitoring()" id="monitorBtn">
+        Start Monitoring
+      </button>
+      <button
+        class="button"
+        onclick="stopMonitoring()"
+        id="stopBtn"
+        style="display: none"
+      >
+        Stop Monitoring
+      </button>
+      <div id="monitorResult" class="result" style="display: none"></div>
+    </div>
+
+    <script>
+      let monitoringInterval = null;
+
+      async function checkActiveSession() {
+        const email = document.getElementById("emailInput").value;
+        const resultDiv = document.getElementById("sessionResult");
+
+        if (!email) {
+          showResult(resultDiv, "Please enter an email", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/auth/check-active-session", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            if (data.hasActiveSession) {
+              showResult(
+                resultDiv,
+                `Active session found! User ID: ${data.userId}, Last Activity: ${data.lastActivity}`,
+                "error"
+              );
+            } else {
+              showResult(resultDiv, "No active session found", "success");
+            }
+          } else {
+            showResult(resultDiv, `Error: ${data.error}`, "error");
+          }
+        } catch (error) {
+          showResult(resultDiv, `Network error: ${error.message}`, "error");
+        }
+      }
+
+      async function terminateSessions() {
+        const userId = document.getElementById("userIdInput").value;
+        const resultDiv = document.getElementById("terminateResult");
+
+        if (!userId) {
+          showResult(resultDiv, "Please enter a user ID", "error");
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/auth/terminate-sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showResult(resultDiv, data.message, "success");
+          } else {
+            showResult(resultDiv, `Error: ${data.error}`, "error");
+          }
+        } catch (error) {
+          showResult(resultDiv, `Network error: ${error.message}`, "error");
+        }
+      }
+
+      async function validateSession() {
+        const resultDiv = document.getElementById("validateResult");
+
+        try {
+          const response = await fetch("/api/auth/session-validation", {
+            method: "GET",
+            credentials: "include",
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.valid) {
+            showResult(resultDiv, "Session is valid ✓", "success");
+          } else {
+            showResult(resultDiv, `Session invalid: ${data.reason}`, "error");
+          }
+        } catch (error) {
+          showResult(resultDiv, `Network error: ${error.message}`, "error");
+        }
+      }
+
+      function startMonitoring() {
+        const resultDiv = document.getElementById("monitorResult");
+        const monitorBtn = document.getElementById("monitorBtn");
+        const stopBtn = document.getElementById("stopBtn");
+
+        monitorBtn.style.display = "none";
+        stopBtn.style.display = "inline-block";
+        resultDiv.style.display = "block";
+
+        showResult(resultDiv, "Monitoring started...", "success");
+
+        monitoringInterval = setInterval(async () => {
+          try {
+            const response = await fetch("/api/auth/session-validation", {
+              method: "GET",
+              credentials: "include",
+            });
+
+            const data = await response.json();
+            const timestamp = new Date().toLocaleTimeString();
+
+            if (response.ok && data.valid) {
+              showResult(
+                resultDiv,
+                `[${timestamp}] Session valid ✓`,
+                "success"
+              );
+            } else {
+              showResult(
+                resultDiv,
+                `[${timestamp}] Session invalid: ${data.reason} ✗`,
+                "error"
+              );
+            }
+          } catch (error) {
+            const timestamp = new Date().toLocaleTimeString();
+            showResult(
+              resultDiv,
+              `[${timestamp}] Error: ${error.message}`,
+              "error"
+            );
+          }
+        }, 10000); // Check every 10 seconds
+      }
+
+      function stopMonitoring() {
+        const monitorBtn = document.getElementById("monitorBtn");
+        const stopBtn = document.getElementById("stopBtn");
+
+        if (monitoringInterval) {
+          clearInterval(monitoringInterval);
+          monitoringInterval = null;
+        }
+
+        monitorBtn.style.display = "inline-block";
+        stopBtn.style.display = "none";
+
+        const resultDiv = document.getElementById("monitorResult");
+        showResult(resultDiv, "Monitoring stopped", "success");
+      }
+
+      function showResult(element, message, type) {
+        element.style.display = "block";
+        element.textContent = message;
+        element.className = `result ${type}`;
+      }
+
+      // Auto-populate user ID if logged in
+      window.addEventListener("load", async () => {
+        try {
+          const response = await fetch("/api/auth/session", {
+            credentials: "include",
+          });
+
+          if (response.ok) {
+            const session = await response.json();
+            if (session.user && session.user.id) {
+              document.getElementById("userIdInput").value = session.user.id;
+              document.getElementById("emailInput").value =
+                session.user.email || "";
+            }
+          }
+        } catch (error) {
+          console.log("Not logged in or session unavailable");
+        }
+      });
+    </script>
+  </body>
+</html>

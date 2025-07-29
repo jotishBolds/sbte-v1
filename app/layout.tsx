@@ -8,6 +8,7 @@ import { authOptions } from "./api/auth/[...nextauth]/auth";
 import { Providers } from "@/lib/providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryProvider } from "@/lib/tanstack";
+import { SessionMonitor } from "@/components/session/session-monitor";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -56,9 +57,11 @@ export default async function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system">
           <Providers session={session}>
             <QueryProvider>
-              <Navbar />
-              {children}
-              <Toaster />
+              <SessionMonitor>
+                <Navbar />
+                {children}
+                <Toaster />
+              </SessionMonitor>
             </QueryProvider>
           </Providers>
         </ThemeProvider>

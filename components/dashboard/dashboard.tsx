@@ -553,15 +553,15 @@ const Dashboard: React.FC = () => {
                   variant="secondary"
                   className="mt-1 truncate max-w-[200px] sm:max-w-none"
                 >
-                  {session?.user.role === "COLLEGE_SUPER_ADMIN"
+                  {session?.user?.role === "COLLEGE_SUPER_ADMIN"
                     ? "COLLEGE ADMIN"
-                    : session?.user.role === "FINANCE_MANAGER"
+                    : session?.user?.role === "FINANCE_MANAGER"
                     ? "FINANCE MANAGER"
-                    : session?.user.role === "SBTE_ADMIN"
+                    : session?.user?.role === "SBTE_ADMIN"
                     ? "SBTE Administrator"
-                    : session?.user.role === "EDUCATION_DEPARTMENT"
+                    : session?.user?.role === "EDUCATION_DEPARTMENT"
                     ? "EDUCATION DEPARTMENT"
-                    : session?.user.role || "SBTE"}
+                    : session?.user?.role || "SBTE"}
                 </Badge>
               </div>
             </div>

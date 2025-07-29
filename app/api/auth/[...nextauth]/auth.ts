@@ -9,6 +9,17 @@ import {
   validateSessionToken,
 } from "@/lib/session-cleanup";
 import { validateCaptcha } from "@/lib/captcha";
+import {
+  createUserSession,
+  terminateUserSession,
+  validateUserSession,
+  updateUserActivity,
+} from "@/lib/enhanced-session-management";
+import {
+  logAuditEvent,
+  logSecurityEvent,
+  getClientInfo,
+} from "@/lib/audit-logger";
 
 // Configuration constants
 const MAX_LOGIN_ATTEMPTS = 5;
@@ -83,7 +94,11 @@ async function checkAndUpdateFailedAttempts(email: string): Promise<{
   };
 }
 
-async function recordFailedAttempt(email: string): Promise<void> {
+async function recordFailedAttempt(
+  email: string,
+  ipAddress?: string,
+  userAgent?: string
+): Promise<void> {
   const currentTime = new Date();
 
   const user = await prisma.user.findUnique({
@@ -115,10 +130,34 @@ async function recordFailedAttempt(email: string): Promise<void> {
     where: { id: user.id },
     data: updateData,
   });
+
+  // Log failed login attempt
+  if (ipAddress && userAgent) {
+    await logSecurityEvent({
+      eventType: shouldLock ? "ACCOUNT_LOCKED" : "FAILED_LOGIN_ATTEMPT",
+      userId: user.id,
+      userEmail: email,
+      ipAddress,
+      userAgent,
+      details: shouldLock
+        ? `Account locked after ${newFailedAttempts} failed attempts`
+        : `Failed login attempt ${newFailedAttempts}/${MAX_LOGIN_ATTEMPTS}`,
+      severity: shouldLock ? "HIGH" : "MEDIUM",
+    });
+  }
 }
 
-async function recordSuccessfulLogin(email: string): Promise<void> {
+async function recordSuccessfulLogin(
+  email: string,
+  ipAddress?: string,
+  userAgent?: string
+): Promise<void> {
   const currentTime = new Date();
+
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
 
   await prisma.user.update({
     where: { email },
@@ -131,6 +170,20 @@ async function recordSuccessfulLogin(email: string): Promise<void> {
       isLoggedIn: true,
     },
   });
+
+  // Log successful login
+  if (user && ipAddress && userAgent) {
+    await logAuditEvent({
+      userId: user.id,
+      userEmail: email,
+      action: "LOGIN_SUCCESS",
+      resource: "USER_AUTHENTICATION",
+      details: "User successfully authenticated",
+      ipAddress,
+      userAgent,
+      status: "SUCCESS",
+    });
+  }
 }
 
 // Server-side CAPTCHA validation
@@ -166,6 +219,13 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Email and password are required");
         }
 
+        // Get client information for audit logging
+        const ipAddress =
+          req?.headers?.["x-forwarded-for"]?.toString()?.split(",")[0] ||
+          req?.headers?.["x-real-ip"]?.toString() ||
+          "unknown";
+        const userAgent = req?.headers?.["user-agent"] || "unknown";
+
         // Check for account lockout
         const lockoutStatus = await checkAndUpdateFailedAttempts(
           credentials.email
@@ -174,6 +234,17 @@ export const authOptions: NextAuthOptions = {
           const remainingMinutes = Math.ceil(
             (lockoutStatus.remainingTime || 0) / 60000
           );
+
+          // Log lockout attempt
+          await logSecurityEvent({
+            eventType: "LOCKED_ACCOUNT_ACCESS_ATTEMPT",
+            userEmail: credentials.email,
+            ipAddress,
+            userAgent,
+            details: `Attempt to access locked account. Remaining time: ${remainingMinutes} minutes`,
+            severity: "HIGH",
+          });
+
           throw new Error(
             `Account is temporarily locked. Please try again in ${remainingMinutes} minutes.`
           );
@@ -187,7 +258,7 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!isCaptchaValid) {
-          await recordFailedAttempt(credentials.email);
+          await recordFailedAttempt(credentials.email, ipAddress, userAgent);
           throw new Error("Invalid CAPTCHA. Please try again.");
         }
 
@@ -198,7 +269,7 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!user) {
-            await recordFailedAttempt(credentials.email);
+            await recordFailedAttempt(credentials.email, ipAddress, userAgent);
             throw new Error("Invalid credentials");
           }
 
@@ -207,19 +278,19 @@ export const authOptions: NextAuthOptions = {
             user.password
           );
           if (!isPasswordValid) {
-            await recordFailedAttempt(credentials.email);
+            await recordFailedAttempt(credentials.email, ipAddress, userAgent);
             throw new Error("Invalid credentials");
           }
 
           // Validate OTP
           if (!user.otp || !user.otpExpiresAt) {
-            await recordFailedAttempt(credentials.email);
+            await recordFailedAttempt(credentials.email, ipAddress, userAgent);
             throw new Error("OTP not found or has expired");
           }
 
           const currentTime = new Date();
           if (user.otpExpiresAt < currentTime) {
-            await recordFailedAttempt(credentials.email);
+            await recordFailedAttempt(credentials.email, ipAddress, userAgent);
             await prisma.user.update({
               where: { id: user.id },
               data: { otp: null, otpExpiresAt: null },
@@ -229,7 +300,7 @@ export const authOptions: NextAuthOptions = {
 
           const otpMatches = user.otp === credentials.otp;
           if (!otpMatches) {
-            await recordFailedAttempt(credentials.email);
+            await recordFailedAttempt(credentials.email, ipAddress, userAgent);
             throw new Error("Invalid OTP");
           }
 
@@ -239,22 +310,37 @@ export const authOptions: NextAuthOptions = {
             user.alumnus &&
             !user.alumnus.verified
           ) {
-            await recordFailedAttempt(credentials.email);
+            await recordFailedAttempt(credentials.email, ipAddress, userAgent);
             throw new Error("Account not verified");
-          } // Clear OTP and record successful login
+          }
+
+          // Create enhanced session with single-session enforcement
+          const sessionInfo = await createUserSession(
+            user.id,
+            ipAddress,
+            userAgent,
+            true // Terminate other sessions
+          );
+
+          if (!sessionInfo) {
+            throw new Error("Failed to create session");
+          }
+
+          // Clear OTP and record successful login
           await prisma.user.update({
             where: { id: user.id },
             data: {
               otp: null,
               otpExpiresAt: null,
-              isLoggedIn: true,
-              lastLoginAt: new Date(),
               failedLoginAttempts: 0,
               lastFailedLoginAt: null,
               isLocked: false,
               lockedUntil: null,
             },
           });
+
+          // Record successful login
+          await recordSuccessfulLogin(credentials.email, ipAddress, userAgent);
 
           return {
             id: user.id,
@@ -287,8 +373,17 @@ export const authOptions: NextAuthOptions = {
         token.collegeId = user.collegeId || "";
         token.departmentId = user.departmentId || "";
 
-        // Try to set up session tracking (non-blocking)
+        // Get the current session token from database for concurrent session checking
         try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { sessionToken: true, isLoggedIn: true },
+          });
+
+          if (dbUser?.sessionToken) {
+            token.sessionToken = dbUser.sessionToken;
+          }
+
           await prisma.user.update({
             where: { id: user.id },
             data: {
@@ -305,12 +400,72 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session?.user && token?.id) {
-        // Simple session setup without complex validation
-        session.user.id = token.id as string;
-        session.user.role = token.role as string;
-        session.user.username = token.username as string;
-        session.user.collegeId = token.collegeId as string;
-        session.user.departmentId = token.departmentId as string;
+        // Check if user still has a valid session (concurrent session protection)
+        try {
+          const user = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              isLoggedIn: true,
+              sessionToken: true,
+              sessionExpiresAt: true,
+              lastActivity: true,
+            },
+          });
+
+          // If user is not logged in, force logout
+          if (!user || !user.isLoggedIn) {
+            console.log(`User ${token.id} session invalid - not logged in`);
+            throw new Error("Session invalid");
+          }
+
+          // Check if session token matches (concurrent session detection)
+          if (
+            user.sessionToken &&
+            token.sessionToken &&
+            user.sessionToken !== token.sessionToken
+          ) {
+            console.log(
+              `User ${token.id} concurrent session detected - tokens don't match`
+            );
+            await logSecurityEvent({
+              eventType: "CONCURRENT_SESSION_DETECTED",
+              userId: token.id as string,
+              ipAddress: "unknown",
+              userAgent: "unknown",
+              details: "Concurrent session detected during session validation",
+              severity: "HIGH",
+            });
+            throw new Error("Concurrent session detected");
+          }
+
+          // Check session expiry
+          if (user.sessionExpiresAt && new Date() > user.sessionExpiresAt) {
+            console.log(`User ${token.id} session expired`);
+            await prisma.user.update({
+              where: { id: token.id as string },
+              data: { isLoggedIn: false, sessionToken: null },
+            });
+            throw new Error("Session expired");
+          }
+
+          // Update user activity for valid sessions
+          await updateUserActivity(token.id as string);
+
+          // Set session properties for valid sessions
+          session.user.id = token.id as string;
+          session.user.role = token.role as string;
+          session.user.username = token.username as string;
+          session.user.collegeId = token.collegeId as string;
+          session.user.departmentId = token.departmentId as string;
+        } catch (error) {
+          console.error("Session validation failed:", error);
+          // Return minimal session to trigger logout
+          return {
+            ...session,
+            user: undefined,
+            expires: new Date(0).toISOString(), // Force immediate expiry
+          };
+        }
       }
       return session;
     },
@@ -340,6 +495,15 @@ export const authOptions: NextAuthOptions = {
   events: {
     async signOut({ token }) {
       if (token?.id) {
+        // Use enhanced session termination
+        await terminateUserSession(
+          token.id as string,
+          "signout",
+          "nextauth",
+          "User initiated logout"
+        );
+
+        // Also cleanup for compatibility
         await cleanupUserSession(token.id as string);
       }
     },

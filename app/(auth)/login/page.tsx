@@ -33,6 +33,7 @@ import {
 import { ClipLoader } from "react-spinners";
 import { useTheme } from "next-themes";
 import { ForgotPasswordModal } from "./forgot-pass";
+import SessionLogoutModal from "@/components/session-logout-modal";
 
 interface LoginFormData {
   email: string;
@@ -154,6 +155,15 @@ export default function LoginPage() {
   });
   const [lockdownCountdown, setLockdownCountdown] = useState<number>(0);
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
+  // Concurrent session modal state
+  const [showSessionModal, setShowSessionModal] = useState(false);
+  const [sessionModalData, setSessionModalData] = useState<{
+    userId?: string;
+    userEmail?: string;
+    lastActivity?: string;
+  }>({});
+  const [isSessionModalLoading, setIsSessionModalLoading] = useState(false);
 
   // Check for NextAuth error in URL parameters
   useEffect(() => {
@@ -458,6 +468,40 @@ export default function LoginPage() {
         });
       }
 
+      // After all validations pass, check for active sessions
+      try {
+        const sessionCheckResponse = await fetch(
+          "/api/auth/check-active-session",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email: loginFormData.email }),
+          }
+        );
+
+        if (sessionCheckResponse.ok) {
+          const sessionData = await sessionCheckResponse.json();
+
+          if (sessionData.hasActiveSession) {
+            // Show modal for concurrent session
+            setSessionModalData({
+              userId: sessionData.userId,
+              userEmail: loginFormData.email,
+              lastActivity: sessionData.lastActivity,
+            });
+            setShowSessionModal(true);
+            setIsLoading(false);
+            return;
+          }
+        }
+      } catch (sessionCheckError) {
+        console.warn(
+          "Session check failed, proceeding with login:",
+          sessionCheckError
+        );
+        // Continue with login even if session check fails
+      }
+
       // After all validations pass, proceed with authentication
       await Sentry.startSpan(
         {
@@ -605,6 +649,47 @@ export default function LoginPage() {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
+
+  const handleSessionModalConfirm = async () => {
+    setIsSessionModalLoading(true);
+    try {
+      // Terminate other sessions
+      await fetch("/api/auth/terminate-sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: sessionModalData.userId }),
+      });
+
+      // Close modal and proceed with login
+      setShowSessionModal(false);
+      setIsSessionModalLoading(false);
+
+      // Now proceed with the actual login
+      const result = await signIn("credentials", {
+        ...loginFormData,
+        captchaExpected: captcha?.hash,
+        captchaExpiresAt: captcha?.expiresAt,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+      } else if (result?.ok) {
+        setSuccessMessage("Login successful! Redirecting...");
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      console.error("Error terminating sessions:", error);
+      setError("Failed to terminate other sessions. Please try again.");
+    } finally {
+      setIsSessionModalLoading(false);
+    }
+  };
+
+  const handleSessionModalCancel = () => {
+    setShowSessionModal(false);
+    setIsLoading(false);
   };
 
   return (
@@ -924,6 +1009,15 @@ export default function LoginPage() {
       <ForgotPasswordModal
         isOpen={isForgotPasswordModalOpen}
         onOpenChange={setIsForgotPasswordModalOpen}
+      />
+
+      <SessionLogoutModal
+        isOpen={showSessionModal}
+        onClose={handleSessionModalCancel}
+        onConfirm={handleSessionModalConfirm}
+        userEmail={sessionModalData.userEmail}
+        lastActivity={sessionModalData.lastActivity}
+        isLoading={isSessionModalLoading}
       />
     </div>
   );

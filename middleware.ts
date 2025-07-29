@@ -314,6 +314,7 @@ const publicApiRoutes = [
   "/api/programs/alumni/",
   "/api/alumni/upload-profile-pic",
   "/api/register-alumni",
+  "/api/setup/default-admin",
 ];
 
 // Allowed HTTP methods for public routes
@@ -602,6 +603,7 @@ export async function middleware(request: NextRequest) {
 
     if (!token || !token.role) {
       console.log("Unauthenticated access attempt to:", normalizedPath);
+
       if (pathname.startsWith("/api/")) {
         return new NextResponse("Unauthorized", { status: 401 });
       } else {
@@ -609,6 +611,18 @@ export async function middleware(request: NextRequest) {
         loginUrl.searchParams.set("callbackUrl", pathname);
         return NextResponse.redirect(loginUrl);
       }
+    }
+
+    // Enhanced session validation for authenticated users
+    if (token.id) {
+      // For now, we'll skip the database validation in middleware due to edge runtime limitations
+      // Database-based session validation will be handled in API routes and components
+      console.log(
+        "Authenticated user accessing:",
+        normalizedPath,
+        "User ID:",
+        token.id
+      );
     }
 
     // Step 1: Match the route key using startsWith
@@ -645,7 +659,7 @@ export async function middleware(request: NextRequest) {
       if (pathname.startsWith("/api/")) {
         return new NextResponse("Forbidden", { status: 403 });
       } else {
-        return NextResponse.redirect(new URL("/403", request.url));
+        return NextResponse.redirect(new URL("/forbidden", request.url));
       }
     }
 

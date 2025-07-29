@@ -145,7 +145,7 @@ export const Sidebar: React.FC = () => {
 
   // Memoize role-based links to prevent unnecessary re-renders
   const roleBasedLinks = useMemo((): NavLinkType[] => {
-    switch (session?.user.role) {
+    switch (session?.user?.role) {
       case "EDUCATION_DEPARTMENT":
         return [
           {
@@ -674,7 +674,7 @@ export const Sidebar: React.FC = () => {
     return <p>Loading...</p>;
   }
 
-  if (!session || !session.user.role) {
+  if (!session || !session?.user?.role) {
     return null;
   }
 
@@ -784,7 +784,7 @@ export const Sidebar: React.FC = () => {
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
         <div className="flex flex-col">
-          {session.user.role === "COLLEGE_SUPER_ADMIN" && collegeLogo ? (
+          {session?.user?.role === "COLLEGE_SUPER_ADMIN" && collegeLogo ? (
             <img
               src={collegeLogo}
               alt="College Logo"
@@ -794,15 +794,15 @@ export const Sidebar: React.FC = () => {
             <p className="font-semibold text-lg">{session.user.username}</p>
           )}
           <Badge variant="default" className="mt-1 self-start">
-            {session.user.role === "COLLEGE_SUPER_ADMIN"
+            {session?.user?.role === "COLLEGE_SUPER_ADMIN"
               ? "COLLEGE ADMIN"
-              : session.user.role === "FINANCE_MANAGER"
+              : session?.user?.role === "FINANCE_MANAGER"
               ? "FINANCE MANAGER"
-              : session.user.role === "SBTE_ADMIN"
+              : session?.user?.role === "SBTE_ADMIN"
               ? "SBTE Administrator"
-              : session.user.role === "EDUCATION_DEPARTMENT"
+              : session?.user?.role === "EDUCATION_DEPARTMENT"
               ? "EDUCATION DEPARTMENT"
-              : session.user.role}
+              : session?.user?.role}
           </Badge>
         </div>
       </div>
@@ -839,11 +839,11 @@ export const Sidebar: React.FC = () => {
         )}
         <Separator className="my-4" />
         <div className="p-4 space-y-2">
-          {(session.user.role === "COLLEGE_SUPER_ADMIN" ||
-            session.user.role === "SBTE_ADMIN") && (
+          {(session?.user?.role === "COLLEGE_SUPER_ADMIN" ||
+            session?.user?.role === "SBTE_ADMIN") && (
             <NavItem
               href={
-                session.user.role === "COLLEGE_SUPER_ADMIN"
+                session?.user?.role === "COLLEGE_SUPER_ADMIN"
                   ? "/message"
                   : "/notification"
               }

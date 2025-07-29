@@ -3,16 +3,16 @@ import { NextResponse } from "next/server";
 
 export async function POST(request: Request) {
   try {
-    const { captchaToken, answer } = await request.json();
+    const { captchaToken, answer, expiresAt } = await request.json();
 
-    if (!captchaToken || !answer) {
+    if (!captchaToken || !answer || !expiresAt) {
       return NextResponse.json(
-        { error: "Missing captcha token or answer" },
+        { error: "Missing captcha token, answer, or expiry" },
         { status: 400 }
       );
     }
 
-    const isValid = validateCaptcha(answer.trim(), captchaToken);
+    const isValid = validateCaptcha(answer.trim(), captchaToken, expiresAt);
 
     return NextResponse.json({ valid: isValid });
   } catch (error) {
