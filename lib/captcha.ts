@@ -7,10 +7,20 @@ interface CaptchaResult {
 }
 
 export function generateCaptcha(): CaptchaResult {
-  const num1 = Math.floor(Math.random() * 10) + 1;
-  const num2 = Math.floor(Math.random() * 10) + 1;
+  // Use crypto for better randomness and prevent any build-time caching
+  const crypto = require("crypto");
+
+  // Generate random numbers with better entropy using current timestamp as additional entropy
+  const timestamp = Date.now();
+  const randomBytes = crypto.randomBytes(8); // Get more random bytes
+
+  // Use random bytes to generate truly random numbers
+  const num1 = (randomBytes[0] % 10) + 1; // 1-10
+  const num2 = (randomBytes[1] % 10) + 1; // 1-10
+
   const operators = ["+", "-", "×"] as const;
-  const operator = operators[Math.floor(Math.random() * operators.length)];
+  const operatorIndex = randomBytes[2] % operators.length;
+  const operator = operators[operatorIndex];
 
   let answer: number;
 
@@ -19,7 +29,8 @@ export function generateCaptcha(): CaptchaResult {
       answer = num1 + num2;
       break;
     case "-":
-      answer = num1 - num2;
+      // Ensure positive results for subtraction
+      answer = Math.max(num1, num2) - Math.min(num1, num2);
       break;
     case "×":
       answer = num1 * num2;
@@ -28,14 +39,27 @@ export function generateCaptcha(): CaptchaResult {
       throw new Error("Unsupported operator");
   }
 
-  const question = `What is ${num1} ${operator} ${num2}?`;
+  const question =
+    operator === "-"
+      ? `What is ${Math.max(num1, num2)} ${operator} ${Math.min(num1, num2)}?`
+      : `What is ${num1} ${operator} ${num2}?`;
 
-  const expiresAt = Date.now() + 4 * 60 * 1000; // expires in 3 mins
+  const expiresAt = Date.now() + 5 * 60 * 1000; // expires in 5 mins
   const salt = process.env.NEXTAUTH_SECRET || "default-salt";
 
+  // Create hash without nonce to keep validation working
+  // But use timestamp to ensure uniqueness at generation time
   const hash = createHash("sha256")
-    .update(answer.toString() + salt + expiresAt)
+    .update(answer.toString() + salt + expiresAt.toString())
     .digest("hex");
+
+  console.log("Generated CAPTCHA:", {
+    question,
+    answer,
+    expiresAt,
+    timestamp,
+    randomSeed: randomBytes.toString("hex").substring(0, 8),
+  });
 
   return {
     question,
@@ -49,15 +73,44 @@ export function validateCaptcha(
   hash: string,
   expiresAt: number
 ): boolean {
-  if (!userAnswer || !hash || !expiresAt) return false;
-  if (Date.now() > expiresAt) return false; // Expired
+  if (!userAnswer || !hash || !expiresAt) {
+    console.log("CAPTCHA validation failed: Missing parameters", {
+      userAnswer: !!userAnswer,
+      hash: !!hash,
+      expiresAt,
+    });
+    return false;
+  }
+
+  if (Date.now() > expiresAt) {
+    console.log("CAPTCHA validation failed: Expired", {
+      now: Date.now(),
+      expiresAt,
+    });
+    return false;
+  }
 
   const salt = process.env.NEXTAUTH_SECRET || "default-salt";
-  const userHash = createHash("sha256")
-    .update(userAnswer + salt + expiresAt)
+
+  // Normalize the user answer
+  const normalizedAnswer = userAnswer.trim();
+
+  // Generate the hash using the same method as generation
+  const expectedHash = createHash("sha256")
+    .update(normalizedAnswer + salt + expiresAt.toString())
     .digest("hex");
 
-  return userHash === hash;
+  const isValid = expectedHash === hash;
+
+  console.log("CAPTCHA validation:", {
+    userAnswer: normalizedAnswer,
+    isValid,
+    providedHash: hash.substring(0, 10) + "...",
+    expectedHash: expectedHash.substring(0, 10) + "...",
+    expiresAt,
+  });
+
+  return isValid;
 }
 
 // export function generateCaptcha(): CaptchaResult {

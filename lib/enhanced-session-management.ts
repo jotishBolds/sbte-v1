@@ -3,8 +3,8 @@ import { nanoid } from "nanoid";
 import { logAuditEvent, logSecurityEvent } from "./audit-logger";
 
 // Session configuration
-const SESSION_DURATION = 60 * 60 * 1000; // 60 minutes in milliseconds
-const ACTIVITY_TIMEOUT = 60 * 60 * 1000; // 60 minutes for inactivity timeout
+export const SESSION_DURATION = 60 * 60 * 1000; // 60 minutes in milliseconds
+export const ACTIVITY_TIMEOUT = 60 * 60 * 1000; // 60 minutes for inactivity timeout
 
 export interface SessionInfo {
   sessionToken: string;
@@ -376,5 +376,41 @@ export async function hasActiveSessionElsewhere(
   } catch (error) {
     console.error("Error checking for active sessions:", error);
     return false;
+  }
+}
+
+// Get all active sessions for a user
+export async function getUserActiveSessions(
+  userId: string
+): Promise<SessionInfo[]> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        sessionToken: true,
+        sessionCreatedAt: true,
+        sessionExpiresAt: true,
+        sessionIpAddress: true,
+        sessionUserAgent: true,
+        isLoggedIn: true,
+      },
+    });
+
+    if (!user || !user.isLoggedIn || !user.sessionToken) {
+      return [];
+    }
+
+    return [
+      {
+        sessionToken: user.sessionToken,
+        sessionCreatedAt: user.sessionCreatedAt || new Date(),
+        sessionExpiresAt: user.sessionExpiresAt || new Date(),
+        sessionIpAddress: user.sessionIpAddress || "unknown",
+        sessionUserAgent: user.sessionUserAgent || "unknown",
+      },
+    ];
+  } catch (error) {
+    console.error("Error getting user active sessions:", error);
+    return [];
   }
 }

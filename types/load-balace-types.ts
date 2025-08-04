@@ -1,7 +1,8 @@
+// Types updated for security - pdfPath no longer exposed in API responses
 export interface LoadBalancingPdf {
   id: string;
   title: string;
-  pdfPath: string;
+  // pdfPath: string; // Removed for security - files are accessed via download API only
   collegeId: string;
   college?: {
     id: string;

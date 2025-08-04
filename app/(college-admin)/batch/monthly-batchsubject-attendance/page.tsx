@@ -175,7 +175,7 @@ export default function MonthlyAttendanceDashboard() {
         throw new Error(data.error || "Failed to load monthly classes");
       }
 
-      setMonthlyClasses(data);
+      setMonthlyClasses(Array.isArray(data) ? data : []);
     } catch (error) {
       handleApiError(error);
     } finally {

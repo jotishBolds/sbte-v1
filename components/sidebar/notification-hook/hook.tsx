@@ -1,3 +1,6 @@
+// Disable automatic polling to prevent server overload
+// Notification system security fix implemented
+
 import React, {
   useState,
   useEffect,
@@ -220,17 +223,19 @@ export const useNotificationManager = (): NotificationManagerReturn => {
 
         toast({
           title: "Error",
-          description: "Failed to load notifications. Retrying...",
+          description:
+            "Failed to load notifications. Please refresh the page to try again.",
           variant: "destructive",
         });
 
-        // Schedule retry
-        if (retryTimeoutRef.current) {
-          clearTimeout(retryTimeoutRef.current);
-        }
-        retryTimeoutRef.current = setTimeout(() => {
-          void fetchNotifications(true);
-        }, RETRY_DELAY);
+        // SECURITY FIX: Removed automatic retry to prevent server overload
+        // Users should manually refresh if needed
+        // if (retryTimeoutRef.current) {
+        //   clearTimeout(retryTimeoutRef.current);
+        // }
+        // retryTimeoutRef.current = setTimeout(() => {
+        //   void fetchNotifications(true);
+        // }, RETRY_DELAY);
 
         setNotificationCount(0);
       } finally {
@@ -347,14 +352,18 @@ export const useNotificationManager = (): NotificationManagerReturn => {
 
   useEffect(() => {
     if (isRoleEnabled) {
-      void fetchNotifications(true);
+      // SECURITY FIX: Removed automatic notification fetching to prevent server overload
+      // Notifications will only be fetched manually via refresh button
+      // void fetchNotifications(true);
 
-      const intervalId = setInterval(() => {
-        void fetchNotifications();
-      }, 5 * 60 * 1000);
+      // SECURITY FIX: Removed automatic polling to reduce server load
+      // Notifications will only be fetched on manual refresh or page reload
+      // const intervalId = setInterval(() => {
+      //   void fetchNotifications();
+      // }, 5 * 60 * 1000);
 
       return () => {
-        clearInterval(intervalId);
+        // clearInterval(intervalId);
         if (retryTimeoutRef.current) {
           clearTimeout(retryTimeoutRef.current);
         }
@@ -364,7 +373,7 @@ export const useNotificationManager = (): NotificationManagerReturn => {
         void prismaManager.disconnect();
       };
     }
-  }, [isRoleEnabled, fetchNotifications]);
+  }, [isRoleEnabled]); // Removed fetchNotifications dependency to prevent re-runs
 
   return {
     notifications,

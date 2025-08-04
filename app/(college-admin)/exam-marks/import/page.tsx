@@ -125,8 +125,8 @@ export default function ExamMarksImport() {
         const batchesData = await batchesResponse.json();
         const examTypesData = await examTypesResponse.json();
 
-        setBatches(batchesData);
-        setExamTypes(examTypesData);
+        setBatches(Array.isArray(batchesData) ? batchesData : []);
+        setExamTypes(Array.isArray(examTypesData) ? examTypesData : []);
       } catch (error) {
         toast({
           title: "Error",

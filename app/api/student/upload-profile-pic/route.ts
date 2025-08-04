@@ -8,6 +8,7 @@ import {
 } from "@aws-sdk/client-s3";
 import { v4 as uuidv4 } from "uuid";
 import { validateAndSanitizeFile } from "@/lib/file-security";
+import { generateSignedDownloadUrl } from "@/lib/s3-utils";
 
 // Validate environment variables
 function validateEnvVariables() {
@@ -86,13 +87,13 @@ export async function POST(request: NextRequest) {
     const fileExtension = file.name.split(".").pop();
     const uniqueFilename = `profile-pics/${uuidv4()}.${fileExtension}`;
 
-    // S3 upload parameters
+    // S3 upload parameters (SECURE - Private bucket)
     const uploadParams = {
       Bucket: process.env.AWS_BUCKET_NAME!, // Use AWS_BUCKET_NAME consistently
       Key: uniqueFilename,
       Body: sanitizedBuffer,
       ContentType: file.type,
-      ACL: ObjectCannedACL.public_read,
+      // SECURITY FIX: Removed public ACL - files are now private
     };
 
     // Upload to S3
@@ -100,8 +101,8 @@ export async function POST(request: NextRequest) {
 
     await s3Client.send(command);
 
-    // Construct public URL
-    const profilePicUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${uniqueFilename}`;
+    // Generate signed URL for secure access
+    const profilePicUrl = await generateSignedDownloadUrl(uniqueFilename);
 
     return NextResponse.json({
       message: "File uploaded successfully",

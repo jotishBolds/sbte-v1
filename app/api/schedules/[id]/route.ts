@@ -9,6 +9,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
 } from "@aws-sdk/client-s3";
+import { extractS3KeyFromUrl } from "@/lib/s3-utils";
 
 const prisma = new PrismaClient();
 
@@ -69,13 +70,31 @@ export async function DELETE(
 
     const s3Client = createS3Client();
 
+    // Handle both legacy URL format and new key format
+    let s3Key: string;
+    if (schedule.pdfPath.startsWith("http")) {
+      // Legacy format: full URL stored
+      s3Key = extractS3KeyFromUrl(schedule.pdfPath);
+    } else {
+      // New format: just the key stored
+      s3Key = schedule.pdfPath;
+    }
+
+    console.log("Attempting to delete S3 key:", s3Key);
+
     // Delete the file from S3
     const deleteParams = {
       Bucket: process.env.AWS_BUCKET_NAME!,
-      Key: schedule.pdfPath.split("/").pop(), // Extract the key from the S3 URL
+      Key: s3Key,
     };
 
-    await s3Client.send(new DeleteObjectCommand(deleteParams));
+    try {
+      await s3Client.send(new DeleteObjectCommand(deleteParams));
+      console.log("Successfully deleted file from S3:", s3Key);
+    } catch (s3Error) {
+      console.error("S3 delete error for key:", s3Key, s3Error);
+      // Continue with database deletion even if S3 delete fails
+    }
 
     // Delete the record from the database
     await prisma.schedules.delete({
@@ -146,31 +165,58 @@ export async function GET(
 
     const s3Client = createS3Client();
 
+    // Handle both legacy URL format and new key format
+    let s3Key: string;
+    if (schedule.pdfPath.startsWith("http")) {
+      // Legacy format: full URL stored
+      s3Key = extractS3KeyFromUrl(schedule.pdfPath);
+    } else {
+      // New format: just the key stored
+      s3Key = schedule.pdfPath;
+    }
+
+    console.log("Attempting to download S3 key:", s3Key);
+
     // Fetch the file from S3
     const getParams = {
       Bucket: process.env.AWS_BUCKET_NAME!,
-      Key: schedule.pdfPath.split("/").pop(), // Extract the key from the S3 URL
+      Key: s3Key,
     };
 
-    const { Body } = await s3Client.send(new GetObjectCommand(getParams));
+    try {
+      const { Body } = await s3Client.send(new GetObjectCommand(getParams));
 
-    if (!Body) {
+      if (!Body) {
+        console.error("No file body returned from S3 for key:", s3Key);
+        return NextResponse.json(
+          { error: "File not found on S3." },
+          { status: 404 }
+        );
+      }
+
+      // Convert the file stream to a buffer
+      const fileBuffer = await streamToBuffer(Body);
+
+      return new Response(fileBuffer, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${schedule.title}.pdf"`,
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      });
+    } catch (s3Error) {
+      console.error("S3 download error for key:", s3Key, s3Error);
       return NextResponse.json(
-        { error: "File not found on S3." },
-        { status: 404 }
+        {
+          error: "Failed to download file from S3.",
+          details: s3Error instanceof Error ? s3Error.message : String(s3Error),
+        },
+        { status: 500 }
       );
     }
-
-    // Convert the file stream to a buffer
-    const fileBuffer = await streamToBuffer(Body);
-
-    return new Response(fileBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${schedule.title}.pdf"`,
-      },
-    });
   } catch (error) {
     console.error("Error fetching schedule file:", error);
     return NextResponse.json(

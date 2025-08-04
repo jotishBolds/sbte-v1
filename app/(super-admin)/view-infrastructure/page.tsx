@@ -34,7 +34,7 @@ const InfrastructureCard = ({
   onDownload,
 }: {
   infrastructure: Infrastructure;
-  onDownload: (pdfPath: string) => Promise<void>;
+  onDownload: (id: string, title: string) => Promise<void>;
 }) => (
   <div className="bg-card rounded-lg shadow p-4 mb-4">
     <div className="flex flex-col space-y-2">
@@ -49,7 +49,7 @@ const InfrastructureCard = ({
         size="sm"
         variant="outline"
         className="w-full mt-2"
-        onClick={() => onDownload(infrastructure.pdfPath)}
+        onClick={() => onDownload(infrastructure.id, infrastructure.title)}
       >
         <Download className="h-4 w-4 mr-2" />
         Download PDF
@@ -106,9 +106,9 @@ export default function AdminInfrastructureView() {
     }
   };
 
-  const handleDownload = async (pdfPath: string) => {
+  const handleDownload = async (infrastructureId: string, title: string) => {
     try {
-      const response = await fetch(pdfPath);
+      const response = await fetch(`/api/infrastructures/${infrastructureId}`);
       if (!response.ok)
         throw new Error("Failed to download infrastructure document");
 
@@ -116,7 +116,7 @@ export default function AdminInfrastructureView() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "infrastructure.pdf";
+      a.download = `${title}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -174,7 +174,12 @@ export default function AdminInfrastructureView() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDownload(infrastructure.pdfPath)}
+                          onClick={() =>
+                            handleDownload(
+                              infrastructure.id,
+                              infrastructure.title
+                            )
+                          }
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download

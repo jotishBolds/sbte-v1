@@ -92,9 +92,9 @@ export default function SBTEAdminNotifications() {
     }
   };
 
-  const handleDownload = async (pdfPath: string, title: string) => {
+  const handleDownload = async (id: string, title: string) => {
     try {
-      const response = await fetch(pdfPath);
+      const response = await fetch(`/api/notification/${id}`);
       if (!response.ok) {
         throw new Error("Failed to download notification");
       }
@@ -236,10 +236,7 @@ export default function SBTEAdminNotifications() {
                         variant="outline"
                         size="icon"
                         onClick={() =>
-                          handleDownload(
-                            notification.pdfPath,
-                            notification.title
-                          )
+                          handleDownload(notification.id, notification.title)
                         }
                         title="Download"
                       >

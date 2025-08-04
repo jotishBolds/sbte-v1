@@ -61,7 +61,8 @@ export default function AttendanceImport() {
     queryFn: async () => {
       const response = await fetch("/api/monthlyBatchSubjectClasses");
       if (!response.ok) throw new Error("Failed to fetch batch subjects");
-      return response.json();
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     },
   });
 

@@ -76,7 +76,7 @@ export default function StudentBatchAttendance() {
       const response = await fetch("/api/batch");
       if (!response.ok) throw new Error("Failed to fetch batches");
       const data = await response.json();
-      setBatches(data);
+      setBatches(Array.isArray(data) ? data : []);
     } catch (error) {
       toast({
         title: "Error",
@@ -95,7 +95,7 @@ export default function StudentBatchAttendance() {
       const response = await fetch("/api/student");
       if (!response.ok) throw new Error("Failed to fetch students");
       const data = await response.json();
-      setStudents(data);
+      setStudents(Array.isArray(data) ? data : []);
     } catch (error) {
       toast({
         title: "Error",

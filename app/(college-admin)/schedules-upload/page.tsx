@@ -35,11 +35,11 @@ import { Download, FileUp, Trash2, FolderUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import SideBarLayout from "@/components/sidebar/layout";
 
-// Types remain the same
+// Types updated for security - pdfPath no longer exposed in API responses
 interface Schedules {
   id: string;
   title: string;
-  pdfPath: string; // This now stores the S3 URL
+  // pdfPath: string; // Removed for security - files are accessed via download API only
   collegeId: string;
   createdAt: string;
   updatedAt: string;
@@ -73,7 +73,7 @@ const ScheduleCard = ({
 }: {
   schedule: Schedules;
   onDelete: (id: string) => Promise<void>;
-  onDownload: (pdfPath: string) => Promise<void>;
+  onDownload: (id: string) => Promise<void>;
   isDeleting: string | null;
 }) => (
   <div className="bg-card rounded-lg shadow p-4 mb-4">
@@ -88,7 +88,7 @@ const ScheduleCard = ({
           size="sm"
           variant="outline"
           className="flex-1"
-          onClick={() => onDownload(schedule.pdfPath)}
+          onClick={() => onDownload(schedule.id)}
         >
           <Download className="h-4 w-4 mr-2" />
           Download
@@ -288,9 +288,9 @@ export default function SchedulesManager() {
     }
   };
 
-  const handleDownload = async (pdfPath: string) => {
+  const handleDownload = async (id: string) => {
     try {
-      const response = await fetch(pdfPath);
+      const response = await fetch(`/api/schedules/${id}`);
       if (!response.ok) throw new Error("Failed to download schedule document");
 
       const blob = await response.blob();
@@ -369,7 +369,7 @@ export default function SchedulesManager() {
                           <Button
                             size="icon"
                             variant="outline"
-                            onClick={() => handleDownload(schedule.pdfPath)}
+                            onClick={() => handleDownload(schedule.id)}
                           >
                             <Download className="h-4 w-4" />
                           </Button>

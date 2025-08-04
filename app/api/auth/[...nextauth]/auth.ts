@@ -203,6 +203,20 @@ export const authOptions: NextAuthOptions = {
     maxAge: 24 * 60 * 60, // 24 hours
     updateAge: 24 * 60 * 60, // 24 hours
   },
+  cookies: {
+    sessionToken: {
+      name:
+        process.env.NODE_ENV === "production"
+          ? "__Secure-next-auth.session-token"
+          : "next-auth.session-token",
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   providers: [
     CredentialsProvider({
       name: "Credentials",
@@ -259,7 +273,7 @@ export const authOptions: NextAuthOptions = {
 
         if (!isCaptchaValid) {
           await recordFailedAttempt(credentials.email, ipAddress, userAgent);
-          throw new Error("Invalid CAPTCHA. Please try again.");
+          throw new Error("Invalid security check. Please try again.");
         }
 
         try {
@@ -480,16 +494,21 @@ export const authOptions: NextAuthOptions = {
 
       // If url is relative, make it absolute
       if (url.startsWith("/")) {
-        return `${baseUrl}${url}`;
+        const absoluteUrl = `${baseUrl}${url}`;
+        console.log("Redirecting to relative URL:", absoluteUrl);
+        return absoluteUrl;
       }
 
       // If url is on the same domain, allow it
       if (url.startsWith(baseUrl)) {
+        console.log("Redirecting to same domain URL:", url);
         return url;
       }
 
-      // Default redirect to dashboard
-      return `${baseUrl}/dashboard`;
+      // Default redirect to dashboard for security
+      const defaultRedirect = `${baseUrl}/dashboard`;
+      console.log("Redirecting to default dashboard:", defaultRedirect);
+      return defaultRedirect;
     },
   },
   events: {
@@ -512,5 +531,8 @@ export const authOptions: NextAuthOptions = {
     signIn: "/login",
     error: "/login",
   },
-  debug: process.env.NODE_ENV === "development",
+  // Enable debug only in development, but you can set NEXTAUTH_DEBUG=false to disable
+  debug:
+    process.env.NODE_ENV === "development" &&
+    process.env.NEXTAUTH_DEBUG !== "false",
 };

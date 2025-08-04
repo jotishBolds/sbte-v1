@@ -19,9 +19,11 @@ const otpAttempts = new Map<
 // Rate limiting configuration
 const MAX_OTP_REQUESTS_PER_HOUR = 5;
 const MAX_OTP_REQUESTS_PER_DAY = 10;
+const MAX_IP_REQUESTS_PER_HOUR = 5; // IP-based limit
 const HOUR_IN_MS = 60 * 60 * 1000;
 const DAY_IN_MS = 24 * 60 * 60 * 1000;
-const LOCKOUT_DURATION = 30 * 60 * 1000; // 30 minutes lockout
+const LOCKOUT_DURATION = 10 * 60 * 1000; // 10 minutes lockout (reduced from 30)
+const IP_LOCKOUT_DURATION = 5 * 60 * 1000; // 5 minutes IP lockout
 
 // Define Zod schema for validating the request body
 const otpSchema = z.object({
@@ -34,6 +36,18 @@ function getClientIdentifier(request: NextRequest): string {
   const forwarded = request.headers.get("x-forwarded-for");
   const ip = forwarded ? forwarded.split(",")[0] : request.ip || "unknown";
   return ip;
+}
+
+function formatTimeRemaining(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds} second${seconds !== 1 ? "s" : ""}`;
+  } else if (seconds < 3600) {
+    const minutes = Math.ceil(seconds / 60);
+    return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
+  } else {
+    const hours = Math.ceil(seconds / 3600);
+    return `${hours} hour${hours !== 1 ? "s" : ""}`;
+  }
 }
 
 function checkRateLimit(
@@ -88,17 +102,20 @@ function checkRateLimit(
     }
   }
 
-  // Check IP-based rate limiting
+  // Check IP-based rate limiting (reduced wait time)
   const ipAttempts = otpAttempts.get(ipKey);
-  if (ipAttempts && ipAttempts.count >= MAX_OTP_REQUESTS_PER_HOUR) {
-    if (now - ipAttempts.lastAttempt < HOUR_IN_MS) {
+  if (ipAttempts && ipAttempts.count >= MAX_IP_REQUESTS_PER_HOUR) {
+    if (now - ipAttempts.lastAttempt < IP_LOCKOUT_DURATION) {
       return {
         allowed: false,
         waitTime: Math.ceil(
-          (HOUR_IN_MS - (now - ipAttempts.lastAttempt)) / 1000
+          (IP_LOCKOUT_DURATION - (now - ipAttempts.lastAttempt)) / 1000
         ),
         reason: "ip_rate_limited",
       };
+    } else {
+      // Reset IP attempts after lockout period
+      otpAttempts.delete(ipKey);
     }
   }
 
@@ -194,11 +211,14 @@ export async function POST(request: NextRequest) {
           break;
       }
 
+      const formattedTime = formatTimeRemaining(rateLimitResult.waitTime || 0);
+
       return NextResponse.json(
         {
-          error: `${errorMessage} Please wait ${rateLimitResult.waitTime} seconds before requesting a new OTP.`,
+          error: `${errorMessage} Please wait ${formattedTime} before requesting a new OTP.`,
           errorCode: "OTP_RATE_LIMITED",
           waitTime: rateLimitResult.waitTime,
+          formattedWaitTime: formattedTime,
         },
         { status: 429 }
       );
@@ -238,12 +258,14 @@ export async function POST(request: NextRequest) {
         const remainingWaitTime = Math.ceil(
           (minInterval - timeDifference) / 1000
         );
+        const formattedTime = formatTimeRemaining(remainingWaitTime);
         recordOtpAttempt(email, clientIp, false);
         return NextResponse.json(
           {
-            error: `Please wait ${remainingWaitTime} seconds before requesting a new OTP.`,
+            error: `Please wait ${formattedTime} before requesting a new OTP.`,
             errorCode: "OTP_THROTTLED",
             waitTime: remainingWaitTime,
+            formattedWaitTime: formattedTime,
           },
           { status: 429 }
         );
@@ -523,20 +545,34 @@ async function sendOtpEmail(
     console.log(`[DEV ONLY] OTP for ${email}: ${otp}`);
   }
 
-  await transporter.sendMail({
-    from: process.env.EMAIL_USER,
-    to: email,
-    subject: `[SBTE] Your ${purposeText} OTP - ${otp}`,
-    html: emailHtml,
-    text: `Your OTP for ${purposeText} is ${otp}. It will expire in 5 minutes. If you did not request this, please contact support immediately.`,
-    headers: {
-      "X-Priority": "1",
-      "X-MSMail-Priority": "High",
-      Importance: "high",
-    },
-  });
+  try {
+    await transporter.sendMail({
+      from: `"SBTE System" <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `[SBTE] Your ${purposeText} OTP - ${otp}`,
+      html: emailHtml,
+      text: `Your OTP for ${purposeText} is ${otp}. It will expire in 5 minutes. If you did not request this, please contact support immediately.`,
+      headers: {
+        "X-Priority": "1",
+        "X-MSMail-Priority": "High",
+        Importance: "high",
+      },
+    });
 
-  console.log(
-    `Secure OTP sent to ${email.replace(/(.{2}).*(@.*)/, "$1***$2")}`
-  );
+    console.log(
+      `Secure OTP sent to ${email.replace(/(.{2}).*(@.*)/, "$1***$2")}`
+    );
+  } catch (emailError) {
+    console.error("Email sending error:", emailError);
+
+    // If email fails but OTP is generated, still allow it in development
+    if (process.env.NODE_ENV === "development") {
+      console.log("EMAIL FAILED BUT OTP GENERATED IN DEV MODE");
+      return; // Don't throw error in development
+    }
+
+    throw new Error("Failed to send OTP email. Please try again later.");
+  } finally {
+    transporter.close();
+  }
 }

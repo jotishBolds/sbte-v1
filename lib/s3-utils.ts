@@ -76,7 +76,7 @@ export async function deleteFileFromS3(key: string) {
   await s3Client.send(command);
 }
 
-// Upload a file to S3 and return the key
+// Upload a file to S3 and return the key (SECURE - Private by default)
 export async function uploadFileToS3(
   file: Buffer,
   key: string,
@@ -88,7 +88,8 @@ export async function uploadFileToS3(
     Key: key,
     Body: file,
     ContentType: contentType,
-    // Removed public-read ACL
+    // SECURITY FIX: Removed ACL to make files private by default
+    // Files will be accessed via signed URLs only
   });
   await s3Client.send(command);
   return key;
@@ -98,7 +99,8 @@ export async function uploadFileToS3(
 export function extractS3KeyFromUrl(url: string): string {
   try {
     const urlObj = new URL(url);
-    return urlObj.pathname.substring(1); // Remove leading slash
+    // Decode the pathname to handle URL-encoded characters like %20 (spaces)
+    return decodeURIComponent(urlObj.pathname.substring(1)); // Remove leading slash and decode
   } catch (error) {
     // If URL parsing fails, assume the value is already a key
     return url;

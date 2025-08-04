@@ -131,7 +131,7 @@ export default function ExamMarksDashboard() {
       try {
         setLoading(true);
         const batchesData = await fetchData("/api/batch");
-        setBatches(batchesData);
+        setBatches(Array.isArray(batchesData) ? batchesData : []);
       } catch (err) {
         setError("Failed to load batches");
       } finally {

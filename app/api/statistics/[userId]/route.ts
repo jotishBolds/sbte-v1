@@ -6,7 +6,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 
 type SessionUser = {
   id: string;
-  role: "TEACHER" | "SBTE_ADMIN" | "HOD" | string;
+  role: "TEACHER" | "SBTE_ADMIN" | "HOD" | "COLLEGE_SUPER_ADMIN" | string;
 };
 
 const prisma = new PrismaClient();
@@ -81,7 +81,8 @@ export async function GET(
     if (
       user.role !== "TEACHER" &&
       user.role !== "SBTE_ADMIN" &&
-      user.role !== "HOD"
+      user.role !== "HOD" &&
+      user.role !== "COLLEGE_SUPER_ADMIN"
     ) {
       return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }

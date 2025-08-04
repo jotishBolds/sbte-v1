@@ -41,6 +41,7 @@ interface LoginFormData {
   otp?: string;
   captchaAnswer?: string;
   captchaHash?: string;
+  captchaExpiresAt?: number;
 }
 
 interface CaptchaResponse {
@@ -75,11 +76,62 @@ class LoginError extends Error {
 }
 
 const fetchCaptcha = async (): Promise<CaptchaResponse> => {
-  const response = await fetch("/api/auth/captcha");
-  if (!response.ok) {
-    throw new Error("Failed to fetch CAPTCHA");
+  const maxRetries = 3;
+  let lastError: Error | null = null;
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Force cache bust with multiple techniques
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(7);
+      const response = await fetch(
+        `/api/auth/captcha?_t=${timestamp}&_r=${randomSuffix}`,
+        {
+          method: "GET",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+            "X-Requested-With": "XMLHttpRequest", // Additional header to indicate AJAX request
+          },
+          cache: "no-store", // Prevent caching
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.question || !data.hash || !data.expiresAt) {
+        throw new Error("Invalid CAPTCHA response format");
+      }
+
+      console.log("CAPTCHA fetched successfully:", {
+        question: data.question,
+        hash: data.hash.substring(0, 10) + "...",
+        expiresAt: new Date(data.expiresAt).toLocaleTimeString(),
+        attempt,
+      });
+
+      return data;
+    } catch (error) {
+      lastError = error as Error;
+      console.warn(`CAPTCHA fetch attempt ${attempt} failed:`, error);
+
+      if (attempt < maxRetries) {
+        // Wait before retrying (exponential backoff)
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.pow(2, attempt) * 1000)
+        );
+      }
+    }
   }
-  return response.json();
+
+  throw new Error(
+    `Failed to fetch CAPTCHA after ${maxRetries} attempts: ${lastError?.message}`
+  );
 };
 
 const checkAccountLockStatus = async (
@@ -146,6 +198,9 @@ export default function LoginPage() {
   const [successMessage, setSuccessMessage] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isOtpLoading, setIsOtpLoading] = useState<boolean>(false);
+  const [isRedirecting, setIsRedirecting] = useState<boolean>(false);
+  const [isCaptchaRefreshing, setIsCaptchaRefreshing] =
+    useState<boolean>(false);
   const [otpResendCountdown, setOtpResendCountdown] = useState<number>(0);
   const [rememberMe, setRememberMe] = useState<boolean>(false);
   const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] =
@@ -286,8 +341,48 @@ export default function LoginPage() {
 
   const refreshCaptcha = async (e?: React.MouseEvent) => {
     e?.preventDefault();
+    e?.stopPropagation();
+
+    if (isCaptchaRefreshing) return; // Prevent multiple simultaneous requests
+
     try {
-      const newCaptcha = await fetchCaptcha();
+      setIsCaptchaRefreshing(true);
+      setError(""); // Clear any existing errors
+
+      console.log("Refreshing CAPTCHA...");
+
+      // Force cache bust with multiple techniques
+      const timestamp = Date.now();
+      const randomSuffix = Math.random().toString(36).substring(7);
+      const response = await fetch(
+        `/api/auth/captcha?_t=${timestamp}&_r=${randomSuffix}`,
+        {
+          method: "GET",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+            "X-Requested-With": "XMLHttpRequest",
+          },
+          cache: "no-store", // Prevent caching
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const newCaptcha = await response.json();
+
+      if (!newCaptcha.question || !newCaptcha.hash || !newCaptcha.expiresAt) {
+        throw new Error("Invalid CAPTCHA response format");
+      }
+
+      console.log("New CAPTCHA received:", {
+        question: newCaptcha.question,
+        hash: newCaptcha.hash.substring(0, 10) + "...",
+      });
+
       setCaptcha(newCaptcha);
       setLoginFormData((prev) => ({
         ...prev,
@@ -295,8 +390,16 @@ export default function LoginPage() {
         captchaHash: newCaptcha.hash,
         captchaExpiresAt: newCaptcha.expiresAt,
       }));
+
+      // Show success feedback for better UX
+      setSuccessMessage("Security check refreshed successfully");
+      setTimeout(() => setSuccessMessage(""), 2000);
     } catch (error) {
+      console.error("Failed to refresh CAPTCHA:", error);
       setError("Failed to refresh security check. Please try again.");
+      setTimeout(() => setError(""), 3000);
+    } finally {
+      setIsCaptchaRefreshing(false);
     }
   };
 
@@ -512,28 +615,35 @@ export default function LoginPage() {
           const result = await signIn("credentials", {
             ...loginFormData,
             captchaExpected: captcha?.hash,
-            captchaExpiresAt: captcha?.expiresAt, // added this for expiry validation
+            captchaExpiresAt: captcha?.expiresAt,
             redirect: false,
           });
 
           if (result?.error) {
-            // If the error indicates CAPTCHA expiration, refresh it and show appropriate message
-            if (result.error.includes("Security check has expired")) {
+            // Always refresh CAPTCHA after any login error for security
+            await (async () => {
               try {
                 const newCaptcha = await fetchCaptcha();
                 setCaptcha(newCaptcha);
-                setLoginFormData((prev) => ({ ...prev, captchaAnswer: "" }));
-                throw new LoginError(
-                  "Security check has been refreshed. Please complete it and try again."
-                );
+                setLoginFormData((prev) => ({
+                  ...prev,
+                  captchaAnswer: "",
+                  captchaHash: newCaptcha.hash,
+                  captchaExpiresAt: newCaptcha.expiresAt,
+                }));
               } catch (refreshError) {
-                throw new LoginError(
+                console.warn(
+                  "Failed to refresh CAPTCHA after error:",
+                  refreshError
+                );
+                setError(
                   "Failed to refresh security check. Please reload the page."
                 );
+                return;
               }
-            }
+            })();
 
-            // Parse the error to check if it's an account lock
+            // Handle specific error types
             const errorInfo = parseAuthError(result.error);
 
             if (errorInfo.isLocked) {
@@ -609,14 +719,33 @@ export default function LoginPage() {
             // Clear any existing lock info on successful login
             setAccountLockInfo({ isLocked: false });
             setLockdownCountdown(0);
+            setIsRedirecting(true);
 
-            // Check if user is properly authenticated
-            const session = await getSession();
-            if (session) {
-              router.push("/dashboard");
-            } else {
+            try {
+              // Get redirect URL from query params or default to dashboard
+              const searchParams = new URLSearchParams(window.location.search);
+              const callbackUrl =
+                searchParams.get("callbackUrl") || "/dashboard";
+
+              console.log("Login successful, redirecting to:", callbackUrl);
+
+              // Clear form data on successful login
+              setLoginFormData({
+                email: "",
+                password: "",
+                otp: "",
+                captchaAnswer: "",
+                captchaHash: "",
+                captchaExpiresAt: 0,
+              });
+
+              // Immediate redirect without session check delays
+              window.location.href = callbackUrl;
+            } catch (redirectError) {
+              setIsRedirecting(false);
+              console.error("Redirect failed:", redirectError);
               throw new LoginError(
-                "Session creation failed. Please try again."
+                "Login successful but redirect failed. Please try again."
               );
             }
           } else {
@@ -641,7 +770,21 @@ export default function LoginPage() {
       }
     } finally {
       setIsLoading(false);
-      refreshCaptcha();
+      if (!isRedirecting) {
+        // Only refresh CAPTCHA if we're not redirecting (i.e., there was an error)
+        try {
+          const newCaptcha = await fetchCaptcha();
+          setCaptcha(newCaptcha);
+          setLoginFormData((prev) => ({
+            ...prev,
+            captchaAnswer: "",
+            captchaHash: newCaptcha.hash,
+            captchaExpiresAt: newCaptcha.expiresAt,
+          }));
+        } catch (refreshError) {
+          console.warn("Failed to refresh CAPTCHA after error:", refreshError);
+        }
+      }
     }
   };
 
@@ -661,9 +804,23 @@ export default function LoginPage() {
         body: JSON.stringify({ userId: sessionModalData.userId }),
       });
 
-      // Close modal and proceed with login
+      // Close modal
       setShowSessionModal(false);
       setIsSessionModalLoading(false);
+
+      // SECURITY FIX: Reset CAPTCHA state after session termination
+      try {
+        const newCaptcha = await fetchCaptcha();
+        setCaptcha(newCaptcha);
+        setLoginFormData((prev) => ({
+          ...prev,
+          captchaAnswer: "",
+          captchaHash: newCaptcha.hash,
+          captchaExpiresAt: newCaptcha.expiresAt,
+        }));
+      } catch (captchaError) {
+        console.warn("Failed to refresh CAPTCHA:", captchaError);
+      }
 
       // Now proceed with the actual login
       const result = await signIn("credentials", {
@@ -693,7 +850,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[90vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 ">
+    <div className="min-h-[90vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+      {/* Loading Overlay for Redirecting */}
+      {isRedirecting && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="bg-card p-8 rounded-lg shadow-2xl border text-center max-w-md">
+            <ClipLoader size={50} color="currentColor" className="mb-4" />
+            <h3 className="text-lg font-semibold mb-2">Login Successful!</h3>
+            <p className="text-muted-foreground mb-4">
+              Redirecting to dashboard...
+            </p>
+          </div>
+        </div>
+      )}
+
       <Card className="w-full max-w-xl mx-auto shadow-2xl">
         <CardHeader className="space-y-2 text-center ">
           <div
@@ -940,10 +1110,14 @@ export default function LoginPage() {
                     variant="outline"
                     size="icon"
                     onClick={refreshCaptcha}
-                    disabled={accountLockInfo.isLocked}
+                    disabled={accountLockInfo.isLocked || isCaptchaRefreshing}
                     className="h-8 w-8 rounded-full hover:bg-primary/10 transition-colors"
                   >
-                    <RefreshCw className="h-4 w-4" />
+                    <RefreshCw
+                      className={`h-4 w-4 ${
+                        isCaptchaRefreshing ? "animate-spin" : ""
+                      }`}
+                    />
                   </Button>
                 </div>
                 <Input
@@ -969,12 +1143,22 @@ export default function LoginPage() {
               type="submit"
               className="w-full"
               size="lg"
-              disabled={isLoading || isOtpLoading || accountLockInfo.isLocked}
+              disabled={
+                isLoading ||
+                isOtpLoading ||
+                isRedirecting ||
+                accountLockInfo.isLocked
+              }
             >
               {accountLockInfo.isLocked ? (
                 <>
                   <Ban className="mr-2 h-4 w-4" />
                   Account Locked
+                </>
+              ) : isRedirecting ? (
+                <>
+                  <ClipLoader size={20} color="currentColor" className="mr-2" />
+                  Redirecting to Dashboard...
                 </>
               ) : isLoading ? (
                 <>

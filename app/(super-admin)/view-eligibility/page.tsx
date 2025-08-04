@@ -34,7 +34,7 @@ const EligibilityCard = ({
   onDownload,
 }: {
   eligibility: Eligibility;
-  onDownload: (pdfPath: string) => Promise<void>;
+  onDownload: (id: string, title: string) => Promise<void>;
 }) => (
   <div className="bg-card rounded-lg shadow p-4 mb-4">
     <div className="flex flex-col space-y-2">
@@ -49,7 +49,7 @@ const EligibilityCard = ({
         size="sm"
         variant="outline"
         className="w-full mt-2"
-        onClick={() => onDownload(eligibility.pdfPath)}
+        onClick={() => onDownload(eligibility.id, eligibility.title)}
       >
         <Download className="h-4 w-4 mr-2" />
         Download PDF
@@ -107,9 +107,9 @@ export default function AdminEligibilityView() {
     }
   };
 
-  const handleDownload = async (pdfPath: string) => {
+  const handleDownload = async (eligibilityId: string, title: string) => {
     try {
-      const response = await fetch(pdfPath);
+      const response = await fetch(`/api/eligibilityList/${eligibilityId}`);
       if (!response.ok)
         throw new Error("Failed to download eligibility document");
 
@@ -117,7 +117,7 @@ export default function AdminEligibilityView() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "eligibility.pdf";
+      a.download = `${title}.pdf`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -175,7 +175,9 @@ export default function AdminEligibilityView() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleDownload(eligibility.pdfPath)}
+                          onClick={() =>
+                            handleDownload(eligibility.id, eligibility.title)
+                          }
                         >
                           <Download className="h-4 w-4 mr-2" />
                           Download

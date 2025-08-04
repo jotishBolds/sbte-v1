@@ -3,22 +3,8 @@ import prisma from "@/prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import { z } from "zod";
-import {
-  S3Client,
-  GetObjectCommand,
-  DeleteObjectCommand,
-} from "@aws-sdk/client-s3";
-
-// Configure AWS S3 client
-const createS3Client = () => {
-  return new S3Client({
-    region: process.env.AWS_REGION,
-    credentials: {
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
-    },
-  });
-};
+import { GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { createS3Client, extractS3KeyFromUrl } from "@/lib/s3-utils";
 
 // Helper function to convert a stream to a buffer
 const streamToBuffer = (stream: any): Promise<Buffer> => {
@@ -28,18 +14,6 @@ const streamToBuffer = (stream: any): Promise<Buffer> => {
     stream.on("error", reject);
     stream.on("end", () => resolve(Buffer.concat(chunks)));
   });
-};
-
-// Helper function to extract S3 key from a full URL
-const extractS3KeyFromUrl = (url: string): string => {
-  try {
-    const urlObj = new URL(url);
-    // The pathname will include the leading slash, so remove it
-    return urlObj.pathname.substring(1);
-  } catch (error) {
-    // If URL parsing fails, assume the value is already a key
-    return url;
-  }
 };
 
 export async function DELETE(
@@ -88,8 +62,18 @@ export async function DELETE(
 
     const s3Client = createS3Client();
 
-    // Extract the S3 key from the full URL
-    const s3Key = extractS3KeyFromUrl(notification.pdfPath);
+    // Extract the S3 key from the stored path
+    // Handle both legacy URL format and new key-only format
+    let s3Key: string;
+    if (notification.pdfPath.startsWith("http")) {
+      // Legacy format: full URL stored
+      s3Key = extractS3KeyFromUrl(notification.pdfPath);
+    } else {
+      // New format: just the key stored
+      s3Key = notification.pdfPath;
+    }
+
+    console.log("Attempting to delete S3 key:", s3Key);
 
     // Delete the file from S3
     const deleteParams = {
@@ -97,7 +81,13 @@ export async function DELETE(
       Key: s3Key,
     };
 
-    await s3Client.send(new DeleteObjectCommand(deleteParams));
+    try {
+      await s3Client.send(new DeleteObjectCommand(deleteParams));
+      console.log("Successfully deleted file from S3:", s3Key);
+    } catch (s3Error) {
+      console.error("S3 delete error for key:", s3Key, s3Error);
+      // Continue with database deletion even if S3 delete fails
+    }
 
     // Delete the notification and its associated notifiedColleges records
     await prisma.$transaction([
@@ -171,8 +161,18 @@ export async function GET(
     // Option 2: Proxy the file through your API (keeps your access control)
     const s3Client = createS3Client();
 
-    // Extract the S3 key from the full URL
-    const s3Key = extractS3KeyFromUrl(notification.pdfPath);
+    // Extract the S3 key from the stored path
+    // The pdfPath might be a full URL or just a key, handle both cases
+    let s3Key: string;
+    if (notification.pdfPath.startsWith("http")) {
+      // Legacy format: full URL stored
+      s3Key = extractS3KeyFromUrl(notification.pdfPath);
+    } else {
+      // New format: just the key stored
+      s3Key = notification.pdfPath;
+    }
+
+    console.log("Attempting to download S3 key:", s3Key);
 
     // Fetch the file from S3
     const getParams = {
@@ -180,25 +180,40 @@ export async function GET(
       Key: s3Key,
     };
 
-    const { Body } = await s3Client.send(new GetObjectCommand(getParams));
+    try {
+      const { Body } = await s3Client.send(new GetObjectCommand(getParams));
 
-    if (!Body) {
+      if (!Body) {
+        console.error("No file body returned from S3 for key:", s3Key);
+        return NextResponse.json(
+          { error: "File not found on S3." },
+          { status: 404 }
+        );
+      }
+
+      // Convert the file stream to a buffer
+      const fileBuffer = await streamToBuffer(Body);
+
+      return new Response(fileBuffer, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${notification.title}.pdf"`,
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+          Expires: "0",
+        },
+      });
+    } catch (s3Error) {
+      console.error("S3 download error for key:", s3Key, s3Error);
       return NextResponse.json(
-        { error: "File not found on S3." },
-        { status: 404 }
+        {
+          error: "Failed to download file from S3.",
+          details: s3Error instanceof Error ? s3Error.message : String(s3Error),
+        },
+        { status: 500 }
       );
     }
-
-    // Convert the file stream to a buffer
-    const fileBuffer = await streamToBuffer(Body);
-
-    return new Response(fileBuffer, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="${notification.title}.pdf"`,
-      },
-    });
   } catch (error) {
     console.error("Error downloading notification:", error);
     return NextResponse.json(

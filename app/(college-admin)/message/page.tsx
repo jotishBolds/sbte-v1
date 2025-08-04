@@ -103,10 +103,10 @@ export default function CollegeAdminNotifications() {
     }
   };
 
-  // Updated handleDownload function to match InfrastructureManager implementation
-  const handleDownload = async (pdfPath: string, title: string) => {
+  // Updated handleDownload function to use notification API endpoint
+  const handleDownload = async (id: string, title: string) => {
     try {
-      const response = await fetch(pdfPath);
+      const response = await fetch(`/api/notification/${id}`);
       if (!response.ok) {
         throw new Error("Failed to download notification");
       }
@@ -251,10 +251,7 @@ export default function CollegeAdminNotifications() {
                         variant="ghost"
                         size="icon"
                         onClick={() =>
-                          handleDownload(
-                            notification.pdfPath,
-                            notification.title
-                          )
+                          handleDownload(notification.id, notification.title)
                         }
                         aria-label="Download Notification"
                       >

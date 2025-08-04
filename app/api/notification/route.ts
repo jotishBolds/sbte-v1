@@ -41,7 +41,17 @@ export async function GET(request: Request) {
       return NextResponse.json([], { status: 200 });
     }
 
-    return NextResponse.json(notifications, { status: 200 });
+    // Transform response to hide S3 URLs for security
+    const safeNotifications = notifications.map((notification) => ({
+      id: notification.id,
+      title: notification.title,
+      createdAt: notification.createdAt,
+      updatedAt: notification.updatedAt,
+      notifiedColleges: notification.notifiedColleges,
+      // pdfPath is intentionally omitted for security - use download API instead
+    }));
+
+    return NextResponse.json(safeNotifications, { status: 200 });
   } catch (error) {
     console.error("Error fetching notifications:", error);
     return NextResponse.json(

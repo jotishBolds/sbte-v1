@@ -35,10 +35,11 @@ import { Download, FileUp, Trash2, FolderUp } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import SideBarLayout from "@/components/sidebar/layout";
 
+// Types updated for security - pdfPath no longer exposed in API responses
 interface Infrastructure {
   id: string;
   title: string;
-  pdfPath: string;
+  // pdfPath: string; // Removed for security - files are accessed via download API only
   collegeId: string;
   createdAt: string;
   updatedAt: string;
@@ -71,7 +72,7 @@ const InfrastructureCard = ({
 }: {
   infrastructure: Infrastructure;
   onDelete: (id: string) => Promise<void>;
-  onDownload: (pdfPath: string) => Promise<void>;
+  onDownload: (id: string) => Promise<void>;
   isDeleting: string | null;
 }) => (
   <div className="bg-card rounded-lg shadow p-4 mb-4">
@@ -88,7 +89,7 @@ const InfrastructureCard = ({
           size="sm"
           variant="outline"
           className="flex-1"
-          onClick={() => onDownload(infrastructure.pdfPath)}
+          onClick={() => onDownload(infrastructure.id)}
         >
           <Download className="h-4 w-4 mr-2" />
           Download
@@ -290,9 +291,9 @@ export default function InfrastructureManager() {
     }
   };
 
-  const handleDownload = async (pdfPath: string) => {
+  const handleDownload = async (id: string) => {
     try {
-      const response = await fetch(pdfPath);
+      const response = await fetch(`/api/infrastructures/${id}`);
       if (!response.ok)
         throw new Error("Failed to download infrastructure document");
 
@@ -372,9 +373,7 @@ export default function InfrastructureManager() {
                           <Button
                             size="icon"
                             variant="outline"
-                            onClick={() =>
-                              handleDownload(infrastructure.pdfPath)
-                            }
+                            onClick={() => handleDownload(infrastructure.id)}
                           >
                             <Download className="h-4 w-4" />
                           </Button>

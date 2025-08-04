@@ -78,25 +78,25 @@ export async function POST(request: Request) {
         );
       }
 
-      // Generate unique filename and upload to S3
+      // Generate unique filename and upload to S3 - PRIVATE by default for security
       const fileName = `notifications/${Date.now()}-${file.name}`;
+
       const s3Client = createS3Client();
       const uploadParams = {
         Bucket: process.env.AWS_BUCKET_NAME!,
         Key: fileName,
         Body: sanitizedBuffer,
         ContentType: "application/pdf",
-        ACL: ObjectCannedACL.public_read,
+        // Removed ACL to make files private by default
       };
 
       await s3Client.send(new PutObjectCommand(uploadParams));
-      const pdfUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
 
-      // Save notification and create college links
+      // Save notification and create college links - Store only S3 key for security
       const notification = await prisma.notification.create({
         data: {
           title,
-          pdfPath: pdfUrl,
+          pdfPath: fileName, // Store only the key, not the full URL
         },
       });
 

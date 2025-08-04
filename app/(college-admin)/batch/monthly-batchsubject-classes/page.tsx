@@ -144,7 +144,7 @@ const MonthlyBatchClassesDashboard = () => {
         setLoading(true);
         const response = await fetch("/api/batch");
         const data = await response.json();
-        setBatches(data);
+        setBatches(Array.isArray(data) ? data : []);
       } catch (err) {
         setError("Failed to load batches");
         toast({

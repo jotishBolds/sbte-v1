@@ -128,12 +128,12 @@ export default function StudentForm() {
         const programs = await programsRes.json();
         const departments = await departmentsRes.json();
 
-        setBatchYears(batchYears);
-        setAdmissionYears(admissionYears);
-        setAcademicYears(academicYears);
-        setTerms(terms);
-        setPrograms(programs);
-        setDepartments(departments);
+        setBatchYears(Array.isArray(batchYears) ? batchYears : []);
+        setAdmissionYears(Array.isArray(admissionYears) ? admissionYears : []);
+        setAcademicYears(Array.isArray(academicYears) ? academicYears : []);
+        setTerms(Array.isArray(terms) ? terms : []);
+        setPrograms(Array.isArray(programs) ? programs : []);
+        setDepartments(Array.isArray(departments) ? departments : []);
       } catch (error) {
         toast({
           title: "Error",
