@@ -691,12 +691,23 @@ export async function middleware(request: NextRequest) {
     path.endsWith("/") && path !== "/" ? path.slice(0, -1) : path;
   const normalizedPath = normalizePath(pathname);
 
-  // Skip public routes
-  if (
-    !publicRoutes.includes(normalizedPath) &&
-    // !publicApiRoutes.includes(normalizedPath)
-    !publicApiRoutes.some((route) => normalizedPath.startsWith(route))
-  ) {
+  // Enhanced public route check: allow any path that starts with a static asset folder
+  const publicRoutePrefixes = [
+    "/Convocation1/",
+    "/Convocation2/",
+    "/Convocation3/",
+    "/home/",
+    "/notification-pdf/",
+    "/students-images/",
+    "/templates/",
+    "/uploads/",
+  ];
+  const isPublicRoute =
+    publicRoutes.includes(normalizedPath) ||
+    publicRoutePrefixes.some((prefix) => normalizedPath.startsWith(prefix)) ||
+    publicApiRoutes.some((route) => normalizedPath.startsWith(route));
+
+  if (!isPublicRoute) {
     const token = (await getToken({
       req: request,
       secret: process.env.NEXTAUTH_SECRET,
