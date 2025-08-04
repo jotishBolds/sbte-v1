@@ -164,6 +164,15 @@ const publicRoutes = [
   "/pages/organization-chart",
   "/pages/report-generate",
   "/pages/who-is-who",
+  // Static asset folders under /public
+  "/Convocation1/",
+  "/Convocation2/",
+  "/Convocation3/",
+  "/home/",
+  "/notification-pdf/",
+  "/students-images/",
+  "/templates/",
+  "/uploads/",
 ];
 
 // Role-based protected frontend routes (exhaustive, including dynamic)
