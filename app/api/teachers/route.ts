@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/auth";
 import prisma from "@/src/lib/prisma";
 import bcrypt from "bcryptjs";
+import { createApiResponse, createApiErrorResponse } from "@/lib/api-response";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,15 +14,12 @@ export async function GET(request: NextRequest) {
       !session?.user ||
       !["HOD", "COLLEGE_SUPER_ADMIN", "TEACHER"].includes(session.user.role)
     ) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+      return createApiErrorResponse("Unauthorized", 401);
     }
 
     const collegeId = session.user.collegeId;
     if (!collegeId) {
-      return NextResponse.json(
-        { message: "College ID not found" },
-        { status: 400 }
-      );
+      return createApiErrorResponse("College ID not found", 400);
     }
 
     const teachers = await prisma.teacher.findMany({
@@ -48,10 +46,7 @@ export async function GET(request: NextRequest) {
 
     // Check if no teachers are found
     if (teachers.length === 0) {
-      return NextResponse.json(
-        { message: "No teachers found for this college." },
-        { status: 404 } // Using 404 Not Found status
-      );
+      return createApiErrorResponse("No teachers found for this college.", 404);
     }
 
     const formattedTeachers = teachers.map((teacher) => ({
@@ -61,13 +56,10 @@ export async function GET(request: NextRequest) {
       departmentName: teacher.user.department?.name,
     }));
 
-    return NextResponse.json(formattedTeachers);
+    return createApiResponse(formattedTeachers);
   } catch (error) {
     console.error("Error fetching teachers:", error);
-    return NextResponse.json(
-      { message: "Error fetching teachers" },
-      { status: 500 }
-    );
+    return createApiErrorResponse("Error fetching teachers", 500);
   }
 }
 
@@ -77,9 +69,7 @@ export async function PUT(request: NextRequest) {
     const userId = session?.user.id;
 
     if (!session || session.user.role !== "TEACHER") {
-      return new NextResponse(JSON.stringify({ message: "Unauthorized" }), {
-        status: 401,
-      });
+      return createApiErrorResponse("Unauthorized", 401);
     }
     // Fetch teacher and user details
     const teacher = await prisma.teacher.findUnique({
@@ -90,10 +80,7 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!teacher) {
-      return new NextResponse(
-        JSON.stringify({ message: "Teacher not found here." }),
-        { status: 404 }
-      );
+      return createApiErrorResponse("Teacher not found here.", 404);
     }
 
     const data = await request.json();
@@ -146,12 +133,9 @@ export async function PUT(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(updatedTeacherWithUser, { status: 200 });
+    return createApiResponse(updatedTeacherWithUser);
   } catch (error) {
     console.error("Error updating teacher:", error);
-    return new NextResponse(
-      JSON.stringify({ message: "Internal Server Error" }),
-      { status: 500 }
-    );
+    return createApiErrorResponse("Internal Server Error", 500);
   }
 }

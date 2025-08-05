@@ -6,6 +6,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import { hash } from "bcryptjs";
 import prisma from "@/src/lib/prisma";
 import { z } from "zod";
+import { createApiResponse, createApiErrorResponse } from "@/lib/api-response";
 
 // Zod schema for student validation
 const studentSchema = z.object({

@@ -96,6 +96,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useNotificationManager } from "./notification-hook/hook";
 import { CardStackIcon } from "@radix-ui/react-icons";
+import { S3Logo } from "@/components/ui/s3-image";
 
 type NavLinkType = {
   href: string;
@@ -785,11 +786,13 @@ export const Sidebar: React.FC = () => {
       <div className="p-4 border-b">
         <div className="flex flex-col">
           {session?.user?.role === "COLLEGE_SUPER_ADMIN" && collegeLogo ? (
-            <img
-              src={collegeLogo}
-              alt="College Logo"
-              className="h-24 w-24 object-contain rounded-full mb-2"
-            />
+            <div className="h-24 w-24 mb-2">
+              <S3Logo
+                s3Url={collegeLogo}
+                alt="College Logo"
+                className="h-full w-full object-contain rounded-full"
+              />
+            </div>
           ) : (
             <p className="font-semibold text-lg">{session.user.username}</p>
           )}

@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
+import { createApiResponse, createApiErrorResponse } from "@/lib/api-response";
 import * as z from "zod";
 
 // Initialize Prisma Client
@@ -28,18 +29,21 @@ export async function POST(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createApiErrorResponse("Unauthorized", 401);
     }
 
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && session.user?.role !==  "TEACHER") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user?.role !== "TEACHER"
+    ) {
+      return createApiErrorResponse("Forbidden", 403);
     }
 
     const collegeId = session.user.collegeId;
     if (!collegeId) {
-      return NextResponse.json(
-        { error: "User is not associated with a college" },
-        { status: 400 }
+      return createApiErrorResponse(
+        "User is not associated with a college",
+        400
       );
     }
 
@@ -47,12 +51,10 @@ export async function POST(request: NextRequest) {
     const validationResult = subjectSchema.safeParse(body);
 
     if (!validationResult.success) {
-      return NextResponse.json(
-        {
-          error: "Validation failed",
-          details: validationResult.error.format(),
-        },
-        { status: 400 }
+      return createApiErrorResponse(
+        "Validation failed",
+        400,
+        validationResult.error.format()
       );
     }
 
@@ -66,9 +68,9 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingSubject) {
-      return NextResponse.json(
-        { error: "Subject with this code already exists" },
-        { status: 409 }
+      return createApiErrorResponse(
+        "Subject with this code already exists",
+        409
       );
     }
 
@@ -80,13 +82,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(newSubject, { status: 201 });
+    return createApiResponse(newSubject, { status: 201 });
   } catch (error) {
     console.error("Error creating subject:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return createApiErrorResponse("Internal Server Error", 500);
   } finally {
     await prisma.$disconnect();
   }
@@ -97,19 +96,21 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createApiErrorResponse("Unauthorized", 401);
     }
 
-
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN" && session.user?.role !==  "TEACHER") {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    if (
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user?.role !== "TEACHER"
+    ) {
+      return createApiErrorResponse("Forbidden", 403);
     }
 
     const collegeId = session.user.collegeId;
     if (!collegeId) {
-      return NextResponse.json(
-        { error: "User is not associated with a college" },
-        { status: 400 }
+      return createApiErrorResponse(
+        "User is not associated with a college",
+        400
       );
     }
 
@@ -129,13 +130,10 @@ export async function GET(request: NextRequest) {
       createdByName: subject.createdBy.username,
     }));
 
-    return NextResponse.json(formattedSubjects, { status: 200 });
+    return createApiResponse(formattedSubjects);
   } catch (error) {
     console.error("Error fetching subjects:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return createApiErrorResponse("Internal Server Error", 500);
   } finally {
     await prisma.$disconnect();
   }

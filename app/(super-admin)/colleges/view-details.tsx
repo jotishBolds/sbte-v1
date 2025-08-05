@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { College } from "@/types/collage";
 import { Badge } from "@/components/ui/badge";
+import { S3Logo } from "@/components/ui/s3-image";
 
 interface CollegeViewModalProps {
   college: College | null;
@@ -58,16 +59,14 @@ const CollegeViewModal: React.FC<CollegeViewModalProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* College Logo */}
-        {college.logo && (
-          <div className="flex justify-center mb-4">
-            <img
-              src={college.logo}
-              alt={`${college.name} logo`}
-              className="h-32 w-32 object-contain rounded-lg shadow-md"
-            />
-          </div>
-        )}
+        {/* College Logo with secure loading */}
+        <div className="flex justify-center mb-4">
+          <S3Logo
+            s3Url={college.logo}
+            alt={`${college.name} logo`}
+            className="h-32 w-32 rounded-lg shadow-md"
+          />
+        </div>
 
         <Tabs defaultValue="general" className="w-full">
           <TabsList className="grid w-full grid-cols-2">

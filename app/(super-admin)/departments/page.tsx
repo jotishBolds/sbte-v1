@@ -30,6 +30,8 @@ import { Label } from "@/components/ui/label";
 import SideBarLayout from "@/components/sidebar/layout";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, XCircle } from "lucide-react";
+import { ClipLoader } from "react-spinners";
+import { apiRequest, useApiRequest } from "@/lib/api-client";
 
 interface Department {
   id: string;
@@ -52,20 +54,25 @@ const DepartmentsPage: React.FC = () => {
     department: Department | null;
   }>({ isOpen: false, department: null });
 
+  // Use the new API request hooks
+  const {
+    loading: isLoading,
+    error: fetchError,
+    execute: executeRequest,
+  } = useApiRequest<Department[]>();
+
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [toggleLoading, setToggleLoading] = useState(false);
+
   useEffect(() => {
     fetchDepartments();
   }, []);
 
   const fetchDepartments = async () => {
-    try {
-      const response = await fetch("/api/departments");
-      if (!response.ok) {
-        throw new Error("Failed to fetch departments");
-      }
-      const data = await response.json();
-      setDepartments(data);
-    } catch (error) {
-      console.error("Error fetching departments:", error);
+    const response = await executeRequest("/api/departments");
+    if (response.data) {
+      setDepartments(response.data);
     }
   };
 
@@ -80,45 +87,49 @@ const DepartmentsPage: React.FC = () => {
   const handleUpdateDepartment = async () => {
     if (!editingDepartment) return;
 
+    setUpdateLoading(true);
     try {
-      const response = await fetch(`/api/departments/${editingDepartment.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(editingDepartment),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update department");
-      }
-
-      setDepartments((prevDepartments) =>
-        prevDepartments.map((dept) =>
-          dept.id === editingDepartment.id ? editingDepartment : dept
-        )
+      const response = await apiRequest(
+        `/api/departments/${editingDepartment.id}`,
+        {
+          method: "PUT",
+          body: editingDepartment,
+        }
       );
-      setEditingDepartment(null);
+
+      if (response.error) {
+        console.error("Error updating department:", response.error);
+      } else {
+        setDepartments((prevDepartments) =>
+          prevDepartments.map((dept) =>
+            dept.id === editingDepartment.id ? editingDepartment : dept
+          )
+        );
+        setEditingDepartment(null);
+      }
     } catch (error) {
       console.error("Error updating department:", error);
+    } finally {
+      setUpdateLoading(false);
     }
   };
 
   const handleDeleteDepartment = async (id: string) => {
+    setDeleteLoading(true);
     try {
-      const response = await fetch(`/api/departments/${id}`, {
+      const response = await apiRequest(`/api/departments/${id}`, {
         method: "DELETE",
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to delete department");
+      if (response.error) {
+        console.error("Error deleting department:", response.error);
+      } else {
+        setDepartments(departments.filter((dept) => dept.id !== id));
       }
-
-      setDepartments((prevDepartments) =>
-        prevDepartments.filter((dept) => dept.id !== id)
-      );
     } catch (error) {
       console.error("Error deleting department:", error);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -129,33 +140,35 @@ const DepartmentsPage: React.FC = () => {
   const confirmToggleActive = async () => {
     if (!toggleConfirmation.department) return;
 
+    setToggleLoading(true);
     try {
       const updatedDepartment = {
         ...toggleConfirmation.department,
         isActive: !toggleConfirmation.department.isActive,
       };
 
-      const response = await fetch(`/api/departments/${updatedDepartment.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ isActive: updatedDepartment.isActive }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update department status");
-      }
-
-      setDepartments((prevDepartments) =>
-        prevDepartments.map((dept) =>
-          dept.id === updatedDepartment.id ? updatedDepartment : dept
-        )
+      const response = await apiRequest(
+        `/api/departments/${updatedDepartment.id}`,
+        {
+          method: "PUT",
+          body: { isActive: updatedDepartment.isActive },
+        }
       );
+
+      if (response.error) {
+        console.error("Error updating department status:", response.error);
+      } else {
+        setDepartments((prevDepartments) =>
+          prevDepartments.map((dept) =>
+            dept.id === updatedDepartment.id ? updatedDepartment : dept
+          )
+        );
+      }
     } catch (error) {
       console.error("Error updating department status:", error);
     } finally {
       setToggleConfirmation({ isOpen: false, department: null });
+      setToggleLoading(false);
     }
   };
 

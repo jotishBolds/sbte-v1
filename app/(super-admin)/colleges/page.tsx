@@ -28,6 +28,8 @@ import {
   Eye,
 } from "lucide-react";
 import SideBarLayout from "@/components/sidebar/layout";
+import { LoadingSpinner, ButtonLoading } from "@/components/ui/loading-spinner";
+import { S3Image } from "@/hooks/use-s3-image";
 import { ClipLoader } from "react-spinners";
 import {
   Dialog,
@@ -48,6 +50,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import CollegeViewModal from "./view-details";
+import { apiRequest, useApiRequest } from "@/lib/api-client";
 
 interface College {
   id: string;
@@ -71,13 +74,22 @@ const CollegesPage: React.FC = () => {
   const [colleges, setColleges] = useState<College[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [editingCollege, setEditingCollege] = useState<College | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [viewingCollege, setViewingCollege] = useState<College | null>(null);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+
+  // Use the new API request hook for better loading state management
+  const {
+    loading: isLoading,
+    error: apiError,
+    execute: executeRequest,
+  } = useApiRequest<College[]>();
+
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [updateLoading, setUpdateLoading] = useState(false);
 
   const handleView = (college: College) => {
     setViewingCollege(college);
@@ -89,31 +101,32 @@ const CollegesPage: React.FC = () => {
   }, []);
 
   const fetchColleges = async () => {
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/colleges");
-      if (!response.ok) throw new Error("Failed to fetch colleges");
-      const data = await response.json();
-      setColleges(data);
-    } catch (err) {
-      setError("Failed to fetch colleges");
-    } finally {
-      setIsLoading(false);
+    const response = await executeRequest("/api/colleges");
+    if (response.data) {
+      setColleges(response.data);
+      setError(null);
+    } else if (response.error) {
+      setError(response.error);
     }
   };
 
   const handleDelete = async (id: string) => {
-    setIsLoading(true);
+    setDeleteLoading(true);
     try {
-      const response = await fetch(`/api/colleges/${id}`, {
+      const response = await apiRequest(`/api/colleges/${id}`, {
         method: "DELETE",
       });
-      if (!response.ok) throw new Error("Failed to delete college");
-      setColleges(colleges.filter((college) => college.id !== id));
+
+      if (response.error) {
+        setError(response.error);
+      } else {
+        setColleges(colleges.filter((college) => college.id !== id));
+        setError(null);
+      }
     } catch (err) {
       setError("Failed to delete college");
     } finally {
-      setIsLoading(false);
+      setDeleteLoading(false);
     }
   };
 
@@ -160,7 +173,7 @@ const CollegesPage: React.FC = () => {
     e.preventDefault();
     if (!editingCollege) return;
 
-    setIsLoading(true);
+    setUpdateLoading(true);
     try {
       let logoPath = editingCollege.logo;
 
@@ -172,6 +185,10 @@ const CollegesPage: React.FC = () => {
         const logoResponse = await fetch("/api/colleges/logoUpload", {
           method: "POST",
           body: logoFormData,
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
         });
 
         if (!logoResponse.ok) {
@@ -188,30 +205,31 @@ const CollegesPage: React.FC = () => {
         logo: logoPath,
       };
 
-      const response = await fetch(`/api/colleges/${editingCollege.id}`, {
+      const response = await apiRequest(`/api/colleges/${editingCollege.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(updateData),
+        body: updateData,
       });
 
-      if (!response.ok) throw new Error("Failed to update college");
-
-      setColleges(
-        colleges.map((college) =>
-          college.id === editingCollege.id ? updateData : college
-        )
-      );
-
-      setIsEditModalOpen(false);
-      setEditingCollege(null);
-      setLogoFile(null);
-      setLogoPreview(null);
+      if (response.error) {
+        setError(response.error);
+      } else {
+        setColleges(
+          colleges.map((college) =>
+            college.id === editingCollege.id
+              ? { ...college, ...updateData }
+              : college
+          )
+        );
+        setIsEditModalOpen(false);
+        setEditingCollege(null);
+        setLogoFile(null);
+        setLogoPreview(null);
+        setError(null);
+      }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "An unexpected error occurred"
-      );
+      setError(err instanceof Error ? err.message : "Failed to update college");
     } finally {
-      setIsLoading(false);
+      setUpdateLoading(false);
     }
   };
 
@@ -281,10 +299,11 @@ const CollegesPage: React.FC = () => {
                   >
                     <CardHeader className="flex flex-row items-center space-x-4">
                       {college.logo && (
-                        <img
-                          src={college.logo}
+                        <S3Image
+                          s3Url={college.logo}
                           alt={`${college.name} logo`}
                           className="h-16 w-16 object-contain rounded-md"
+                          fallbackUrl="/sbte-logo.png"
                         />
                       )}
                       <div>
@@ -364,8 +383,16 @@ const CollegesPage: React.FC = () => {
                               <AlertDialogAction
                                 onClick={() => handleDelete(college.id)}
                                 className="bg-red-500 hover:bg-red-600"
+                                disabled={deleteLoading}
                               >
-                                Delete
+                                {deleteLoading ? (
+                                  <div className="flex items-center gap-2">
+                                    <ClipLoader color="#ffffff" size={14} />
+                                    <span>Deleting...</span>
+                                  </div>
+                                ) : (
+                                  "Delete"
+                                )}
                               </AlertDialogAction>
                             </AlertDialogFooter>
                           </AlertDialogContent>
@@ -405,10 +432,11 @@ const CollegesPage: React.FC = () => {
                   Update Logo
                 </label>
                 {(logoPreview || editingCollege.logo) && (
-                  <img
-                    src={logoPreview || editingCollege.logo}
+                  <S3Image
+                    s3Url={logoPreview || editingCollege.logo}
                     alt="Logo Preview"
                     className="h-20 w-20 object-contain rounded-md"
+                    fallbackUrl="/sbte-logo.png"
                   />
                 )}
               </div>
@@ -576,15 +604,15 @@ const CollegesPage: React.FC = () => {
                 <Button
                   type="submit"
                   className="w-full md:w-auto bg-green-500 hover:bg-green-600"
-                  disabled={isLoading}
+                  disabled={updateLoading}
                 >
-                  {isLoading ? (
+                  {updateLoading ? (
                     <div className="flex items-center gap-2">
                       <ClipLoader color="#ffffff" size={16} />
                       <span>Saving...</span>
                     </div>
                   ) : (
-                    <span>Save Changes</span>
+                    "Save Changes"
                   )}
                 </Button>
               </DialogFooter>

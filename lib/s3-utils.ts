@@ -66,6 +66,12 @@ export async function generateSignedDownloadUrl(key: string) {
   return getSignedUrl(s3Client, command, { expiresIn: 3600 });
 }
 
+// Generate a public URL through our API proxy
+export function generatePublicImageUrl(key: string): string {
+  if (!key) return "/placeholder-avatar.png";
+  return `/api/images?key=${encodeURIComponent(key)}`;
+}
+
 // Delete a file from S3
 export async function deleteFileFromS3(key: string) {
   const s3Client = createS3Client();

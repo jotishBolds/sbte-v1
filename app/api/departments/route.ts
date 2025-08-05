@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "../auth/[...nextauth]/auth";
+import { createApiResponse, createApiErrorResponse } from "@/lib/api-response";
 
 const prisma = new PrismaClient();
 
@@ -13,7 +14,7 @@ interface DepartmentCreationData {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions);  
+    const session = await getServerSession(authOptions);
 
     if (!session || session.user?.role !== "SBTE_ADMIN") {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
@@ -57,7 +58,7 @@ export async function GET(request: NextRequest) {
     const session = await getServerSession(authOptions);
 
     if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return createApiErrorResponse("Unauthorized", 401);
     }
 
     // Allow access for SBTE_ADMIN and COLLEGE_SUPER_ADMIN
@@ -66,7 +67,7 @@ export async function GET(request: NextRequest) {
       session.user.role !== "COLLEGE_SUPER_ADMIN" &&
       session.user.role !== "ADM"
     ) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return createApiErrorResponse("Forbidden", 403);
     }
 
     let departments;
@@ -82,13 +83,13 @@ export async function GET(request: NextRequest) {
           },
         },
       });
-    } else if (session.user.role === "COLLEGE_SUPER_ADMIN" || session.user.role === "ADM" ) {
+    } else if (
+      session.user.role === "COLLEGE_SUPER_ADMIN" ||
+      session.user.role === "ADM"
+    ) {
       // COLLEGE_SUPER_ADMIN can only see departments of their college
       if (!session.user.collegeId) {
-        return NextResponse.json(
-          { error: "College ID not found for user" },
-          { status: 400 }
-        );
+        return createApiErrorResponse("College ID not found for user", 400);
       }
       departments = await prisma.department.findMany({
         where: {
@@ -103,13 +104,10 @@ export async function GET(request: NextRequest) {
         },
       });
     }
-    
-    return NextResponse.json(departments);
+
+    return createApiResponse(departments);
   } catch (error) {
     console.error("Error fetching departments:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return createApiErrorResponse("Internal Server Error", 500);
   }
 }
