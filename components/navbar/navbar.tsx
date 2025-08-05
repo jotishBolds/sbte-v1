@@ -164,11 +164,13 @@ const UserDropdown: React.FC = () => {
           >
             <Avatar className="h-8 w-8 mr-2">
               <AvatarFallback className="bg-primary/10">
-                {session?.user?.email?.[0].toUpperCase() || "U"}
+                {session?.user?.email?.[0]?.toUpperCase() ||
+                  session?.user?.username?.[0]?.toUpperCase() ||
+                  "?"}
               </AvatarFallback>
             </Avatar>
             <span className="text-sm font-medium">
-              {session?.user?.username || "User"}
+              {session?.user?.username || session?.user?.email || "Guest"}
             </span>
             <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
           </Button>

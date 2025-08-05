@@ -25,7 +25,7 @@ const securityHeaders = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   // Content Security Policy - adjust as needed for your app
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.hcaptcha.com https://newassets.hcaptcha.com https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api.hcaptcha.com https://api.razorpay.com; frame-src https://js.hcaptcha.com https://newassets.hcaptcha.com https://api.razorpay.com;",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.hcaptcha.com https://newassets.hcaptcha.com https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: https://*.amazonaws.com https://sbte-storage.s3.ap-south-1.amazonaws.com; connect-src 'self' https://api.hcaptcha.com https://api.razorpay.com https://*.amazonaws.com https://sbte-storage.s3.ap-south-1.amazonaws.com; frame-src https://js.hcaptcha.com https://newassets.hcaptcha.com https://api.razorpay.com;",
   // Permissions policy (formerly Feature Policy)
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
 };
@@ -153,6 +153,8 @@ const publicRoutes = [
   "/privacy",
   "/terms",
   "/Organization-Chart",
+  "/forbidden",
+  "/session-reset", // Add session reset page as public
 
   // Pages under (pages) group
   "/pages/about-us",
@@ -198,7 +200,6 @@ const protectedRoutes: { [key: string]: string[] } = {
   "/api/educationDepartment/college": ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
   "/api/educationDepartment/student": ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
   "/api/notification": ["ALL"],
-  "/403": ["ALL"],
 
   // SBTE Admin specific routes (direct access)
   "/colleges": ["SBTE_ADMIN"],
@@ -392,6 +393,28 @@ const protectedRoutes: { [key: string]: string[] } = {
   "/api/feedback": ["COLLEGE_SUPER_ADMIN", "STUDENT"],
   "/api/alumni": ["COLLEGE_SUPER_ADMIN", "ALUMNUS"],
   "/api/load-balance": ["HOD", "SBTE_ADMIN"],
+
+  // Finance Manager specific API routes
+  "/api/batchBaseExamFee": ["COLLEGE_SUPER_ADMIN", "FINANCE_MANAGER"],
+  "/api/studentBatchExamFee": ["COLLEGE_SUPER_ADMIN", "FINANCE_MANAGER"],
+  "/api/studentOperations": [
+    "COLLEGE_SUPER_ADMIN",
+    "FINANCE_MANAGER",
+    "STUDENT",
+  ],
+
+  // Teacher specific API routes - Monthly Batch Subject Classes and Attendance
+  "/api/monthlyBatchSubjectClasses": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+  "/api/batchSubjectAttendance": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+  "/api/subjects": ["COLLEGE_SUPER_ADMIN", "TEACHER", "STUDENT"],
+  "/api/subjectType": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+  "/api/schedules": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+  "/api/eligibility": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+  "/api/examMarks": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+  "/api/examType": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+  "/api/teacher": ["COLLEGE_SUPER_ADMIN", "TEACHER", "HOD"],
+  "/api/batches": ["COLLEGE_SUPER_ADMIN", "TEACHER", "HOD"],
+  "/api/student": ["COLLEGE_SUPER_ADMIN", "TEACHER", "HOD", "STUDENT"],
 };
 
 // API routes (protected, exhaustive, including dynamic)
@@ -426,6 +449,7 @@ const publicApiRoutes = [
   "/api/register-alumni",
   "/api/sbte-auth/register", // Add SBTE admin registration endpoint
   "/api/setup/default-admin",
+  "/api/images", // Add S3 image proxy route
 ];
 
 // Allowed HTTP methods for public routes
@@ -469,12 +493,29 @@ export async function middleware(request: NextRequest) {
         departmentId?: string;
       };
 
-      // If user is already authenticated and accessing login page, redirect to callback or dashboard
+      // If user is already authenticated and accessing login page, only redirect if no session issues
       if (token && token.id) {
+        const sessionInvalidReason = request.nextUrl.searchParams.get("reason");
+
+        // Always allow access to login page if there's a session issue reason
+        if (sessionInvalidReason) {
+          console.log(
+            "User accessing login due to:",
+            sessionInvalidReason,
+            "- allowing login page access"
+          );
+          // Apply security headers and allow access to login page
+          Object.entries(securityHeaders).forEach(([key, value]) => {
+            response.headers.set(key, value);
+          });
+          response.headers.set("Cache-Control", cacheHeaders.noCache);
+          return response;
+        }
+
         const callbackUrl =
           request.nextUrl.searchParams.get("callbackUrl") || "/dashboard";
         console.log(
-          "Authenticated user accessing login, redirecting to:",
+          "Authenticated user accessing login without session issues, redirecting to:",
           callbackUrl
         );
         return NextResponse.redirect(new URL(callbackUrl, request.url));
@@ -596,21 +637,12 @@ export async function middleware(request: NextRequest) {
 
   // Apply appropriate cache control headers
   if (pathname.startsWith("/api/")) {
-    // API routes - no cache for sensitive data
-    // if (protectedRoutes.some((route) => pathname.startsWith(route))) {
-    //   response.headers.set("Cache-Control", cacheHeaders.noCache);
-    //   response.headers.set("Pragma", "no-cache");
-    //   response.headers.set("Expires", "0");
-    // }
-    if (
-      Object.keys(protectedRoutes).some((route) => pathname.startsWith(route))
-    ) {
-      response.headers.set("Cache-Control", cacheHeaders.noCache);
-      response.headers.set("Pragma", "no-cache");
-      response.headers.set("Expires", "0");
-    } else {
-      response.headers.set("Cache-Control", cacheHeaders.shortCache);
-    }
+    // API routes - no cache for all API routes to prevent disk caching
+    response.headers.set("Cache-Control", cacheHeaders.noCache);
+    response.headers.set("Pragma", "no-cache");
+    response.headers.set("Expires", "0");
+    response.headers.set("Surrogate-Control", "no-store");
+    response.headers.set("Vary", "Accept-Encoding, Authorization");
   } else if (pathname.startsWith("/_next/static/")) {
     // Next.js static assets - long cache
     response.headers.set("Cache-Control", cacheHeaders.longCache);
@@ -701,6 +733,8 @@ export async function middleware(request: NextRequest) {
     "/students-images/",
     "/templates/",
     "/uploads/",
+    "/_next/",
+    "/api/images", // Add S3 image proxy route
   ];
   const isPublicRoute =
     publicRoutes.includes(normalizedPath) ||
@@ -747,11 +781,14 @@ export async function middleware(request: NextRequest) {
       );
     }
 
-    // Step 1: Match the route key using startsWith for better matching
-    const matchedRoute = Object.keys(protectedRoutes).find((routeKey) => {
-      // Exact match first
+    // Step 1: Match the route key using exact match first, then startsWith, prioritizing longer routes
+    const sortedRouteKeys = Object.keys(protectedRoutes).sort(
+      (a, b) => b.length - a.length
+    ); // Sort by length descending
+    const matchedRoute = sortedRouteKeys.find((routeKey) => {
+      // Exact match first (highest priority)
       if (normalizedPath === routeKey) return true;
-      // StartsWith match for nested routes
+      // StartsWith match for nested routes (but only if no exact match exists)
       if (normalizedPath.startsWith(routeKey + "/")) return true;
       // Dynamic route matching (e.g., /api/notification/[id])
       if (routeKey.includes("[") && routeKey.includes("]")) {
@@ -769,6 +806,22 @@ export async function middleware(request: NextRequest) {
       ? protectedRoutes[matchedRoute]
       : undefined;
 
+    // Debug logging for route matching
+    console.log(`🔍 Route check: ${normalizedPath}`);
+    console.log(`👤 User role: ${token.role}, User ID: ${token.id}`);
+
+    if (matchedRoute) {
+      console.log(`✅ Route matched: ${normalizedPath} -> ${matchedRoute}`);
+      console.log(`🔐 Allowed roles:`, allowedRoles);
+    } else {
+      console.log(`❌ No route match found for: ${normalizedPath}`);
+      console.log(
+        `📋 Available routes:`,
+        Object.keys(protectedRoutes).slice(0, 10),
+        "..."
+      );
+    }
+
     // Check role-based access if defined
     // const allowedRoles = protectedRoutes[normalizedPath];
 
@@ -782,13 +835,23 @@ export async function middleware(request: NextRequest) {
         ) // match specific role
       )
     ) {
-      console.warn(`Access denied to ${normalizedPath} for role ${token.role}`);
-      console.warn(`Allowed roles for ${normalizedPath}:`, allowedRoles);
+      console.warn(
+        `🚫 Access denied to ${normalizedPath} for role ${token.role}`
+      );
+      console.warn(`🔐 User ID: ${token.id}, Required roles:`, allowedRoles);
       if (pathname.startsWith("/api/")) {
         return new NextResponse("Forbidden", { status: 403 });
       } else {
         return NextResponse.redirect(new URL("/forbidden", request.url));
       }
+    } else if (allowedRoles) {
+      console.log(
+        `✅ Access granted to ${normalizedPath} for role ${token.role}`
+      );
+    } else {
+      console.log(
+        `ℹ️  Route ${normalizedPath} not in protected routes - allowing access`
+      );
     }
 
     // Optional: Add session validation header

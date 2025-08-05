@@ -804,6 +804,24 @@ export default function LoginPage() {
         body: JSON.stringify({ userId: sessionModalData.userId }),
       });
 
+      // Broadcast session termination to other tabs
+      if (typeof window !== "undefined") {
+        localStorage.setItem(
+          "sbte-session-broadcast",
+          JSON.stringify({
+            type: "SESSION_TERMINATED",
+            userId: sessionModalData.userId,
+            timestamp: Date.now(),
+            tabId: Math.random().toString(36).substring(2, 15),
+          })
+        );
+
+        // Clear the broadcast message after a short delay
+        setTimeout(() => {
+          localStorage.removeItem("sbte-session-broadcast");
+        }, 100);
+      }
+
       // Close modal
       setShowSessionModal(false);
       setIsSessionModalLoading(false);

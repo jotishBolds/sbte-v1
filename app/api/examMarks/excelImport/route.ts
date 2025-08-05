@@ -6,6 +6,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import prisma from "@/src/lib/prisma";
 import { z } from "zod";
+import { bulkInsert, BulkOperationProgress } from "@/lib/bulk-operation-utils";
 
 const chunkArray = <T>(array: T[], size: number): T[][] => {
   const chunks: T[][] = [];
@@ -183,7 +184,7 @@ export async function POST(request: Request) {
         )}`
       );
     }
-    
+
     if (missingStudentIds.length > 0) {
       errorMessages.push(
         `Missing or invalid student enrollment numbers in rows: ${missingStudentIds.join(
@@ -210,53 +211,75 @@ export async function POST(request: Request) {
       );
     }
 
-    // Process in smaller chunks
-    const CHUNK_SIZE = 10;
-    const dataChunks = chunkArray(jsonData, CHUNK_SIZE);
+    // Use bulk operations for efficient processing
+    console.log(`Starting bulk import of ${jsonData.length} exam marks`);
 
-    let successCount = 0;
-    let errors: any[] = [];
+    // Initialize progress tracking
+    const progress = new BulkOperationProgress(jsonData.length, (info) => {
+      console.log(
+        `Exam marks import progress: ${info.percentage}% (${info.completed}/${info.total})`
+      );
+    });
 
-    for (const chunk of dataChunks) {
-      try {
-        await prisma.$transaction(
-          async (tx) => {
-            for (const data of chunk) {
-              await tx.examMark.create({
-                data: {
-                  studentId: data.studentId,
-                  batchSubjectId: data.batchSubjectId,
-                  examTypeId: data.examTypeId,
-                  achievedMarks: data.achievedMarks,
-                  wasAbsent: data.wasAbsent,
-                  debarred: data.debarred,
-                  malpractice: data.malpractice,
-                },
-              });
-              successCount++;
-            }
-          },
-          {
-            timeout: 20000, // 20 second timeout
-            maxWait: 5000, // 5 second maximum wait time
-          }
-        );
-      } catch (chunkError) {
-        console.error("Error processing chunk:", chunkError);
-        errors.push({
-          error:
-            chunkError instanceof Error ? chunkError.message : "Unknown error",
-          affectedRecords: chunk.length,
-        });
-      }
-    }
+    // Define the bulk insert function
+    const insertExamMark = async (data: any) => {
+      return await prisma.examMark.create({
+        data: {
+          studentId: data.studentId,
+          batchSubjectId: data.batchSubjectId,
+          examTypeId: data.examTypeId,
+          achievedMarks: data.achievedMarks,
+          wasAbsent: data.wasAbsent,
+          debarred: data.debarred,
+          malpractice: data.malpractice,
+        },
+      });
+    };
 
-    if (errors.length > 0) {
+    // Execute bulk insert with optimized settings
+    const result = await bulkInsert(jsonData, insertExamMark, {
+      batchSize: 20, // Larger batch size for simpler operations
+      continueOnError: true,
+      ignoreDuplicates: true, // Handle duplicate exam marks gracefully
+      retryAttempts: 2,
+      retryDelay: 1000,
+    });
+
+    // Update progress
+    progress.update(result.processed || 0, result.failed || 0);
+
+    console.log(
+      `Bulk exam marks import completed: ${result.processed} successful, ${result.failed} failed`
+    );
+
+    // Prepare response based on results
+    if (!result.success && result.failed === jsonData.length) {
       return NextResponse.json(
         {
-          message: `Partially completed. Successfully created ${successCount} exam marks.`,
-          errors: errors,
-          successCount,
+          error: "Failed to import any exam marks",
+          details: result.error,
+          failures: result.details?.slice(0, 10),
+        },
+        { status: 500 }
+      );
+    }
+
+    if (result.failed && result.failed > 0) {
+      return NextResponse.json(
+        {
+          message: `Partially completed. Successfully created ${result.processed} exam marks.`,
+          errors: result.details
+            ?.map((detail) => ({
+              record: detail.id,
+              error: detail.error,
+            }))
+            .slice(0, 20),
+          summary: {
+            total: jsonData.length,
+            successful: result.processed,
+            failed: result.failed,
+          },
+          successCount: result.processed,
         },
         { status: 207 }
       ); // 207 Multi-Status
@@ -264,8 +287,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        message: `Successfully imported ${successCount} exam marks.`,
-        successCount,
+        message: `Successfully imported ${result.processed} exam marks.`,
+        summary: {
+          total: jsonData.length,
+          successful: result.processed,
+          failed: 0,
+        },
+        successCount: result.processed,
       },
       { status: 201 }
     );

@@ -67,6 +67,13 @@ import SideBarLayout from "@/components/sidebar/layout";
 import { EditStudentModal } from "./edit-modal";
 import { Badge } from "@/components/ui/badge";
 import { useRouter } from "next/navigation";
+import { useApiRequest } from "@/lib/api-client";
+import { S3Avatar } from "@/components/ui/s3-image";
+import {
+  LoadingSpinner,
+  TableLoadingRows,
+  ButtonLoading,
+} from "@/components/ui/loading-spinner";
 
 // Types for our student data
 interface Student {
@@ -196,6 +203,12 @@ const StudentList = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Loading states
+  const [isLoading, setIsLoading] = useState(true);
+  const [filtersLoading, setFiltersLoading] = useState(true);
+  const [viewLoading, setViewLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const router = useRouter();
@@ -217,6 +230,7 @@ const StudentList = () => {
 
   // Fetch students
   const fetchStudentsData = async () => {
+    setIsLoading(true);
     try {
       const response = await fetch("/api/student");
       if (!response.ok) throw new Error("Failed to fetch students");
@@ -228,11 +242,14 @@ const StudentList = () => {
         description: "Failed to fetch students",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   // Fetch filter options
   const fetchFilterOptions = async () => {
+    setFiltersLoading(true);
     try {
       const [deptRes, progRes, batchRes, academicRes] = await Promise.all([
         fetch("/api/departments"),
@@ -258,6 +275,8 @@ const StudentList = () => {
         description: "Failed to fetch filter options",
         variant: "destructive",
       });
+    } finally {
+      setFiltersLoading(false);
     }
   };
 
@@ -269,6 +288,7 @@ const StudentList = () => {
 
   // View student details
   const handleViewStudent = async (id: string) => {
+    setViewLoading(true);
     try {
       const response = await fetch(`/api/student/${id}`);
       if (!response.ok) throw new Error("Failed to fetch student details");
@@ -281,6 +301,8 @@ const StudentList = () => {
         description: "Failed to fetch student details",
         variant: "destructive",
       });
+    } finally {
+      setViewLoading(false);
     }
   };
 
@@ -307,6 +329,7 @@ const StudentList = () => {
 
   // Delete student
   const handleDeleteStudent = async (id: string) => {
+    setDeleteLoading(true);
     try {
       const response = await fetch(`/api/student/${id}`, {
         method: "DELETE",
@@ -325,6 +348,8 @@ const StudentList = () => {
         description: "Failed to delete student",
         variant: "destructive",
       });
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -504,16 +529,13 @@ const StudentList = () => {
           <Card className="w-full">
             <CardContent className="pt-6">
               <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6">
-                <Avatar className="h-32 w-32 border-4 border-primary/10">
-                  <AvatarImage
-                    src={student.studentAvatar}
+                <div className="h-32 w-32 border-4 border-primary/10 rounded-full overflow-hidden">
+                  <S3Avatar
+                    s3Url={student.studentAvatar}
                     alt={student.name}
-                    className="object-cover"
+                    className="h-full w-full object-cover"
                   />
-                  <AvatarFallback className="text-2xl bg-primary/5">
-                    {getInitials(student.name)}
-                  </AvatarFallback>
-                </Avatar>
+                </div>
                 <div className="text-center md:text-left space-y-2 flex-1">
                   <h2 className="text-3xl font-bold tracking-tight">
                     {student.name}
@@ -932,7 +954,9 @@ const StudentList = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {paginatedStudents.length === 0 ? (
+                {isLoading ? (
+                  <TableLoadingRows rows={10} cols={5} />
+                ) : paginatedStudents.length === 0 ? (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center py-8">
                       <p className="text-gray-500">No students found</p>
@@ -943,15 +967,13 @@ const StudentList = () => {
                     <TableRow key={student.id}>
                       <TableCell className="font-medium pl-6">
                         <div className="flex items-center space-x-3">
-                          <Avatar>
-                            <AvatarImage
-                              src={student.studentAvatar}
+                          <div className="h-10 w-10 rounded-full overflow-hidden">
+                            <S3Avatar
+                              s3Url={student.studentAvatar}
                               alt={student.name}
+                              className="h-full w-full object-cover"
                             />
-                            <AvatarFallback>
-                              {getInitials(student.name)}
-                            </AvatarFallback>
-                          </Avatar>
+                          </div>
                           <div>
                             <p className="font-medium">{student.name}</p>
                             <p className="text-sm text-gray-500">
@@ -984,9 +1006,10 @@ const StudentList = () => {
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
                               onClick={() => handleViewStudent(student.id)}
+                              disabled={viewLoading}
                             >
                               <Eye className="mr-2 h-4 w-4" />
-                              View Details
+                              {viewLoading ? "Loading..." : "View Details"}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               onClick={() => {
@@ -1055,8 +1078,14 @@ const StudentList = () => {
                 onClick={() =>
                   selectedStudent && handleDeleteStudent(selectedStudent.id)
                 }
+                disabled={deleteLoading}
               >
-                Delete
+                <ButtonLoading
+                  loading={deleteLoading}
+                  loadingText="Deleting..."
+                >
+                  Delete
+                </ButtonLoading>
               </Button>
             </div>
           </DialogContent>

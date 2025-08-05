@@ -6,6 +6,7 @@ import prisma from "@/src/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/auth";
 import { z } from "zod";
+import { bulkInsert, BulkOperationProgress } from "@/lib/bulk-operation-utils";
 
 const chunkArray = <T>(array: T[], size: number): T[][] => {
   const chunks: T[][] = [];

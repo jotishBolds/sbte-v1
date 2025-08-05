@@ -5,6 +5,7 @@ import { PrismaClient } from "@prisma/client";
 import { getServerSession } from "next-auth/next";
 import bcrypt from "bcryptjs";
 import { authOptions } from "../auth/[...nextauth]/auth";
+import { createApiResponse, createApiErrorResponse } from "@/lib/api-response";
 
 const prisma = new PrismaClient();
 
@@ -146,16 +147,14 @@ export async function GET(request: NextRequest) {
         session.user?.role !== "HOD" &&
         session.user?.role !== "TEACHER")
     ) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+      return createApiErrorResponse("Unauthorized", 403);
     }
 
     const colleges = await prisma.college.findMany();
-    return NextResponse.json(colleges);
+
+    return createApiResponse(colleges);
   } catch (error) {
     console.error("Error fetching colleges:", error);
-    return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return createApiErrorResponse("Internal Server Error", 500);
   }
 }

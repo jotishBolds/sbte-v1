@@ -8,6 +8,7 @@ import {
   logAuditEvent,
   getClientInfoFromNextRequest,
 } from "@/lib/audit-logger";
+import { createApiResponse, createApiErrorResponse } from "@/lib/api-response";
 
 export async function POST(request: NextRequest) {
   try {

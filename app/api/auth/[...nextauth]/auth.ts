@@ -429,7 +429,8 @@ export const authOptions: NextAuthOptions = {
           // If user is not logged in, force logout
           if (!user || !user.isLoggedIn) {
             console.log(`User ${token.id} session invalid - not logged in`);
-            throw new Error("Session invalid");
+            // Return null to force logout
+            return null as any;
           }
 
           // Check if session token matches (concurrent session detection)
@@ -449,7 +450,8 @@ export const authOptions: NextAuthOptions = {
               details: "Concurrent session detected during session validation",
               severity: "HIGH",
             });
-            throw new Error("Concurrent session detected");
+            // Return null to force logout
+            return null as any;
           }
 
           // Check session expiry
@@ -459,7 +461,8 @@ export const authOptions: NextAuthOptions = {
               where: { id: token.id as string },
               data: { isLoggedIn: false, sessionToken: null },
             });
-            throw new Error("Session expired");
+            // Return null to force logout
+            return null as any;
           }
 
           // Update user activity for valid sessions
@@ -473,13 +476,12 @@ export const authOptions: NextAuthOptions = {
           session.user.departmentId = token.departmentId as string;
         } catch (error) {
           console.error("Session validation failed:", error);
-          // Return minimal session to trigger logout
-          return {
-            ...session,
-            user: undefined,
-            expires: new Date(0).toISOString(), // Force immediate expiry
-          };
+          // Return null to trigger logout
+          return null as any;
         }
+      } else {
+        // No token or user data, return null session
+        return null as any;
       }
       return session;
     },

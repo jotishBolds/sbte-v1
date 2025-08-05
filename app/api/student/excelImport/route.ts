@@ -14,6 +14,7 @@ import { hash } from "bcrypt";
 import prisma from "@/src/lib/prisma";
 import { z } from "zod";
 import ExcelJS from "exceljs";
+import { bulkInsert, BulkOperationProgress } from "@/lib/bulk-operation-utils";
 
 const chunkArray = <T>(array: T[], size: number): T[][] => {
   const chunks: T[][] = [];
@@ -682,102 +683,136 @@ export async function POST(req: NextRequest) {
     //   data: jsonData,
     // });
 
-    // Prepare for batch insertions
-    const CHUNK_SIZE = 10;
-    const dataChunks = chunkArray(jsonData, CHUNK_SIZE);
+    // Use bulk operations for efficient processing
+    console.log(`Starting bulk import of ${jsonData.length} students`);
 
-    let successCount = 0;
-    let errors: any[] = [];
+    // Initialize progress tracking
+    const progress = new BulkOperationProgress(jsonData.length, (info) => {
+      console.log(
+        `Import progress: ${info.percentage}% (${info.completed}/${info.total})`
+      );
+    });
 
-    for (const chunk of dataChunks) {
-      try {
-        // Process each chunk sequentially
-        await Promise.all(
-          chunk.map(async ({ user, student }) => {
-            try {
-              await prisma.$transaction(
-                async (tx) => {
-                  const newUser = await tx.user.create({
-                    data: user,
-                  });
+    // Define the bulk insert function for student creation
+    const insertStudentRecord = async ({ user, student }: any) => {
+      return await prisma.$transaction(
+        async (tx) => {
+          // Create user first
+          const newUser = await tx.user.create({
+            data: user,
+          });
 
-                  await tx.student.create({
-                    data: {
-                      name: student.name,
-                      enrollmentNo: student.enrollmentNo,
-                      dob: student.dob,
-                      personalEmail: student.personalEmail,
-                      phoneNo: student.phoneNo,
-                      studentAvatar: student.studentAvatar,
-                      abcId: student.abcId,
-                      lastCollegeAttended: student.lastCollegeAttended,
-                      gender: student.gender,
-                      isLocalStudent: student.isLocalStudent,
-                      isDifferentlyAbled: student.isDifferentlyAbled,
-                      motherName: student.motherName,
-                      fatherName: student.fatherName,
-                      bloodGroup: student.bloodGroup,
-                      religion: student.religion,
-                      nationality: student.nationality,
-                      caste: student.caste,
-                      admissionCategory: student.admissionCategory,
-                      resident: student.resident,
-                      admissionDate: student.admissionDate,
-                      graduateDate: student.graduateDate,
-                      permanentAddress: student.permanentAddress,
-                      permanentCountry: student.permanentCountry,
-                      permanentState: student.permanentState,
-                      permanentCity: student.permanentCity,
-                      permanentPincode: student.permanentPincode,
-                      guardianName: student.guardianName,
-                      guardianGender: student.guardianGender,
-                      guardianEmail: student.guardianEmail,
-                      guardianMobileNo: student.guardianMobileNo,
-                      guardianRelation: student.guardianRelation,
-                      user: { connect: { id: newUser.id } },
-                      batchYear: { connect: { id: student.batchYearId } },
-                      admissionYear: {
-                        connect: { id: student.admissionYearId },
-                      },
-                      academicYear: { connect: { id: student.academicYearId } },
-                      term: { connect: { id: student.termId } },
-                      program: { connect: { id: student.programId } },
-                      department: { connect: { id: student.departmentId } },
-                      college: { connect: { id: collegeId } },
-                    },
-                  });
-                },
-                {
-                  timeout: 20000, // 20 second timeout for each transaction
-                  maxWait: 5000, // 5 second maximum wait time
-                }
-              );
-              successCount++;
-            } catch (err) {
-              errors.push({
-                user: user.email,
-                error: err instanceof Error ? err.message : "Unknown error",
-              });
-            }
-          })
-        );
-      } catch (chunkError) {
-        console.error("Error processing chunk:", chunkError);
-      }
-    }
+          // Create student record
+          const newStudent = await tx.student.create({
+            data: {
+              name: student.name,
+              enrollmentNo: student.enrollmentNo,
+              dob: student.dob,
+              personalEmail: student.personalEmail,
+              phoneNo: student.phoneNo,
+              studentAvatar: student.studentAvatar,
+              abcId: student.abcId,
+              lastCollegeAttended: student.lastCollegeAttended,
+              gender: student.gender,
+              isLocalStudent: student.isLocalStudent,
+              isDifferentlyAbled: student.isDifferentlyAbled,
+              motherName: student.motherName,
+              fatherName: student.fatherName,
+              bloodGroup: student.bloodGroup,
+              religion: student.religion,
+              nationality: student.nationality,
+              caste: student.caste,
+              admissionCategory: student.admissionCategory,
+              resident: student.resident,
+              admissionDate: student.admissionDate,
+              graduateDate: student.graduateDate,
+              permanentAddress: student.permanentAddress,
+              permanentCountry: student.permanentCountry,
+              permanentState: student.permanentState,
+              permanentCity: student.permanentCity,
+              permanentPincode: student.permanentPincode,
+              guardianName: student.guardianName,
+              guardianGender: student.guardianGender,
+              guardianEmail: student.guardianEmail,
+              guardianMobileNo: student.guardianMobileNo,
+              guardianRelation: student.guardianRelation,
+              user: { connect: { id: newUser.id } },
+              batchYear: { connect: { id: student.batchYearId } },
+              admissionYear: { connect: { id: student.admissionYearId } },
+              academicYear: { connect: { id: student.academicYearId } },
+              term: { connect: { id: student.termId } },
+              program: { connect: { id: student.programId } },
+              department: { connect: { id: student.departmentId } },
+              college: { connect: { id: collegeId } },
+            },
+          });
 
-    if (errors.length > 0) {
+          return { user: newUser, student: newStudent };
+        },
+        {
+          timeout: 30000, // 30 second timeout for each transaction
+          maxWait: 10000, // 10 second maximum wait time
+        }
+      );
+    };
+
+    // Execute bulk insert with optimized settings
+    const result = await bulkInsert(jsonData, insertStudentRecord, {
+      batchSize: 5, // Smaller batch size for complex operations
+      continueOnError: true,
+      ignoreDuplicates: false,
+      retryAttempts: 2,
+      retryDelay: 2000,
+    });
+
+    // Update progress
+    progress.update(result.processed || 0, result.failed || 0);
+
+    console.log(
+      `Bulk import completed: ${result.processed} successful, ${result.failed} failed`
+    );
+
+    // Prepare response based on results
+    if (!result.success && result.failed === jsonData.length) {
       return NextResponse.json(
         {
-          message: `Partially completed. Successfully created ${successCount} students.`,
-          errors: errors,
+          error: "Failed to import any students",
+          details: result.error,
+          failures: result.details?.slice(0, 10), // Limit error details
+        },
+        { status: 500 }
+      );
+    }
+
+    if (result.failed && result.failed > 0) {
+      return NextResponse.json(
+        {
+          message: `Partially completed. Successfully created ${result.processed} students.`,
+          errors: result.details
+            ?.map((detail) => ({
+              record: detail.id,
+              error: detail.error,
+            }))
+            .slice(0, 20), // Limit error details to first 20
+          summary: {
+            total: jsonData.length,
+            successful: result.processed,
+            failed: result.failed,
+          },
         },
         { status: 207 }
       ); // 207 Multi-Status
     }
 
     return NextResponse.json(
-      { message: `Successfully created ${successCount} students.` },
+      {
+        message: `Successfully created ${result.processed} students.`,
+        summary: {
+          total: jsonData.length,
+          successful: result.processed,
+          failed: 0,
+        },
+      },
       { status: 201 }
     );
   } catch (error) {
