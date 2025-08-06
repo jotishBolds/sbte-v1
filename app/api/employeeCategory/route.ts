@@ -122,11 +122,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if the user has the role "COLLEGE_SUPER_ADMIN"
+    // Check if the user has appropriate role
     if (
       session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
       session.user?.role !== "TEACHER" &&
-      session.user.role !== "ADM"
+      session.user?.role !== "ADM" &&
+      session.user?.role !== "HOD" &&
+      session.user?.role !== "FINANCE_MANAGER" &&
+      session.user?.role !== "STUDENT" &&
+      session.user?.role !== "EDUCATION_DEPARTMENT" &&
+      session.user?.role !== "SBTE_ADMIN"
     ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

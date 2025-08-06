@@ -175,6 +175,20 @@ const publicRoutes = [
   "/students-images/",
   "/templates/",
   "/uploads/",
+
+  // Static logo and image files
+  "/sbte-logo.png",
+  "/sbte-logo-dark.png",
+  "/sbte-logo-light.png",
+  "/sbte-logo-gov.png",
+  "/favicon.ico",
+  "/next.svg",
+  "/placeholder-avatar.png",
+  "/civil.jpg",
+  "/elec.jpg",
+  "/mec.jpg",
+  "/FirstConvocationReport.pdf",
+  "/Organization-Chart.pdf",
 ];
 
 // Role-based protected frontend routes (exhaustive, including dynamic)
@@ -183,6 +197,7 @@ const protectedRoutes: { [key: string]: string[] } = {
     "EDUCATION_DEPARTMENT",
     "SBTE_ADMIN",
     "COLLEGE_SUPER_ADMIN",
+    "ADM",
     "TEACHER",
     "HOD",
     "FINANCE_MANAGER",
@@ -190,12 +205,18 @@ const protectedRoutes: { [key: string]: string[] } = {
     "ALUMNUS",
   ],
   "/college-stats": ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
+  "/college-stats/[id]": ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
   "/college-stats/departments-stats": ["EDUCATION_DEPARTMENT"],
+  "/college-stats/departments-stats/[id]": ["EDUCATION_DEPARTMENT"],
   "/api/colleges": [
     "EDUCATION_DEPARTMENT",
     "SBTE_ADMIN",
     "COLLEGE_SUPER_ADMIN",
     "TEACHER",
+    "ADM",
+    "HOD",
+    "FINANCE_MANAGER",
+    "STUDENT",
   ],
   "/api/educationDepartment/college": ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
   "/api/educationDepartment/student": ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
@@ -321,12 +342,12 @@ const protectedRoutes: { [key: string]: string[] } = {
   "/college-admin/(students)/batchwise-marks-list": ["COLLEGE_SUPER_ADMIN"],
   "/college-admin/(students)/batchwise-attendance": ["COLLEGE_SUPER_ADMIN"],
   "/college-admin/(hod)/subjects": ["COLLEGE_SUPER_ADMIN"],
-  "/college-admin/(hod)/batchwisesubattendance": ["COLLEGE_SUPER_ADMIN"],
-  "/college-admin/(hod)/batchwisesubmarks": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(hod)/batchwisesubattendance": ["COLLEGE_SUPER_ADMIN", "HOD"],
+  "/college-admin/(hod)/batchwisesubmarks": ["COLLEGE_SUPER_ADMIN", "HOD"],
   "/college-admin/(hod)/load-balance": ["COLLEGE_SUPER_ADMIN"],
   "/college-admin/batch/student-batch-assign": ["COLLEGE_SUPER_ADMIN"],
   "/college-admin/batch/subjects": ["COLLEGE_SUPER_ADMIN"],
-  "/college-admin/batch/teacher-assign": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/batch/teacher-assign": ["COLLEGE_SUPER_ADMIN", "HOD"],
   "/college-admin/batch/monthly-batchsubject-classes": ["COLLEGE_SUPER_ADMIN"],
   "/college-admin/batch/monthly-batchsubject-attendance": [
     "COLLEGE_SUPER_ADMIN",
@@ -336,8 +357,14 @@ const protectedRoutes: { [key: string]: string[] } = {
   ],
   "/college-admin/(student-subjects)/subject-type": ["COLLEGE_SUPER_ADMIN"],
   "/college-admin/(student-subjects)/student-subjects": ["COLLEGE_SUPER_ADMIN"],
-  "/college-admin/(finance)/batch-base-exam-fees": ["COLLEGE_SUPER_ADMIN"],
-  "/college-admin/(finance)/student-batch-exam-fee": ["COLLEGE_SUPER_ADMIN"],
+  "/college-admin/(finance)/batch-base-exam-fees": [
+    "COLLEGE_SUPER_ADMIN",
+    "FINANCE_MANAGER",
+  ],
+  "/college-admin/(finance)/student-batch-exam-fee": [
+    "COLLEGE_SUPER_ADMIN",
+    "FINANCE_MANAGER",
+  ],
   "/college-admin/(teacher)/teacher-designation": ["COLLEGE_SUPER_ADMIN"],
   "/college-admin/(alumni)/register-alumni": ["COLLEGE_SUPER_ADMIN"],
   "/college-admin/(alumni)/alumni-list": ["COLLEGE_SUPER_ADMIN"],
@@ -379,24 +406,78 @@ const protectedRoutes: { [key: string]: string[] } = {
   "/api/departments": ["ALL"],
   "/api/college-admin": ["ALL"],
   "/api/super-admin": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
-  "/api/infrastructures": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
-  "/api/batch": ["COLLEGE_SUPER_ADMIN", "TEACHER", "HOD"],
+  "/api/infrastructures": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN", "ADM"],
+  "/api/batch": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+    "HOD",
+    "FINANCE_MANAGER",
+    "STUDENT",
+    "ADM",
+  ],
   "/api/exam-marks": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
   "/api/attendance": ["COLLEGE_SUPER_ADMIN", "TEACHER", "STUDENT"],
   "/api/certificates": ["COLLEGE_SUPER_ADMIN", "STUDENT"],
   "/api/fees": ["COLLEGE_SUPER_ADMIN", "FINANCE_MANAGER", "STUDENT"],
   "/api/users": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN", "ADM"],
-  "/api/programs": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
-  "/api/academic-year": ["COLLEGE_SUPER_ADMIN"],
-  "/api/admission-year": ["COLLEGE_SUPER_ADMIN"],
-  "/api/semester": ["COLLEGE_SUPER_ADMIN"],
+  "/api/register-users": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN", "ADM"],
+  "/api/register-users/[id]": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN", "ADM"],
+  "/api/programs": [
+    "COLLEGE_SUPER_ADMIN",
+    "SBTE_ADMIN",
+    "HOD",
+    "TEACHER",
+    "FINANCE_MANAGER",
+    "STUDENT",
+    "ADM",
+    "EDUCATION_DEPARTMENT",
+  ],
   "/api/feedback": ["COLLEGE_SUPER_ADMIN", "STUDENT"],
   "/api/alumni": ["COLLEGE_SUPER_ADMIN", "ALUMNUS"],
   "/api/load-balance": ["HOD", "SBTE_ADMIN"],
 
+  // Common API routes needed by multiple roles
+  "/api/employeeCategory": [
+    "COLLEGE_SUPER_ADMIN",
+    "SBTE_ADMIN",
+    "HOD",
+    "STUDENT",
+    "EDUCATION_DEPARTMENT",
+    "ADM",
+    "FINANCE_MANAGER",
+    "TEACHER",
+  ],
+  "/api/teacherDesignation": [
+    "COLLEGE_SUPER_ADMIN",
+    "SBTE_ADMIN",
+    "HOD",
+    "STUDENT",
+    "EDUCATION_DEPARTMENT",
+    "ADM",
+    "FINANCE_MANAGER",
+    "TEACHER",
+  ],
+  "/api/fetchHodCreationDepartment": [
+    "COLLEGE_SUPER_ADMIN",
+    "SBTE_ADMIN",
+    "ADM",
+    "HOD",
+  ],
+
+  // Dynamic infrastructure routes
+  "/api/infrastructures/[id]": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN", "ADM"],
+
+  // HOD specific API routes
+  "/api/batchSubjectWiseMarks": ["COLLEGE_SUPER_ADMIN", "HOD"],
+  "/api/batchSubjectWiseAttendance": ["COLLEGE_SUPER_ADMIN", "HOD"],
+
   // Finance Manager specific API routes
   "/api/batchBaseExamFee": ["COLLEGE_SUPER_ADMIN", "FINANCE_MANAGER"],
-  "/api/studentBatchExamFee": ["COLLEGE_SUPER_ADMIN", "FINANCE_MANAGER"],
+  "/api/studentBatchExamFee": [
+    "COLLEGE_SUPER_ADMIN",
+    "FINANCE_MANAGER",
+    "STUDENT",
+  ],
   "/api/studentOperations": [
     "COLLEGE_SUPER_ADMIN",
     "FINANCE_MANAGER",
@@ -415,6 +496,190 @@ const protectedRoutes: { [key: string]: string[] } = {
   "/api/teacher": ["COLLEGE_SUPER_ADMIN", "TEACHER", "HOD"],
   "/api/batches": ["COLLEGE_SUPER_ADMIN", "TEACHER", "HOD"],
   "/api/student": ["COLLEGE_SUPER_ADMIN", "TEACHER", "HOD", "STUDENT"],
+
+  // Image proxy route for authenticated users
+  "/api/images": ["ALL"],
+
+  // Additional commonly needed API routes
+  "/api/academicYear": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+    "HOD",
+    "STUDENT",
+    "ADM",
+  ],
+  "/api/academicYear/[id]": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+    "HOD",
+    "STUDENT",
+    "ADM",
+  ],
+  "/api/admissionYear": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+    "HOD",
+    "STUDENT",
+    "ADM",
+  ],
+  "/api/admissionYear/[id]": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+    "HOD",
+    "STUDENT",
+    "ADM",
+  ],
+
+  // Additional API routes that might be called by various components
+  "/api/notifications": ["ALL"],
+  "/api/notification/[id]": ["ALL"],
+  "/api/profile-pic": ["ALL"],
+  "/api/upload": ["ALL"],
+
+  // College-related dynamic routes
+  "/api/colleges/[id]": [
+    "EDUCATION_DEPARTMENT",
+    "SBTE_ADMIN",
+    "COLLEGE_SUPER_ADMIN",
+    "ADM",
+  ],
+  "/api/colleges/[id]/departments": [
+    "EDUCATION_DEPARTMENT",
+    "SBTE_ADMIN",
+    "COLLEGE_SUPER_ADMIN",
+    "ADM",
+  ],
+  "/api/colleges/logoUpload": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN"],
+
+  // Department routes
+  "/api/department": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN", "HOD", "ADM"],
+  "/api/department/[operation]/[id]": [
+    "COLLEGE_SUPER_ADMIN",
+    "SBTE_ADMIN",
+    "HOD",
+    "ADM",
+  ],
+  "/api/department/updateActiveness": [
+    "COLLEGE_SUPER_ADMIN",
+    "SBTE_ADMIN",
+    "ADM",
+  ],
+  "/api/departments/[id]": ["COLLEGE_SUPER_ADMIN", "SBTE_ADMIN", "HOD", "ADM"],
+  "/api/fetchActiveDepartments": [
+    "COLLEGE_SUPER_ADMIN",
+    "SBTE_ADMIN",
+    "HOD",
+    "ADM",
+  ],
+
+  // Batch-related dynamic routes
+  "/api/batch/[id]": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+    "HOD",
+    "FINANCE_MANAGER",
+    "STUDENT",
+  ],
+  "/api/batch/[id]/students": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+    "HOD",
+    "FINANCE_MANAGER",
+  ],
+  "/api/batch/[id]/students/[studentId]": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+    "HOD",
+  ],
+  "/api/batch/[id]/subject": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+    "HOD",
+    "STUDENT",
+  ],
+  "/api/batch/[id]/subject/[subjectId]": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+    "HOD",
+    "STUDENT",
+  ],
+
+  // Exam and certificate routes
+  "/api/certificateType": ["COLLEGE_SUPER_ADMIN", "STUDENT"],
+  "/api/certificateType/[id]": ["COLLEGE_SUPER_ADMIN", "STUDENT"],
+  "/api/certificateIssuance/singleStudent": ["COLLEGE_SUPER_ADMIN"],
+  "/api/certificateIssuance/singleStudent/[id]": ["COLLEGE_SUPER_ADMIN"],
+  "/api/certificateIssuance/multipleStudents": ["COLLEGE_SUPER_ADMIN"],
+
+  // Employee and teacher designation dynamic routes
+  "/api/employeeCategory/[id]": [
+    "COLLEGE_SUPER_ADMIN",
+    "SBTE_ADMIN",
+    "HOD",
+    "ADM",
+    "EDUCATION_DEPARTMENT",
+    "FINANCE_MANAGER",
+    "TEACHER",
+  ],
+  "/api/teacherDesignation/[id]": [
+    "COLLEGE_SUPER_ADMIN",
+    "SBTE_ADMIN",
+    "HOD",
+    "ADM",
+    "EDUCATION_DEPARTMENT",
+    "FINANCE_MANAGER",
+    "TEACHER",
+  ],
+
+  // Student operations and profile routes
+  "/api/student/[id]": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+    "HOD",
+    "STUDENT",
+    "ADM",
+  ],
+  "/api/student/upload-profile-pic": ["COLLEGE_SUPER_ADMIN", "STUDENT"],
+  "/api/student/excelImport": ["COLLEGE_SUPER_ADMIN"],
+  "/api/studentOperations/[id]/certificate": ["COLLEGE_SUPER_ADMIN", "STUDENT"],
+  "/api/studentOperations/[id]/batchExamFees": [
+    "COLLEGE_SUPER_ADMIN",
+    "FINANCE_MANAGER",
+    "STUDENT",
+  ],
+  "/api/studentOperations/[id]/batchMarks": ["COLLEGE_SUPER_ADMIN", "STUDENT"],
+  "/api/studentOperations/[id]/batchAttendance": [
+    "COLLEGE_SUPER_ADMIN",
+    "STUDENT",
+  ],
+
+  // Teacher and subject assignment routes
+  "/api/teacher/[operation]/[id]": ["COLLEGE_SUPER_ADMIN", "HOD"],
+  "/api/teacher/[operation]/[id]/[updaterId]": ["COLLEGE_SUPER_ADMIN", "HOD"],
+  "/api/teacherSubjectAssign/[id]": ["COLLEGE_SUPER_ADMIN", "HOD"],
+  "/api/teacherSubjectAssign/[id]/[assignedSubjectId]": [
+    "COLLEGE_SUPER_ADMIN",
+    "HOD",
+  ],
+  "/api/subjects/[id]": ["COLLEGE_SUPER_ADMIN", "TEACHER", "STUDENT"],
+  "/api/subjectType/[id]": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+
+  // Examination routes
+  "/api/examType/[id]": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+  "/api/examMarks/[id]": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+  "/api/examMarks/excelImport": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+
+  // Monthly batch subject routes
+  "/api/monthlyBatchSubjectClasses/[id]": ["COLLEGE_SUPER_ADMIN", "TEACHER"],
+  "/api/monthlyBatchSubjectClasses/[id]/monthlyBatchSubjectAttendance": [
+    "COLLEGE_SUPER_ADMIN",
+    "TEACHER",
+  ],
+
+  // Admin routes for ADM role
+  "/api/admin/audit-logs": ["SBTE_ADMIN", "COLLEGE_SUPER_ADMIN", "ADM"],
+  "/api/admin/security-events": ["SBTE_ADMIN", "COLLEGE_SUPER_ADMIN", "ADM"],
+  "/api/admin/session-cleanup": ["SBTE_ADMIN", "COLLEGE_SUPER_ADMIN", "ADM"],
 };
 
 // API routes (protected, exhaustive, including dynamic)
@@ -434,7 +699,6 @@ const protectedRoutes: { [key: string]: string[] } = {
 const publicApiRoutes = [
   "/api/auth",
   "/api/departments/alumni",
-  "/api/register-users",
   "/api/password-reset",
   "/api/contact",
   "/api/loginOtp/sendOtp",
@@ -449,7 +713,6 @@ const publicApiRoutes = [
   "/api/register-alumni",
   "/api/sbte-auth/register", // Add SBTE admin registration endpoint
   "/api/setup/default-admin",
-  "/api/images", // Add S3 image proxy route
 ];
 
 // Allowed HTTP methods for public routes
@@ -734,7 +997,6 @@ export async function middleware(request: NextRequest) {
     "/templates/",
     "/uploads/",
     "/_next/",
-    "/api/images", // Add S3 image proxy route
   ];
   const isPublicRoute =
     publicRoutes.includes(normalizedPath) ||
@@ -806,24 +1068,49 @@ export async function middleware(request: NextRequest) {
       ? protectedRoutes[matchedRoute]
       : undefined;
 
-    // Debug logging for route matching
-    console.log(`🔍 Route check: ${normalizedPath}`);
-    console.log(`👤 User role: ${token.role}, User ID: ${token.id}`);
-
-    if (matchedRoute) {
-      console.log(`✅ Route matched: ${normalizedPath} -> ${matchedRoute}`);
-      console.log(`🔐 Allowed roles:`, allowedRoles);
-    } else {
+    // Debug logging for route matching (enhanced)
+    if (!matchedRoute) {
       console.log(`❌ No route match found for: ${normalizedPath}`);
       console.log(
-        `📋 Available routes:`,
-        Object.keys(protectedRoutes).slice(0, 10),
-        "..."
+        `Available routes: ${sortedRouteKeys.slice(0, 5).join(", ")}...`
       );
+    } else {
+      console.log(
+        `✅ Route matched: ${normalizedPath} → ${matchedRoute} → [${allowedRoles?.join(
+          ", "
+        )}]`
+      );
+      console.log(`🔍 User role: "${token.role}" | User ID: ${token.id}`);
     }
 
     // Check role-based access if defined
     // const allowedRoles = protectedRoutes[normalizedPath];
+
+    // Enhanced permission checking with detailed logging
+    if (allowedRoles && allowedRoles.length > 0) {
+      const hasAllAccess = allowedRoles.includes("ALL");
+      const hasRoleAccess = allowedRoles.includes(token.role || "");
+      const isAccessGranted = hasAllAccess || hasRoleAccess;
+
+      console.log(
+        `🔒 Permission check: hasAllAccess=${hasAllAccess}, hasRoleAccess=${hasRoleAccess}, isAccessGranted=${isAccessGranted}`
+      );
+
+      if (!isAccessGranted) {
+        console.warn(
+          `🚫 Access denied: ${normalizedPath} for role "${token.role}"`
+        );
+        if (pathname.startsWith("/api/")) {
+          return new NextResponse("Forbidden", { status: 403 });
+        } else {
+          return NextResponse.redirect(new URL("/forbidden", request.url));
+        }
+      }
+    }
+
+    console.log(
+      `✅ Access granted for ${normalizedPath} to role "${token.role}"`
+    );
 
     if (
       allowedRoles && // if the route is protected
@@ -836,22 +1123,13 @@ export async function middleware(request: NextRequest) {
       )
     ) {
       console.warn(
-        `🚫 Access denied to ${normalizedPath} for role ${token.role}`
+        `🚫 Access denied: ${normalizedPath} for role ${token.role}`
       );
-      console.warn(`🔐 User ID: ${token.id}, Required roles:`, allowedRoles);
       if (pathname.startsWith("/api/")) {
         return new NextResponse("Forbidden", { status: 403 });
       } else {
         return NextResponse.redirect(new URL("/forbidden", request.url));
       }
-    } else if (allowedRoles) {
-      console.log(
-        `✅ Access granted to ${normalizedPath} for role ${token.role}`
-      );
-    } else {
-      console.log(
-        `ℹ️  Route ${normalizedPath} not in protected routes - allowing access`
-      );
     }
 
     // Optional: Add session validation header

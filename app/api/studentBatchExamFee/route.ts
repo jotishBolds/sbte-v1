@@ -41,7 +41,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user?.role !== "FINANCE_MANAGER") {
+    if (
+      session.user?.role !== "FINANCE_MANAGER" &&
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user?.role !== "SBTE_ADMIN"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -123,7 +127,11 @@ export async function GET(request: NextRequest) {
     const userRole = session.user?.role;
 
     // Ensure only authorized roles can access this data
-    if (userRole !== "FINANCE_MANAGER" && userRole !== "COLLEGE_SUPER_ADMIN") {
+    if (
+      userRole !== "FINANCE_MANAGER" &&
+      userRole !== "COLLEGE_SUPER_ADMIN" &&
+      userRole !== "SBTE_ADMIN"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

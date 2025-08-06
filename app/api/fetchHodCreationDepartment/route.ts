@@ -11,7 +11,11 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user?.role !== "COLLEGE_SUPER_ADMIN") {
+    if (
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user?.role !== "HOD" &&
+      session.user?.role !== "ADM"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

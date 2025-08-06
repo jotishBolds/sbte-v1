@@ -14,6 +14,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check if user has appropriate role
+    if (
+      session.user?.role !== "HOD" &&
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user?.role !== "TEACHER" &&
+      session.user?.role !== "SBTE_ADMIN" &&
+      session.user?.role !== "EDUCATION_DEPARTMENT"
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const batchSubjectId = searchParams.get("batchSubjectId");
 

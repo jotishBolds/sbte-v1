@@ -29,7 +29,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (session.user?.role !== "FINANCE_MANAGER") {
+    if (
+      session.user?.role !== "FINANCE_MANAGER" &&
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user?.role !== "SBTE_ADMIN"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -117,8 +121,12 @@ export async function GET(request: NextRequest) {
     const userRole = session.user?.role;
     const collegeId = session.user?.collegeId;
 
-    // Only FINANCE_MANAGER and COLLEGE_SUPER_ADMIN roles are allowed
-    if (userRole !== "FINANCE_MANAGER" && userRole !== "COLLEGE_SUPER_ADMIN") {
+    // Only FINANCE_MANAGER, COLLEGE_SUPER_ADMIN, and SBTE_ADMIN roles are allowed
+    if (
+      userRole !== "FINANCE_MANAGER" &&
+      userRole !== "COLLEGE_SUPER_ADMIN" &&
+      userRole !== "SBTE_ADMIN"
+    ) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

@@ -19,6 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { S3Avatar } from "@/components/ui/s3-image";
 import { Input } from "@/components/ui/input";
 import {
   Users,
@@ -632,14 +633,12 @@ const EducationDashboard: React.FC = () => {
                             }
                           >
                             <TableCell>
-                              <Avatar>
-                                <AvatarImage
-                                  src={student.studentAvatar || undefined}
-                                />
-                                <AvatarFallback>
-                                  {student.name.charAt(0)}
-                                </AvatarFallback>
-                              </Avatar>
+                              <S3Avatar
+                                s3Url={student.studentAvatar}
+                                alt={student.name}
+                                className="h-10 w-10"
+                                fallbackUrl="/placeholder-avatar.png"
+                              />
                             </TableCell>
                             <TableCell>{student.name}</TableCell>
                             <TableCell className="hidden md:table-cell">

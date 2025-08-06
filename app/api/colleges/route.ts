@@ -145,7 +145,9 @@ export async function GET(request: NextRequest) {
         session.user.role !== "ADM" &&
         session.user.role !== "EDUCATION_DEPARTMENT" &&
         session.user?.role !== "HOD" &&
-        session.user?.role !== "TEACHER")
+        session.user?.role !== "TEACHER" &&
+        session.user?.role !== "FINANCE_MANAGER" &&
+        session.user?.role !== "STUDENT")
     ) {
       return createApiErrorResponse("Unauthorized", 403);
     }

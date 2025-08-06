@@ -12,7 +12,7 @@ const registrationSchema = z
     username: z.string().min(2).max(50),
     email: z.string().email(),
     password: passwordSchema,
-    confirmPassword: z.string(),
+    confirmPassword: z.string().optional(),
     name: z.string().min(2).max(100),
     phoneNo: z.string().min(10).max(15).optional(),
     dateOfBirth: z.string().optional(),
@@ -34,11 +34,20 @@ const registrationSchema = z
     linkedInProfile: z.union([z.string().url(), z.literal("")]).optional(),
     achievements: z.string().optional(),
     profilePic: z.string().optional(), // Added field
+    batchYear: z
+      .number()
+      .int()
+      .min(1900)
+      .max(new Date().getFullYear())
+      .optional(), // Added from frontend
   })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
+  .refine(
+    (data) => !data.confirmPassword || data.password === data.confirmPassword,
+    {
+      message: "Passwords don't match",
+      path: ["confirmPassword"],
+    }
+  );
 
 export async function POST(request: NextRequest) {
   try {

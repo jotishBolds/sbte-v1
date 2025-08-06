@@ -288,12 +288,14 @@ export default function ProfilePage() {
   };
 
   const getFieldError = (fieldPath: string) => {
-    return validationErrors.find((error) => error.path.join(".") === fieldPath);
+    return validationErrors.find(
+      (error) => error.path?.join(".") === fieldPath
+    );
   };
 
   const getFieldErrors = (fieldPath: string) => {
     return validationErrors.filter(
-      (error) => error.path.join(".") === fieldPath
+      (error) => error.path?.join(".") === fieldPath
     );
   };
 
@@ -1028,7 +1030,7 @@ export default function ProfilePage() {
                       >
                         <XCircle className="h-3 w-3" />
                         <span className="font-medium">
-                          {error.path.join(".")}:
+                          {error.path?.join(".") || "Unknown field"}:
                         </span>
                         {error.message}
                       </div>

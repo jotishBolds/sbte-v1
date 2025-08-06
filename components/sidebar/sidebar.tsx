@@ -9,6 +9,7 @@ import React, {
 import Link from "next/link";
 import { signOut, useSession } from "next-auth/react";
 import { useRouter, usePathname } from "next/navigation";
+import { useLoading } from "@/contexts/loading-context";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -109,6 +110,7 @@ export const Sidebar: React.FC = () => {
   const { data: session, status } = useSession();
   const router = useRouter();
   const pathname = usePathname();
+  const { setLoading } = useLoading();
   const [isMobile, setIsMobile] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -116,6 +118,31 @@ export const Sidebar: React.FC = () => {
   const [collegeLogo, setCollegeLogo] = useState<string | null>(null);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Navigation handler with loading states
+  const handleNavigation = useCallback(
+    (href: string, label: string) => {
+      // Don't show loading for the current page
+      if (pathname === href) return;
+
+      // Set loading state with descriptive message
+      setLoading(true, `Loading ${label}...`);
+
+      // Navigate to the new page
+      router.push(href);
+
+      // Close mobile sidebar
+      if (isMobile) {
+        setIsOpen(false);
+      }
+    },
+    [router, pathname, setLoading, isMobile]
+  );
+
+  // Clear loading when pathname changes (navigation complete)
+  useEffect(() => {
+    setLoading(false);
+  }, [pathname, setLoading]);
 
   // Fetch college logo if available
 
@@ -707,7 +734,9 @@ export const Sidebar: React.FC = () => {
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           )}
-          onClick={hasSubItems ? toggleExpand : () => router.push(href)}
+          onClick={
+            hasSubItems ? toggleExpand : () => handleNavigation(href, label)
+          }
         >
           <div className="flex items-center w-full">
             {icon}
@@ -739,7 +768,9 @@ export const Sidebar: React.FC = () => {
               ? "bg-primary text-primary-foreground"
               : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
           )}
-          onClick={hasSubItems ? toggleExpand : () => router.push(href)}
+          onClick={
+            hasSubItems ? toggleExpand : () => handleNavigation(href, label)
+          }
         >
           {icon}
           <span className="ml-3 flex-grow">{label}</span>

@@ -9,6 +9,8 @@ import { Providers } from "@/lib/providers";
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryProvider } from "@/lib/tanstack";
 import { SessionMonitor } from "@/components/session/session-monitor";
+import { LoadingProvider } from "@/contexts/loading-context";
+import { GlobalLoadingOverlay } from "@/components/ui/global-loading-overlay";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -55,15 +57,18 @@ export default async function RootLayout({
 
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system">
-          <Providers session={session}>
-            <QueryProvider>
-              <SessionMonitor>
-                <Navbar />
-                {children}
-                <Toaster />
-              </SessionMonitor>
-            </QueryProvider>
-          </Providers>
+          <LoadingProvider>
+            <Providers session={session}>
+              <QueryProvider>
+                <SessionMonitor>
+                  <Navbar />
+                  {children}
+                  <Toaster />
+                  <GlobalLoadingOverlay />
+                </SessionMonitor>
+              </QueryProvider>
+            </Providers>
+          </LoadingProvider>
         </ThemeProvider>
       </body>
     </html>

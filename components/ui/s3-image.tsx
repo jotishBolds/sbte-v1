@@ -73,7 +73,7 @@ export const S3Image: React.FC<S3ImageProps> = ({
 
   return (
     <img
-      src={imageUrl}
+      src={imageUrl || "/placeholder-avatar.png"}
       alt={alt}
       className={className}
       onLoad={handleImageLoad}
@@ -84,11 +84,31 @@ export const S3Image: React.FC<S3ImageProps> = ({
 
 // Avatar variant for profile pictures
 export const S3Avatar: React.FC<S3ImageProps> = (props) => {
+  const [hasError, setHasError] = React.useState(false);
+
+  const handleError = () => {
+    setHasError(true);
+    props.onError?.();
+  };
+
+  // If there's an error or no S3 URL, show fallback immediately
+  if (hasError || !props.s3Url) {
+    return (
+      <img
+        src={props.fallbackUrl || "/placeholder-avatar.png"}
+        alt={props.alt}
+        className={cn("rounded-full", props.className)}
+        onLoad={props.onLoad}
+      />
+    );
+  }
+
   return (
     <S3Image
       {...props}
       className={cn("rounded-full", props.className)}
       fallbackUrl={props.fallbackUrl || "/placeholder-avatar.png"}
+      onError={handleError}
     />
   );
 };

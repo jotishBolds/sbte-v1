@@ -26,7 +26,9 @@ export async function GET(
   const session = await getServerSession(authOptions);
   if (
     !session ||
-    (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ADM")
+    (session.user.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user.role !== "ADM" &&
+      session.user.role !== "SBTE_ADMIN")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -56,55 +58,7 @@ export async function GET(
   }
 }
 
-// PUT request handler
-// export async function PUT(
-//   request: NextRequest,
-//   { params }: { params: { id: string } }
-// ) {
-//   const session = await getServerSession(authOptions);
-//   if (
-//     !session ||
-//     !session.user ||
-//     (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ADM")
-//   ) {
-//     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-//   }
-
-//   if (!session.user.collegeId) {
-//     return NextResponse.json(
-//       { message: "College not associated with admin" },
-//       { status: 400 }
-//     );
-//   }
-
-//   try {
-//     const body = await request.json();
-//     const { username, email, role } = body;
-
-//     const updatedUser = await prisma.user.updateMany({
-//       where: {
-//         id: params.id,
-//         collegeId: session.user.collegeId,
-//       },
-//       data: { username, email, role },
-//     });
-
-//     if (updatedUser.count === 0) {
-//       return NextResponse.json(
-//         { message: "User not found or not in your college" },
-//         { status: 404 }
-//       );
-//     }
-
-//     return NextResponse.json({ message: "User updated successfully" });
-//   } catch (error) {
-//     console.error("Error updating user:", error);
-//     return NextResponse.json(
-//       { message: "Error updating user", error: (error as Error).message },
-//       { status: 500 }
-//     );
-//   }
-// }
+// PUT request handler - Simple version for basic user updates
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
@@ -115,7 +69,9 @@ export async function PUT(
   if (
     !session ||
     !session.user ||
-    (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ADM")
+    (session.user.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user.role !== "ADM" &&
+      session.user.role !== "SBTE_ADMIN")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
@@ -346,7 +302,9 @@ export async function DELETE(
   if (
     !session ||
     !session.user ||
-    (session.user.role !== "COLLEGE_SUPER_ADMIN" && session.user.role !== "ADM")
+    (session.user.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user.role !== "ADM" &&
+      session.user.role !== "SBTE_ADMIN")
   ) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }

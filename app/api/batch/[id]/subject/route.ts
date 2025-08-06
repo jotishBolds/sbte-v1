@@ -220,6 +220,19 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Allow access for all authenticated roles who need to view batch subjects
+    if (
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user?.role !== "SBTE_ADMIN" &&
+      session.user?.role !== "HOD" &&
+      session.user?.role !== "TEACHER" &&
+      session.user?.role !== "FINANCE_MANAGER" &&
+      session.user?.role !== "STUDENT" &&
+      session.user?.role !== "ADM"
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const batchId = params.id;
     if (!batchId) {
       return NextResponse.json(

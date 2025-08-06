@@ -28,9 +28,11 @@ const programSchema = z.object({
     required_error: "Program Type ID is required",
   }),
   isActive: z.boolean().optional().default(true),
-  numberOfSemesters: z.number({
-    required_error: "Number of semesters is required",
-  }).min(1, "Program must have at least 1 semester"),
+  numberOfSemesters: z
+    .number({
+      required_error: "Number of semesters is required",
+    })
+    .min(1, "Program must have at least 1 semester"),
 });
 
 export async function POST(request: NextRequest) {
@@ -171,19 +173,18 @@ export async function POST(request: NextRequest) {
 
     // If transaction succeeds
     return NextResponse.json(
-      { program: result.newProgram, semesterProgramEntries: result.semesterProgramEntries },
+      {
+        program: result.newProgram,
+        semesterProgramEntries: result.semesterProgramEntries,
+      },
       { status: 201 }
     );
-
   } catch (error) {
     console.error("Error creating program with semesters:", error);
 
     // Check if the error is an instance of Error
     if (error instanceof Error) {
-      return NextResponse.json(
-        { error: error.message },
-        { status: 500 }
-      );
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     // Handle unknown error types
@@ -196,14 +197,26 @@ export async function POST(request: NextRequest) {
   }
 }
 
-
-
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
 
     if (!session) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Allow access for roles that need to view programs
+    if (
+      session.user?.role !== "COLLEGE_SUPER_ADMIN" &&
+      session.user?.role !== "HOD" &&
+      session.user?.role !== "TEACHER" &&
+      session.user?.role !== "FINANCE_MANAGER" &&
+      session.user?.role !== "STUDENT" &&
+      session.user?.role !== "ADM" &&
+      session.user?.role !== "SBTE_ADMIN" &&
+      session.user?.role !== "EDUCATION_DEPARTMENT"
+    ) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const collegeId = session.user.collegeId;
