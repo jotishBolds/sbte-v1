@@ -25,7 +25,7 @@ const securityHeaders = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   // Content Security Policy - adjust as needed for your app
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.hcaptcha.com https://newassets.hcaptcha.com https://checkout.razorpay.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: https://*.amazonaws.com https://sbte-storage.s3.ap-south-1.amazonaws.com; connect-src 'self' https://api.hcaptcha.com https://api.razorpay.com https://*.amazonaws.com https://sbte-storage.s3.ap-south-1.amazonaws.com; frame-src https://js.hcaptcha.com https://newassets.hcaptcha.com https://api.razorpay.com;",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.hcaptcha.com https://newassets.hcaptcha.com https://checkout.razorpay.com https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: https://*.amazonaws.com https://sbte-storage.s3.ap-south-1.amazonaws.com; connect-src 'self' https://api.hcaptcha.com https://api.razorpay.com https://*.amazonaws.com https://sbte-storage.s3.ap-south-1.amazonaws.com; frame-src 'self' https://js.hcaptcha.com https://newassets.hcaptcha.com https://api.razorpay.com https://www.google.com https://maps.google.com; worker-src 'self' blob: https://cdnjs.cloudflare.com https://unpkg.com;",
   // Permissions policy (formerly Feature Policy)
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
 };
@@ -189,6 +189,9 @@ const publicRoutes = [
   "/mec.jpg",
   "/FirstConvocationReport.pdf",
   "/Organization-Chart.pdf",
+
+  // Public API routes
+  "/api/pdf/organization-chart",
 ];
 
 // Role-based protected frontend routes (exhaustive, including dynamic)
@@ -1199,7 +1202,8 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - Public static assets (PDFs, images, etc.)
      */
-    "/((?!api/auth|_next/static|_next/image|favicon.ico).*)",
+    "/((?!api/auth|_next/static|_next/image|favicon.ico|Organization-Chart\\.pdf|Convocation1/|Convocation2/|Convocation3/|home/|notification-pdf/|students-images/|templates/|uploads/|sbte-logo\\.png|sbte-logo-dark\\.png|sbte-logo-light\\.png|sbte-logo-gov\\.png|next\\.svg|placeholder-avatar\\.png|civil\\.jpg|elec\\.jpg|mec\\.jpg|FirstConvocationReport\\.pdf).*)",
   ],
 };

@@ -114,7 +114,12 @@ const apiTests = [
       "HOD",
       "STUDENT", // ✅ Fixed: STUDENT role now has access
     ],
-    deniedRoles: ["EDUCATION_DEPARTMENT", "SBTE_ADMIN", "ADM", "FINANCE_MANAGER"],
+    deniedRoles: [
+      "EDUCATION_DEPARTMENT",
+      "SBTE_ADMIN",
+      "ADM",
+      "FINANCE_MANAGER",
+    ],
     description: "Batch subject access for student feedback functionality",
   },
   {
@@ -129,14 +134,6 @@ const apiTests = [
       "ADM", // ✅ Added ADM role
     ],
     deniedRoles: ["EDUCATION_DEPARTMENT", "SBTE_ADMIN"],
-  },
-      "HOD",
-      "FINANCE_MANAGER",
-      "STUDENT",
-      "EDUCATION_DEPARTMENT",
-      "SBTE_ADMIN",
-    ],
-    deniedRoles: [],
   },
   {
     endpoint: "/api/batch",

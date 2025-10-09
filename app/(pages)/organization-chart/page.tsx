@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import PDFViewer from "./PDFViewer";
 
 const OrganizationChartPage = () => {
   return (
@@ -41,11 +42,12 @@ const OrganizationChartPage = () => {
             <CardTitle>Organization Chart</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="w-full aspect-[16/9]  rounded-lg overflow-hidden">
+            <div className="w-full min-h-[600px] rounded-lg overflow-hidden">
               <iframe
                 src="/Organization-Chart.pdf"
                 className="w-full h-full border-0"
                 title="Organization Chart PDF"
+                style={{ minHeight: "600px" }}
               />
             </div>
           </CardContent>

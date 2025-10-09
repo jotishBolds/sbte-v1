@@ -1,4 +1,5 @@
 // app/(pages)/organization-chart/PDFViewer.tsx
+"use client";
 import React, { useState, useEffect } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 import { Button } from "@/components/ui/button";
@@ -6,12 +7,9 @@ import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut } from "lucide-react";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 
-// Set up PDF.js worker
-try {
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.6.347/pdf.worker.min.js`;
-} catch (error) {
-  console.error("Error setting up PDF worker:", error);
-}
+// Set up PDF.js worker - using CDN with specific version
+pdfjs.GlobalWorkerOptions.workerSrc =
+  "https://unpkg.com/pdfjs-dist@4.8.69/build/pdf.worker.min.js";
 
 interface PDFViewerProps {
   pdfUrl: string;
@@ -23,10 +21,12 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ pdfUrl }) => {
   const [scale, setScale] = useState<number>(1.0);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [currentPdfUrl, setCurrentPdfUrl] = useState<string>(pdfUrl);
 
   useEffect(() => {
     setIsLoading(true);
     setError(null);
+    setCurrentPdfUrl(pdfUrl);
   }, [pdfUrl]);
 
   const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
@@ -37,6 +37,17 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ pdfUrl }) => {
 
   const onDocumentLoadError = (error: Error) => {
     console.error("Error loading PDF:", error);
+    console.error("PDF URL being used:", currentPdfUrl);
+    console.error("PDF.js version:", pdfjs.version);
+    console.error("Worker src:", pdfjs.GlobalWorkerOptions.workerSrc);
+
+    // Try fallback URL if the original fails
+    if (currentPdfUrl === pdfUrl && pdfUrl.includes("/api/")) {
+      console.log("Trying fallback URL...");
+      setCurrentPdfUrl("/Organization-Chart.pdf");
+      return;
+    }
+
     setError("Failed to load PDF. Please try again later.");
     setIsLoading(false);
   };
@@ -106,7 +117,7 @@ const PDFViewer: React.FC<PDFViewerProps> = ({ pdfUrl }) => {
       </div>
       <div className="w-full overflow-x-auto">
         <Document
-          file={pdfUrl}
+          file={currentPdfUrl}
           onLoadSuccess={onDocumentLoadSuccess}
           onLoadError={onDocumentLoadError}
           loading={
