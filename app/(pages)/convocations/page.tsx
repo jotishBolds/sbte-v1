@@ -17,7 +17,30 @@ interface ConvocationData {
 
 const convocationData: ConvocationData[] = [
   {
-    year: "2022-23",
+    year: "First",
+    date: "29th March 2023",
+    venue: "Manan Kendra, Gangtok",
+    chiefGuest: "Shri P.S. Golay, Chief Minister of Sikkim",
+    description:
+      "The first-ever Convocation organized by the State Board of Technical Education (SBTE) celebrated the achievements of 403 students from ATTC and CCCT.",
+    highlights: [
+      "403 students awarded diploma certificates",
+      "20 medals awarded for academic excellence",
+      "Focus on becoming job providers",
+      "Government commitment to education development",
+    ],
+    imageUrls: [
+      "/Convocation1/cn1.jpg",
+      "/Convocation1/cn2.jpg",
+      "/Convocation1/cn3.jpg",
+      "/Convocation1/cn4.jpg",
+      "/Convocation1/cn5.jpg",
+      "/Convocation1/cn6.jpg",
+    ],
+    videoUrl: "https://www.youtube.com/watch?v=L1pHS6ra3JQ",
+  },
+  {
+    year: "Second",
     date: "27th February 2024",
     venue: "CCCT Campus, Chisopani, South Sikkim",
     chiefGuest:
@@ -41,12 +64,12 @@ const convocationData: ConvocationData[] = [
     videoUrl: "https://youtu.be/r7SVZADUArc",
   },
   {
-    year: "2019-22",
-    date: "29th March 2023",
-    venue: "Manan Kendra, Gangtok",
-    chiefGuest: "P.S. Golay, Chief Minister of Sikkim",
+    year: "Third",
+    date: "27th Feb 2025",
+    venue: "ATTC, Bardang, Pakyong District",
+    chiefGuest: "Shri Raju Basnet, Minister, Education Department, Government of Sikkim",
     description:
-      "The first-ever Convocation organized by the State Board of Technical Education (SBTE) celebrated the achievements of 403 students from ATTC and CCCT.",
+      "The third Convocation organized by the State Board of Technical Education (SBTE) celebrated the achievements of 403 students from ATTC and CCCT.",
     highlights: [
       "403 students awarded diploma certificates",
       "20 medals awarded for academic excellence",
@@ -62,7 +85,7 @@ const convocationData: ConvocationData[] = [
       "/Convocation1/cn6.jpg",
     ],
     videoUrl: "https://www.youtube.com/watch?v=L1pHS6ra3JQ",
-  },
+  }
 ];
 
 const ConvocationPage = () => {
@@ -88,7 +111,7 @@ const ConvocationPage = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-center space-x-2">
                 <GraduationCap className="w-6 h-6" />
-                <span>400+ Graduates</span>
+                <span>1200+ Certified Graduates</span>
               </div>
               <div className="flex items-center space-x-2">
                 <Calendar className="w-6 h-6" />
@@ -110,7 +133,7 @@ const ConvocationPage = () => {
             <Card className="">
               <CardContent className="p-6">
                 <div className="text-center">
-                  <h3 className="text-3xl font-bold ">2</h3>
+                  <h3 className="text-3xl font-bold ">3</h3>
                   <p className="">Successful Convocations</p>
                 </div>
               </CardContent>
@@ -118,7 +141,7 @@ const ConvocationPage = () => {
             <Card className="">
               <CardContent className="p-6">
                 <div className="text-center">
-                  <h3 className="text-3xl font-bold ">20+</h3>
+                  <h3 className="text-3xl font-bold ">60</h3>
                   <p className="">Excellence Awards</p>
                 </div>
               </CardContent>
@@ -145,7 +168,7 @@ const ConvocationPage = () => {
           </TabsList>
 
           <TabsContent value="convocations">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-3">
               {convocationData.map((convocation, index) => (
                 <Card key={index} className="w-full">
                   <CardHeader>
@@ -218,7 +241,7 @@ const ConvocationPage = () => {
           </TabsContent>
 
           <TabsContent value="videos">
-            <div className="grid gap-6 md:grid-cols-2">
+            <div className="grid gap-6 md:grid-cols-3">
               {convocationData.map((convocation, index) => (
                 <Card key={index} className="w-full">
                   <CardHeader>

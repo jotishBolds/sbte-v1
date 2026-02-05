@@ -327,7 +327,7 @@ export default function HomePage() {
                     <CardContent>
                       <ul className="space-y-4">
                         {[
-                          "First and Second-Ever Convocations in 2023 and 2024",
+                          "First, Second and Third Convocations in 2023,2024 & 2025",
                           "Implementation of Uniform Grading System",
                           "Amended Curriculum aligned with NEP 20 and AICTE guidelines",
                           "Regular Awarding of Diploma Certificates",

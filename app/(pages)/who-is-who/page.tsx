@@ -16,14 +16,14 @@ const staffMembers: StaffMember[] = [
     position: "Director cum Member Secretary, SBTE",
     description:
       "Leading the board with strategic vision and administrative expertise, the Director ensures the effective governance and advancement of technical education in the region.",
-    imageUrl: "/user-default.png",
+    imageUrl: "home/director.png",
   },
   {
     name: "Shri Sonam Chopel Bhutia",
     position: "Controller of Examination",
     description:
       "Overseeing examination processes and upholding the integrity of assessments, Shri Bhutia plays a pivotal role in maintaining academic standards.",
-    imageUrl: "/user-default.png",
+    imageUrl: "/home/controller.jpeg",
   },
   {
     name: "Mrs. Rita D. Dhakal",

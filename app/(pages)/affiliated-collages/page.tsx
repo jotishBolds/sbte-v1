@@ -50,7 +50,7 @@ const AffiliatedCollegesPage = () => {
       <h1 className="text-3xl font-bold mb-6">Affiliated Colleges</h1>
 
       <Tabs defaultValue="polytechnic" className="w-full">
-        <TabsList className="flex flex-col sm:grid sm:grid-cols-3 gap-2 sm:gap-0 h-auto">
+        <TabsList className="flex flex-col sm:grid sm:grid-cols-2 gap-2 sm:gap-0 h-auto">
           <TabsTrigger
             value="polytechnic"
             className="flex items-center justify-center gap-2 w-full"
@@ -59,14 +59,14 @@ const AffiliatedCollegesPage = () => {
             <span className="hidden sm:inline">Polytechnic</span>
             <span className="sm:hidden">Polytechnic Colleges</span>
           </TabsTrigger>
-          <TabsTrigger
+          {/* <TabsTrigger
             value="skilldev"
             className="flex items-center justify-center gap-2 w-full"
           >
             <Laptop className="h-4 w-4" />
             <span className="hidden sm:inline">Skill Development</span>
             <span className="sm:hidden">Skill Development Centers</span>
-          </TabsTrigger>
+          </TabsTrigger> */}
           <TabsTrigger
             value="vocational"
             className="flex items-center justify-center gap-2 w-full"

@@ -197,13 +197,13 @@ const ContactPage = () => {
 
               <div className="flex items-center space-x-4">
                 <MapPin className="w-5 h-5 text-primary" />
-                <p className="text-muted-foreground">Gangtok, Sikkim 737101</p>
+                <p className="text-muted-foreground">Gangtok, Sikkim-737101</p>
               </div>
 
               <div className="flex items-center space-x-4">
                 <Phone className="w-5 h-5 text-primary" />
                 <p className="text-muted-foreground">
-                  Contact: Education Department
+                  Contact: Education Department, Government of Sikkim
                 </p>
               </div>
 
@@ -213,7 +213,7 @@ const ContactPage = () => {
                   href="mailto:sbte@sikkim.gov.in"
                   className="text-primary hover:underline"
                 >
-                  sbte@sikkim.gov.in
+                  sbte.sikkim[at]gmail[dot]com
                 </a>
               </div>
             </CardContent>

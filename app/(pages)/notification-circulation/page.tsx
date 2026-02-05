@@ -19,22 +19,22 @@ interface NotificationItem {
 }
 
 const notifications: NotificationItem[] = [
-  {
-    id: "1",
-    title: "SBTE Notice",
-    date: "20 Dec 2024",
-    description:
-      "Important notification regarding the upcoming semester examination schedule for ATTC & CCCT polytechnic students.",
-    pdfUrl: "/notification-pdf/Notification.pdf",
-  },
-  {
-    id: "2",
-    title: "Annual Convocation Ceremony Notice",
-    date: "15 Dec 2024",
-    description:
-      "Details about the upcoming convocation ceremony for diploma students from ATTC and CCCT polytechnics.",
-    pdfUrl: "/notification-pdf/Notification2.pdf",
-  },
+  // {
+  //   id: "1",
+  //   title: "SBTE Notice",
+  //   date: "20 Dec 2024",
+  //   description:
+  //     "Important notification regarding the upcoming semester examination schedule for ATTC & CCCT polytechnic students.",
+  //   pdfUrl: "/notification-pdf/Notification.pdf",
+  // },
+  // {
+  //   id: "2",
+  //   title: "Annual Convocation Ceremony Notice",
+  //   date: "15 Dec 2024",
+  //   description:
+  //     "Details about the upcoming convocation ceremony for diploma students from ATTC and CCCT polytechnics.",
+  //   pdfUrl: "/notification-pdf/Notification2.pdf",
+  // },
   {
     id: "3",
     title: "Revised Curriculum Implementation",
