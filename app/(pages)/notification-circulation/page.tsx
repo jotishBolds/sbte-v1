@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { FileDown, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface NotificationItem {
   id: string;
@@ -19,22 +20,6 @@ interface NotificationItem {
 }
 
 const notifications: NotificationItem[] = [
-  // {
-  //   id: "1",
-  //   title: "SBTE Notice",
-  //   date: "20 Dec 2024",
-  //   description:
-  //     "Important notification regarding the upcoming semester examination schedule for ATTC & CCCT polytechnic students.",
-  //   pdfUrl: "/notification-pdf/Notification.pdf",
-  // },
-  // {
-  //   id: "2",
-  //   title: "Annual Convocation Ceremony Notice",
-  //   date: "15 Dec 2024",
-  //   description:
-  //     "Details about the upcoming convocation ceremony for diploma students from ATTC and CCCT polytechnics.",
-  //   pdfUrl: "/notification-pdf/Notification2.pdf",
-  // },
   {
     id: "3",
     title: "Revised Curriculum Implementation",
@@ -64,32 +49,20 @@ const notifications: NotificationItem[] = [
 const NotificationsCirculation = () => {
   const handleDownload = async (pdfUrl: string, title: string) => {
     try {
-      // Fetch the PDF file
       const response = await fetch(pdfUrl);
+      if (!response.ok) throw new Error("PDF download failed");
 
-      if (!response.ok) {
-        throw new Error("PDF download failed");
-      }
-
-      // Convert the response to a blob
       const blob = await response.blob();
-
-      // Create a URL for the blob
       const url = window.URL.createObjectURL(blob);
 
-      // Create a temporary anchor element
       const link = document.createElement("a");
       link.href = url;
-
-      // Set the download filename to the notification title (sanitized)
       const filename = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.pdf`;
       link.setAttribute("download", filename);
 
-      // Append to document, click, and cleanup
       document.body.appendChild(link);
       link.click();
 
-      // Cleanup
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {
@@ -99,35 +72,52 @@ const NotificationsCirculation = () => {
   };
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
+    <div className="min-h-screen p-4 md:p-10 bg-gray-50">
       <div className="max-w-6xl mx-auto">
+
         {/* Header Section */}
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold mb-4">
+        <div className="mb-12 text-center">
+          <h1 className="text-3xl md:text-4xl font-extrabold bg-gradient-to-r from-green-600 via-blue-600 to-purple-600 bg-clip-text text-transparent">
             Circulars & Notifications
           </h1>
-          <div className="flex items-center justify-center gap-2 mb-6">
-            <Bell className="w-5 h-5" />
-            <p>Stay updated with the latest announcements from SBTE</p>
+
+          <div className="flex items-center justify-center gap-2 mt-4 text-gray-600">
+            <Bell className="w-5 h-5 text-purple-600" />
+            <p className="font-medium">
+              Stay updated with the latest announcements from SBTE
+            </p>
           </div>
         </div>
 
         {/* Notifications Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {notifications.map((notification) => (
-            <Card key={notification.id} className="flex flex-col">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {notifications.map((notification, index) => (
+            <Card
+              key={notification.id}
+              className="flex flex-col shadow-lg hover:shadow-2xl transition-all duration-300 border-0 overflow-hidden"
+            >
+              {/* Accent Top Border */}
+              <div className="h-2 bg-gradient-to-r from-green-500 via-blue-500 to-purple-500" />
+
               <CardHeader>
-                <CardTitle className="text-lg font-semibold line-clamp-2">
+                <CardTitle className="text-lg font-semibold text-gray-800 line-clamp-2">
                   {notification.title}
                 </CardTitle>
-                <p className="text-sm">{notification.date}</p>
+
+                <Badge className="mt-2 w-fit bg-blue-600 text-white text-xs">
+                  {notification.date}
+                </Badge>
               </CardHeader>
+
               <CardContent>
-                <p className="line-clamp-3">{notification.description}</p>
+                <p className="text-sm text-gray-600 line-clamp-3">
+                  {notification.description}
+                </p>
               </CardContent>
-              <CardFooter className="mt-auto">
+
+              <CardFooter className="mt-auto p-4">
                 <Button
-                  className="w-full flex items-center gap-2"
+                  className="w-full flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white hover:opacity-90 transition"
                   onClick={() =>
                     handleDownload(notification.pdfUrl, notification.title)
                   }
