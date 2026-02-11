@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { motion } from "framer-motion";
@@ -15,8 +15,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { ModeToggle } from "../theme-toggle";
+// import { ModeToggle } from "../theme-toggle";
 import LogoText from "./logo";
+import { useLoading } from "@/contexts/loading-context";
+import { useRouter, usePathname } from "next/navigation";
 
 // Navigation Data Structure
 const navigationItems = [
@@ -60,24 +62,40 @@ const NavLink: React.FC<{ item: any; mobile?: boolean }> = ({
   item,
   mobile = false,
 }) => {
+  const { setLoading } = useLoading();
+  const router = useRouter();
+
+  const handleNavigation = (href: string) => {
+    const pageName =
+      href === "/"
+        ? "Home"
+        : href.split("/").pop()?.replace("-", " ") || "Page";
+    setLoading(true, `Loading ${pageName}...`);
+
+    setTimeout(() => {
+      router.push(href);
+    }, 100);
+  };
+
   if (item.items) {
     return mobile ? (
       <DropdownMenu>
         <DropdownMenuTrigger className="text-sm font-medium w-full text-left">
           {" "}
-          {/* Added w-full and text-left */}
           {item.label}
           <ChevronDown className="ml-1 h-4 w-4 inline float-right" />{" "}
-          {/* Added float-right */}
         </DropdownMenuTrigger>
         <DropdownMenuContent className="w-full min-w-[200px]">
           {" "}
           {/* Added min-width */}
           {item.items.map((subItem: any) => (
-            <DropdownMenuItem key={subItem.href} asChild>
-              <Link href={subItem.href} className="w-full">
+            <DropdownMenuItem key={subItem.href}>
+              <button
+                onClick={() => handleNavigation(subItem.href)}
+                className="w-full text-left"
+              >
                 {subItem.label}
-              </Link>
+              </button>
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -96,10 +114,13 @@ const NavLink: React.FC<{ item: any; mobile?: boolean }> = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" alignOffset={-4}>
           {item.items.map((subItem: any) => (
-            <DropdownMenuItem key={subItem.href} asChild>
-              <Link href={subItem.href} className="w-full">
+            <DropdownMenuItem key={subItem.href}>
+              <button
+                onClick={() => handleNavigation(subItem.href)}
+                className="w-full text-left"
+              >
                 {subItem.label}
-              </Link>
+              </button>
             </DropdownMenuItem>
           ))}
         </DropdownMenuContent>
@@ -108,19 +129,18 @@ const NavLink: React.FC<{ item: any; mobile?: boolean }> = ({
   }
 
   return (
-    <Link href={item.href} passHref legacyBehavior>
-      <motion.a
-        className={cn(
-          "text-sm font-medium transition-colors hover:text-primary",
-          "dark:text-gray-300 dark:hover:text-primary",
-          mobile && "py-2 w-full text-left" // Added w-full and text-left
-        )}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        {item.label}
-      </motion.a>
-    </Link>
+    <motion.button
+      className={cn(
+        "text-sm font-medium transition-colors hover:text-primary",
+        "dark:text-gray-300 dark:hover:text-primary",
+        mobile && "py-2 w-full text-left", // Added w-full and text-left
+      )}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => handleNavigation(item.href)}
+    >
+      {item.label}
+    </motion.button>
   );
 };
 
@@ -131,7 +151,7 @@ const NavItems: React.FC<{ mobile?: boolean }> = ({ mobile = false }) => {
     <div
       className={cn(
         "flex gap-6",
-        mobile ? "flex-col w-full items-start" : "flex-row items-center" // Added w-full and items-start
+        mobile ? "flex-col w-full items-start" : "flex-row items-center", // Added w-full and items-start
       )}
     >
       {navigationItems.map((item) => (
@@ -199,6 +219,25 @@ const UserDropdown: React.FC = () => {
 export const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { data: session } = useSession();
+  const { setLoading } = useLoading();
+  const pathname = usePathname();
+
+  // Clear loading when route changes (with delay to ensure page loads)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500); // Longer delay to ensure page component fully loads
+
+    // Fallback: clear loading after maximum time
+    const maxTimer = setTimeout(() => {
+      setLoading(false);
+    }, 5000); // Maximum 5 seconds
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(maxTimer);
+    };
+  }, [pathname, setLoading]);
 
   return (
     <motion.nav
@@ -225,7 +264,7 @@ export const Navbar: React.FC = () => {
             <NavItems />
           </nav>
           <div className="flex items-center space-x-4">
-            <ModeToggle />
+            {/* <ModeToggle /> */}
             {session ? (
               <UserDropdown />
             ) : (
@@ -256,7 +295,7 @@ export const Navbar: React.FC = () => {
         </div>
 
         <div className="flex flex-1 items-center justify-end md:hidden">
-          <ModeToggle />
+          {/* <ModeToggle /> */}
           <Sheet open={isOpen} onOpenChange={setIsOpen}>
             <SheetTrigger asChild>
               <motion.div

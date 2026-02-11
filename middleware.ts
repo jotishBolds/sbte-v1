@@ -25,7 +25,7 @@ const securityHeaders = {
   "Referrer-Policy": "strict-origin-when-cross-origin",
   // Content Security Policy - adjust as needed for your app
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.hcaptcha.com https://newassets.hcaptcha.com https://checkout.razorpay.com https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: https://*.amazonaws.com https://sbte-storage.s3.ap-south-1.amazonaws.com; connect-src 'self' https://api.hcaptcha.com https://api.razorpay.com https://*.amazonaws.com https://sbte-storage.s3.ap-south-1.amazonaws.com; frame-src 'self' https://js.hcaptcha.com https://newassets.hcaptcha.com https://api.razorpay.com https://www.google.com https://maps.google.com; worker-src 'self' blob: https://cdnjs.cloudflare.com https://unpkg.com;",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.hcaptcha.com https://newassets.hcaptcha.com https://checkout.razorpay.com https://cdnjs.cloudflare.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: https://*.amazonaws.com https://sbte-storage.s3.ap-south-1.amazonaws.com; connect-src 'self' https://api.hcaptcha.com https://api.razorpay.com https://*.amazonaws.com https://sbte-storage.s3.ap-south-1.amazonaws.com; frame-src 'self' https://js.hcaptcha.com https://newassets.hcaptcha.com https://api.razorpay.com https://www.google.com https://maps.google.com https://www.youtube.com https://youtu.be; worker-src 'self' blob: https://cdnjs.cloudflare.com https://unpkg.com;",
   // Permissions policy (formerly Feature Policy)
   "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
 };
@@ -768,7 +768,7 @@ export async function middleware(request: NextRequest) {
           console.log(
             "User accessing login due to:",
             sessionInvalidReason,
-            "- allowing login page access"
+            "- allowing login page access",
           );
           // Apply security headers and allow access to login page
           Object.entries(securityHeaders).forEach(([key, value]) => {
@@ -782,7 +782,7 @@ export async function middleware(request: NextRequest) {
           request.nextUrl.searchParams.get("callbackUrl") || "/dashboard";
         console.log(
           "Authenticated user accessing login without session issues, redirecting to:",
-          callbackUrl
+          callbackUrl,
         );
         return NextResponse.redirect(new URL(callbackUrl, request.url));
       }
@@ -791,7 +791,7 @@ export async function middleware(request: NextRequest) {
     }
 
     console.log(
-      "Allowing access to login page after applying security measures"
+      "Allowing access to login page after applying security measures",
     );
     // Apply security headers manually for the login response
     Object.entries(securityHeaders).forEach(([key, value]) => {
@@ -810,10 +810,10 @@ export async function middleware(request: NextRequest) {
       status: 429,
       headers: {
         "Retry-After": String(
-          Math.ceil((rateLimit.resetTime - Date.now()) / 1000)
+          Math.ceil((rateLimit.resetTime - Date.now()) / 1000),
         ),
         ...Object.fromEntries(
-          Object.entries(securityHeaders).map(([key, value]) => [key, value])
+          Object.entries(securityHeaders).map(([key, value]) => [key, value]),
         ),
       },
     });
@@ -843,7 +843,7 @@ export async function middleware(request: NextRequest) {
         status: 400,
         headers: {
           ...Object.fromEntries(
-            Object.entries(securityHeaders).map(([key, value]) => [key, value])
+            Object.entries(securityHeaders).map(([key, value]) => [key, value]),
           ),
         },
       });
@@ -860,7 +860,7 @@ export async function middleware(request: NextRequest) {
               Object.entries(securityHeaders).map(([key, value]) => [
                 key,
                 value,
-              ])
+              ]),
             ),
           },
         });
@@ -925,7 +925,7 @@ export async function middleware(request: NextRequest) {
   // HTTP method restrictions for public API routes
   if (pathname.startsWith("/api/") && !pathname.startsWith("/api/auth/")) {
     const isPublicRoute = publicApiRoutes.some((route) =>
-      pathname.startsWith(route)
+      pathname.startsWith(route),
     );
 
     if (isPublicRoute && !allowedPublicMethods.includes(method)) {
@@ -934,7 +934,7 @@ export async function middleware(request: NextRequest) {
         headers: {
           Allow: allowedPublicMethods.join(", "),
           ...Object.fromEntries(
-            Object.entries(securityHeaders).map(([key, value]) => [key, value])
+            Object.entries(securityHeaders).map(([key, value]) => [key, value]),
           ),
         },
       });
@@ -1042,13 +1042,13 @@ export async function middleware(request: NextRequest) {
         "Authenticated user accessing:",
         normalizedPath,
         "User ID:",
-        token.id
+        token.id,
       );
     }
 
     // Step 1: Match the route key using exact match first, then startsWith, prioritizing longer routes
     const sortedRouteKeys = Object.keys(protectedRoutes).sort(
-      (a, b) => b.length - a.length
+      (a, b) => b.length - a.length,
     ); // Sort by length descending
     const matchedRoute = sortedRouteKeys.find((routeKey) => {
       // Exact match first (highest priority)
@@ -1075,13 +1075,13 @@ export async function middleware(request: NextRequest) {
     if (!matchedRoute) {
       console.log(`❌ No route match found for: ${normalizedPath}`);
       console.log(
-        `Available routes: ${sortedRouteKeys.slice(0, 5).join(", ")}...`
+        `Available routes: ${sortedRouteKeys.slice(0, 5).join(", ")}...`,
       );
     } else {
       console.log(
         `✅ Route matched: ${normalizedPath} → ${matchedRoute} → [${allowedRoles?.join(
-          ", "
-        )}]`
+          ", ",
+        )}]`,
       );
       console.log(`🔍 User role: "${token.role}" | User ID: ${token.id}`);
     }
@@ -1096,12 +1096,12 @@ export async function middleware(request: NextRequest) {
       const isAccessGranted = hasAllAccess || hasRoleAccess;
 
       console.log(
-        `🔒 Permission check: hasAllAccess=${hasAllAccess}, hasRoleAccess=${hasRoleAccess}, isAccessGranted=${isAccessGranted}`
+        `🔒 Permission check: hasAllAccess=${hasAllAccess}, hasRoleAccess=${hasRoleAccess}, isAccessGranted=${isAccessGranted}`,
       );
 
       if (!isAccessGranted) {
         console.warn(
-          `🚫 Access denied: ${normalizedPath} for role "${token.role}"`
+          `🚫 Access denied: ${normalizedPath} for role "${token.role}"`,
         );
         if (pathname.startsWith("/api/")) {
           return new NextResponse("Forbidden", { status: 403 });
@@ -1112,7 +1112,7 @@ export async function middleware(request: NextRequest) {
     }
 
     console.log(
-      `✅ Access granted for ${normalizedPath} to role "${token.role}"`
+      `✅ Access granted for ${normalizedPath} to role "${token.role}"`,
     );
 
     if (
@@ -1126,7 +1126,7 @@ export async function middleware(request: NextRequest) {
       )
     ) {
       console.warn(
-        `🚫 Access denied: ${normalizedPath} for role ${token.role}`
+        `🚫 Access denied: ${normalizedPath} for role ${token.role}`,
       );
       if (pathname.startsWith("/api/")) {
         return new NextResponse("Forbidden", { status: 403 });

@@ -56,7 +56,7 @@ export default async function RootLayout({
       </head>
 
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system">
+        <ThemeProvider attribute="class" defaultTheme="light">
           <LoadingProvider>
             <Providers session={session}>
               <QueryProvider>

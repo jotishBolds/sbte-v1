@@ -129,8 +129,17 @@ export async function POST(req: NextRequest) {
     }[] = []; // To store duplicate personalEmails in the Excel file
     const existingPersonalEmails: string[] = []; // To store existing personalEmails found in the database
 
+    const enrollmentMap = new Map<string, number[]>(); // For enrollment number duplicate tracking
+    const duplicateEnrollmentInFile: {
+      enrollmentNo: string;
+      rows: number[];
+    }[] = []; // To store duplicate enrollment numbers in the Excel file
+    const existingEnrollmentNumbers: string[] = []; // To store existing enrollment numbers found in the database
+
     const missingEmailRows: number[] = []; // Track rows with missing emails
     const missingPersonalEmailRows: number[] = []; // Track rows with missing emails
+    const missingNameRows: number[] = []; // Track rows with missing names
+    const missingEnrollmentRows: number[] = []; // Track rows with missing enrollment numbers
 
     const missingAcademicYearRows: number[] = [];
     const missingAdmissionYearRows: number[] = [];
@@ -294,6 +303,21 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Check for missing name
+      if (!rowData.name || rowData.name.toString().trim() === "") {
+        missingNameRows.push(row.number);
+        continue;
+      }
+
+      // Check for missing enrollment number
+      if (
+        !rowData.enrollmentNo ||
+        rowData.enrollmentNo.toString().trim() === ""
+      ) {
+        missingEnrollmentRows.push(row.number);
+        continue;
+      }
+
       // Track emails and their row numbers
       if (rowData.email) {
         const email = rowData.email.toString().toLowerCase(); // Normalize email
@@ -309,6 +333,15 @@ export async function POST(req: NextRequest) {
           personalEmailMap.set(personalEmail, []);
         }
         personalEmailMap.get(personalEmail)!.push(row.number);
+      }
+
+      // Track enrollment numbers and their row numbers
+      if (rowData.enrollmentNo) {
+        const enrollmentNo = rowData.enrollmentNo.toString().trim();
+        if (!enrollmentMap.has(enrollmentNo)) {
+          enrollmentMap.set(enrollmentNo, []);
+        }
+        enrollmentMap.get(enrollmentNo)!.push(row.number);
       }
 
       console.log("emailMap", emailMap);
@@ -482,8 +515,12 @@ export async function POST(req: NextRequest) {
     if (missingEmailRows.length > 0) {
       return NextResponse.json(
         {
-          error: "Missing email for specific rows",
+          error: "Missing email addresses in the following rows",
+          type: "missing_emails",
           rows: missingEmailRows,
+          details: [
+            `Missing email addresses in rows: ${missingEmailRows.join(", ")}`,
+          ],
         },
         { status: 400 }
       );
@@ -491,8 +528,42 @@ export async function POST(req: NextRequest) {
     if (missingPersonalEmailRows.length > 0) {
       return NextResponse.json(
         {
-          error: "Missing personal email for specific rows",
+          error: "Missing personal email addresses in the following rows",
+          type: "missing_personal_emails",
           rows: missingPersonalEmailRows,
+          details: [
+            `Missing personal email addresses in rows: ${missingPersonalEmailRows.join(
+              ", "
+            )}`,
+          ],
+        },
+        { status: 400 }
+      );
+    }
+    if (missingNameRows.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Missing student names in the following rows",
+          type: "missing_names",
+          rows: missingNameRows,
+          details: [
+            `Missing student names in rows: ${missingNameRows.join(", ")}`,
+          ],
+        },
+        { status: 400 }
+      );
+    }
+    if (missingEnrollmentRows.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Missing enrollment numbers in the following rows",
+          type: "missing_enrollment",
+          rows: missingEnrollmentRows,
+          details: [
+            `Missing enrollment numbers in rows: ${missingEnrollmentRows.join(
+              ", "
+            )}`,
+          ],
         },
         { status: 400 }
       );
@@ -511,21 +582,68 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Check for duplicate enrollment numbers within the file
+    enrollmentMap.forEach((rows, enrollmentNo) => {
+      if (rows.length > 1) {
+        duplicateEnrollmentInFile.push({ enrollmentNo, rows });
+      }
+    });
+
     if (duplicateEmailsInFile.length > 0) {
+      const duplicateDetails = duplicateEmailsInFile.map((dup) => ({
+        email: dup.email,
+        rows: dup.rows,
+        message: `Email "${
+          dup.email
+        }" appears multiple times in the file (rows: ${dup.rows.join(", ")})`,
+      }));
+
       return NextResponse.json(
         {
-          error: "Duplicate emails detected in the uploaded file",
-          duplicates: duplicateEmailsInFile,
+          error: "Duplicate emails found within the uploaded file",
+          type: "file_email_duplicates",
+          duplicates: duplicateDetails,
+          details: duplicateDetails.map((d) => d.message),
         },
         { status: 400 }
       );
     }
 
     if (duplicatePersonalEmailsInFile.length > 0) {
+      const duplicateDetails = duplicatePersonalEmailsInFile.map((dup) => ({
+        personalEmail: dup.personalEmail,
+        rows: dup.rows,
+        message: `Personal email "${
+          dup.personalEmail
+        }" appears multiple times in the file (rows: ${dup.rows.join(", ")})`,
+      }));
+
       return NextResponse.json(
         {
-          error: "Duplicate personal emails detected in the uploaded file",
-          duplicates: duplicatePersonalEmailsInFile,
+          error: "Duplicate personal emails found within the uploaded file",
+          type: "file_personal_email_duplicates",
+          duplicates: duplicateDetails,
+          details: duplicateDetails.map((d) => d.message),
+        },
+        { status: 400 }
+      );
+    }
+
+    if (duplicateEnrollmentInFile.length > 0) {
+      const duplicateDetails = duplicateEnrollmentInFile.map((dup) => ({
+        enrollmentNo: dup.enrollmentNo,
+        rows: dup.rows,
+        message: `Enrollment number "${
+          dup.enrollmentNo
+        }" appears multiple times in the file (rows: ${dup.rows.join(", ")})`,
+      }));
+
+      return NextResponse.json(
+        {
+          error: "Duplicate enrollment numbers found within the uploaded file",
+          type: "file_enrollment_duplicates",
+          duplicates: duplicateDetails,
+          details: duplicateDetails.map((d) => d.message),
         },
         { status: 400 }
       );
@@ -566,6 +684,19 @@ export async function POST(req: NextRequest) {
     );
     // console.log("ExistingPersonalEmails:", existingPersonalEmails);
 
+    // Check against the database for existing enrollment numbers
+    const uniqueEnrollmentNumbers = Array.from(enrollmentMap.keys());
+    const dbEnrollmentNumbers = await prisma.student.findMany({
+      where: { enrollmentNo: { in: uniqueEnrollmentNumbers } },
+      select: { enrollmentNo: true },
+    });
+
+    existingEnrollmentNumbers.push(
+      ...dbEnrollmentNumbers
+        .map((entry) => entry.enrollmentNo)
+        .filter((enrollmentNo): enrollmentNo is string => enrollmentNo !== null)
+    );
+
     // const duplicates = [];
     // for (const email of existingEmails) {
     //   if (emailMap.has(email)) {
@@ -587,6 +718,7 @@ export async function POST(req: NextRequest) {
 
     const emailDuplicates = [];
     const personalEmailDuplicates = [];
+    const enrollmentDuplicates = [];
 
     // Collect duplicates for emails
     for (const email of existingEmails) {
@@ -608,23 +740,80 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // If duplicates are found, return them
+    // Collect duplicates for enrollment numbers
+    for (const enrollmentNo of existingEnrollmentNumbers) {
+      if (enrollmentMap.has(enrollmentNo)) {
+        enrollmentDuplicates.push({
+          enrollmentNo,
+          rows: enrollmentMap.get(enrollmentNo),
+        });
+      }
+    }
+
+    // If duplicates are found, return them with detailed information
     if (emailDuplicates.length > 0) {
+      const duplicateDetails = emailDuplicates.map((dup) => ({
+        email: dup.email,
+        rows: dup.rows || [],
+        message: `Email "${
+          dup.email
+        }" already exists in the system (found in rows: ${(dup.rows || []).join(
+          ", "
+        )})`,
+      }));
+
       return NextResponse.json(
         {
-          error: "Emails already exist in the system",
-          emailDuplicates,
+          error: "The following emails already exist in the system",
+          type: "email_duplicates",
+          emailDuplicates: duplicateDetails,
+          details: duplicateDetails.map((d) => d.message),
         },
         { status: 400 }
       );
     }
 
-    // If personal email duplicates are found, return them
+    // If personal email duplicates are found, return them with detailed information
     if (personalEmailDuplicates.length > 0) {
+      const personalEmailDetails = personalEmailDuplicates.map((dup) => ({
+        personalEmail: dup.personalEmail,
+        rows: dup.rows || [],
+        message: `Personal email "${
+          dup.personalEmail
+        }" already exists in the system (found in rows: ${(dup.rows || []).join(
+          ", "
+        )})`,
+      }));
+
       return NextResponse.json(
         {
-          error: "Emails already exist in the system",
-          personalEmailDuplicates,
+          error: "The following personal emails already exist in the system",
+          type: "personal_email_duplicates",
+          personalEmailDuplicates: personalEmailDetails,
+          details: personalEmailDetails.map((d) => d.message),
+        },
+        { status: 400 }
+      );
+    }
+
+    // If enrollment number duplicates are found, return them with detailed information
+    if (enrollmentDuplicates.length > 0) {
+      const enrollmentDetails = enrollmentDuplicates.map((dup) => ({
+        enrollmentNo: dup.enrollmentNo,
+        rows: dup.rows || [],
+        message: `Enrollment number "${
+          dup.enrollmentNo
+        }" already exists in the system (found in rows: ${(dup.rows || []).join(
+          ", "
+        )})`,
+      }));
+
+      return NextResponse.json(
+        {
+          error: "The following enrollment numbers already exist in the system",
+          type: "enrollment_duplicates",
+          enrollmentDuplicates: enrollmentDetails,
+          details: enrollmentDetails.map((d) => d.message),
         },
         { status: 400 }
       );

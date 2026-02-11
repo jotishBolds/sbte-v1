@@ -24,13 +24,32 @@ import SideBarLayout from "@/components/sidebar/layout";
 
 interface ErrorType {
   error: string;
+  type?: string;
   duplicates?: Array<{
     email?: string;
     personalEmail?: string;
+    enrollmentNo?: string;
     rows: number[];
+    message?: string;
+  }>;
+  emailDuplicates?: Array<{
+    email: string;
+    rows: number[];
+    message: string;
+  }>;
+  personalEmailDuplicates?: Array<{
+    personalEmail: string;
+    rows: number[];
+    message: string;
+  }>;
+  enrollmentDuplicates?: Array<{
+    enrollmentNo: string;
+    rows: number[];
+    message: string;
   }>;
   rows?: number[];
   errors?: string[];
+  details?: string[];
 }
 
 interface SuccessType {
@@ -266,33 +285,140 @@ export default function ImportStudentsPage(): JSX.Element {
                 <AlertTitle>Upload Failed</AlertTitle>
                 <AlertDescription>
                   {error.error}
-                  {error.duplicates && (
-                    <ul className="mt-2 list-disc pl-4">
-                      {error.duplicates.map((dup, index) => (
-                        <li key={index}>
-                          {dup.email &&
-                            `Email ${dup.email} found in rows: ${dup.rows.join(
-                              ", "
-                            )}`}
-                          {dup.personalEmail &&
-                            `Personal Email ${
-                              dup.personalEmail
-                            } found in rows: ${dup.rows.join(", ")}`}
-                        </li>
-                      ))}
-                    </ul>
+
+                  {/* Show detailed error messages */}
+                  {error.details && error.details.length > 0 && (
+                    <div className="mt-3">
+                      <p className="font-medium mb-2">Details:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        {error.details.map((detail, index) => (
+                          <li key={index} className="text-sm">
+                            {detail}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
-                  {error.rows && (
-                    <p className="mt-2">
-                      Affected rows: {error.rows.join(", ")}
-                    </p>
+
+                  {/* Show email duplicates */}
+                  {error.emailDuplicates &&
+                    error.emailDuplicates.length > 0 && (
+                      <div className="mt-3">
+                        <p className="font-medium mb-2">Email conflicts:</p>
+                        <ul className="list-disc pl-4 space-y-1">
+                          {error.emailDuplicates.map((dup, index) => (
+                            <li key={index} className="text-sm">
+                              <span className="font-mono bg-red-100 px-1 rounded">
+                                {dup.email}
+                              </span>{" "}
+                              in rows: {dup.rows.join(", ")}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                  {/* Show personal email duplicates */}
+                  {error.personalEmailDuplicates &&
+                    error.personalEmailDuplicates.length > 0 && (
+                      <div className="mt-3">
+                        <p className="font-medium mb-2">
+                          Personal email conflicts:
+                        </p>
+                        <ul className="list-disc pl-4 space-y-1">
+                          {error.personalEmailDuplicates.map((dup, index) => (
+                            <li key={index} className="text-sm">
+                              <span className="font-mono bg-red-100 px-1 rounded">
+                                {dup.personalEmail}
+                              </span>{" "}
+                              in rows: {dup.rows.join(", ")}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                  {/* Show enrollment number duplicates */}
+                  {error.enrollmentDuplicates &&
+                    error.enrollmentDuplicates.length > 0 && (
+                      <div className="mt-3">
+                        <p className="font-medium mb-2">
+                          Enrollment number conflicts:
+                        </p>
+                        <ul className="list-disc pl-4 space-y-1">
+                          {error.enrollmentDuplicates.map((dup, index) => (
+                            <li key={index} className="text-sm">
+                              <span className="font-mono bg-red-100 px-1 rounded">
+                                {dup.enrollmentNo}
+                              </span>{" "}
+                              in rows: {dup.rows.join(", ")}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                  {/* Legacy duplicates support */}
+                  {error.duplicates && error.duplicates.length > 0 && (
+                    <div className="mt-3">
+                      <p className="font-medium mb-2">Conflicts found:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        {error.duplicates.map((dup, index) => (
+                          <li key={index} className="text-sm">
+                            {dup.email && (
+                              <>
+                                Email{" "}
+                                <span className="font-mono bg-red-100 px-1 rounded">
+                                  {dup.email}
+                                </span>{" "}
+                                found in rows: {dup.rows.join(", ")}
+                              </>
+                            )}
+                            {dup.personalEmail && (
+                              <>
+                                Personal Email{" "}
+                                <span className="font-mono bg-red-100 px-1 rounded">
+                                  {dup.personalEmail}
+                                </span>{" "}
+                                found in rows: {dup.rows.join(", ")}
+                              </>
+                            )}
+                            {dup.enrollmentNo && (
+                              <>
+                                Enrollment No{" "}
+                                <span className="font-mono bg-red-100 px-1 rounded">
+                                  {dup.enrollmentNo}
+                                </span>{" "}
+                                found in rows: {dup.rows.join(", ")}
+                              </>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
-                  {error.errors && (
-                    <ul className="mt-2 list-disc pl-4">
-                      {error.errors.map((err, index) => (
-                        <li key={index}>{err}</li>
-                      ))}
-                    </ul>
+
+                  {/* Show affected rows */}
+                  {error.rows && error.rows.length > 0 && !error.details && (
+                    <div className="mt-3">
+                      <p className="font-medium">
+                        Affected rows: {error.rows.join(", ")}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Show general errors */}
+                  {error.errors && error.errors.length > 0 && (
+                    <div className="mt-3">
+                      <p className="font-medium mb-2">Additional errors:</p>
+                      <ul className="list-disc pl-4 space-y-1">
+                        {error.errors.map((err, index) => (
+                          <li key={index} className="text-sm">
+                            {err}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   )}
                 </AlertDescription>
               </Alert>

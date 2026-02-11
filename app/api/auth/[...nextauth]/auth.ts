@@ -54,7 +54,7 @@ async function checkAndUpdateFailedAttempts(email: string): Promise<{
     if (currentTime < user.lockedUntil) {
       // Still locked
       const remainingTime = Math.ceil(
-        (user.lockedUntil.getTime() - currentTime.getTime()) / 1000
+        (user.lockedUntil.getTime() - currentTime.getTime()) / 1000,
       );
       return {
         isLocked: true,
@@ -97,7 +97,7 @@ async function checkAndUpdateFailedAttempts(email: string): Promise<{
 async function recordFailedAttempt(
   email: string,
   ipAddress?: string,
-  userAgent?: string
+  userAgent?: string,
 ): Promise<void> {
   const currentTime = new Date();
 
@@ -150,7 +150,7 @@ async function recordFailedAttempt(
 async function recordSuccessfulLogin(
   email: string,
   ipAddress?: string,
-  userAgent?: string
+  userAgent?: string,
 ): Promise<void> {
   const currentTime = new Date();
 
@@ -190,7 +190,7 @@ async function recordSuccessfulLogin(
 async function validateServerCaptcha(
   userAnswer: string,
   hash: string,
-  expiresAt: number
+  expiresAt: number,
 ): Promise<boolean> {
   return validateCaptcha(userAnswer, hash, expiresAt);
 }
@@ -242,11 +242,11 @@ export const authOptions: NextAuthOptions = {
 
         // Check for account lockout
         const lockoutStatus = await checkAndUpdateFailedAttempts(
-          credentials.email
+          credentials.email,
         );
         if (lockoutStatus.isLocked) {
           const remainingMinutes = Math.ceil(
-            (lockoutStatus.remainingTime || 0) / 60000
+            (lockoutStatus.remainingTime || 0) / 60000,
           );
 
           // Log lockout attempt
@@ -260,7 +260,7 @@ export const authOptions: NextAuthOptions = {
           });
 
           throw new Error(
-            `Account is temporarily locked. Please try again in ${remainingMinutes} minutes.`
+            `Account is temporarily locked. Please try again in ${remainingMinutes} minutes.`,
           );
         }
 
@@ -268,7 +268,7 @@ export const authOptions: NextAuthOptions = {
         const isCaptchaValid = await validateServerCaptcha(
           credentials.captchaAnswer,
           credentials.captchaExpected,
-          Number(credentials.captchaExpiresAt)
+          Number(credentials.captchaExpiresAt),
         );
 
         if (!isCaptchaValid) {
@@ -289,7 +289,7 @@ export const authOptions: NextAuthOptions = {
 
           const isPasswordValid = await compare(
             credentials.password,
-            user.password
+            user.password,
           );
           if (!isPasswordValid) {
             await recordFailedAttempt(credentials.email, ipAddress, userAgent);
@@ -333,7 +333,7 @@ export const authOptions: NextAuthOptions = {
             user.id,
             ipAddress,
             userAgent,
-            true // Terminate other sessions
+            true, // Terminate other sessions
           );
 
           if (!sessionInfo) {
@@ -367,7 +367,7 @@ export const authOptions: NextAuthOptions = {
         } catch (error) {
           console.error(
             `Authentication failed for ${credentials.email}:`,
-            error
+            error,
           );
           if (error instanceof Error) {
             throw error;
@@ -440,7 +440,7 @@ export const authOptions: NextAuthOptions = {
             user.sessionToken !== token.sessionToken
           ) {
             console.log(
-              `User ${token.id} concurrent session detected - tokens don't match`
+              `User ${token.id} concurrent session detected - tokens don't match`,
             );
             await logSecurityEvent({
               eventType: "CONCURRENT_SESSION_DETECTED",
@@ -487,23 +487,43 @@ export const authOptions: NextAuthOptions = {
     },
     async redirect({ url, baseUrl }) {
       // Handle redirects after successful login
-      console.log(
-        "NextAuth redirect callback - url:",
-        url,
-        "baseUrl:",
-        baseUrl
-      );
+
+      // Skip logging for static assets
+      const isStaticAsset =
+        url.match(/\.(jpg|jpeg|png|gif|svg|pdf|ico|webp)$/i) ||
+        url.includes("/Convocation1/") ||
+        url.includes("/Convocation2/") ||
+        url.includes("/Convocation3/") ||
+        url.includes("/home/") ||
+        url.includes("/notification-pdf/") ||
+        url.includes("/students-images/") ||
+        url.includes("/templates/") ||
+        url.includes("/uploads/") ||
+        url.includes("/_next/");
+
+      if (!isStaticAsset) {
+        console.log(
+          "NextAuth redirect callback - url:",
+          url,
+          "baseUrl:",
+          baseUrl,
+        );
+      }
 
       // If url is relative, make it absolute
       if (url.startsWith("/")) {
         const absoluteUrl = `${baseUrl}${url}`;
-        console.log("Redirecting to relative URL:", absoluteUrl);
+        if (!isStaticAsset) {
+          console.log("Redirecting to relative URL:", absoluteUrl);
+        }
         return absoluteUrl;
       }
 
       // If url is on the same domain, allow it
       if (url.startsWith(baseUrl)) {
-        console.log("Redirecting to same domain URL:", url);
+        if (!isStaticAsset) {
+          console.log("Redirecting to same domain URL:", url);
+        }
         return url;
       }
 
@@ -521,7 +541,7 @@ export const authOptions: NextAuthOptions = {
           token.id as string,
           "signout",
           "nextauth",
-          "User initiated logout"
+          "User initiated logout",
         );
 
         // Also cleanup for compatibility
