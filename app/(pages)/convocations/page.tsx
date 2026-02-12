@@ -30,12 +30,12 @@ const convocationData: ConvocationData[] = [
       "Government commitment to education development",
     ],
     imageUrls: [
-      "/Convocation1/cn1.jpg",
-      "/Convocation1/cn2.jpg",
-      "/Convocation1/cn3.jpg",
-      "/Convocation1/cn4.jpg",
-      "/Convocation1/cn5.jpg",
-      "/Convocation1/cn6.jpg",
+      "/Convocation1/selected1.jpg",
+      "/Convocation1/selected2.jpg",
+      "/Convocation1/selected3.jpg",
+      "/Convocation1/selected4.jpg",
+      "/Convocation1/selected5.jpg",
+      "/Convocation1/selected6.jpg",
     ],
     videoUrl: "https://www.youtube.com/watch?v=L1pHS6ra3JQ",
   },
@@ -53,13 +53,13 @@ const convocationData: ConvocationData[] = [
       "Recognition of student achievements through diploma distribution",
       "Emphasis on innovation and lifelong learning",
     ],
-    imageUrls: [
-      "/Convocation1/selected1.jpg",
-      "/Convocation1/selected2.jpg",
-      "/Convocation1/selected3.jpg",
-      "/Convocation1/selected4.jpg",
-      "/Convocation1/selected5.jpg",
-      "/Convocation1/selected6.jpg",
+     imageUrls: [
+      "/Convocation1/cn1.jpg",
+      "/Convocation1/cn2.jpg",
+      "/Convocation1/cn3.jpg",
+      "/Convocation1/cn4.jpg",
+      "/Convocation1/cn5.jpg",
+      "/Convocation1/cn6.jpg",
     ],
     videoUrl: "https://youtu.be/r7SVZADUArc",
   },
@@ -87,7 +87,7 @@ const convocationData: ConvocationData[] = [
       "/Convocation3/convo8.jpg",
       "/Convocation3/convo9.jpg",
     ],
-    videoUrl: "https://www.youtube.com/watch?v=L1pHS6ra3JQ",
+    videoUrl: "",
   }
 ];
 
