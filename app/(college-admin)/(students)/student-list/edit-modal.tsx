@@ -42,14 +42,18 @@ const formSchema = z.object({
 
   // Personal Details
   name: z.string().min(1, "Name is required"),
-  dob: z.string(),
+  dob: z.string().optional().default(""),
   enrollmentNo: z.string().optional(),
-  personalEmail: z.string().email("Invalid personal email"),
-  phoneNo: z.string().min(10, "Phone number must be at least 10 digits"),
+  personalEmail: z
+    .string()
+    .email("Invalid personal email")
+    .optional()
+    .or(z.literal("")),
+  phoneNo: z.string().optional().default(""),
   studentAvatar: z.string().optional(),
-  gender: z.string(),
-  isLocalStudent: z.boolean(),
-  isDifferentlyAbled: z.boolean(),
+  gender: z.string().optional().default(""),
+  isLocalStudent: z.boolean().default(false),
+  isDifferentlyAbled: z.boolean().default(false),
 
   // Academic Details
   programId: z.string(),
@@ -60,16 +64,16 @@ const formSchema = z.object({
   termId: z.string(),
   abcId: z.string().optional(),
   lastCollegeAttended: z.string().optional(),
-  admissionDate: z.string(),
+  admissionDate: z.string().optional().default(""),
   graduateDate: z.string().optional(),
   admissionCategory: z.string().optional(),
 
   // Family Details
-  motherName: z.string(),
-  fatherName: z.string(),
+  motherName: z.string().optional().default(""),
+  fatherName: z.string().optional().default(""),
   guardianName: z.string().optional(),
   guardianGender: z.string().optional(),
-  guardianEmail: z.string().email().optional(),
+  guardianEmail: z.string().email().optional().or(z.literal("")),
   guardianMobileNo: z.string().optional(),
   guardianRelation: z.string().optional(),
 
@@ -81,11 +85,11 @@ const formSchema = z.object({
   resident: z.string().optional(),
 
   // Address
-  permanentAddress: z.string(),
-  permanentCountry: z.string(),
-  permanentState: z.string(),
-  permanentCity: z.string(),
-  permanentPincode: z.string().min(6, "Pincode must be at least 6 digits"),
+  permanentAddress: z.string().optional().default(""),
+  permanentCountry: z.string().optional().default(""),
+  permanentState: z.string().optional().default(""),
+  permanentCity: z.string().optional().default(""),
+  permanentPincode: z.string().optional().default(""),
 });
 
 interface User {
@@ -184,22 +188,21 @@ export function EditStudentModal({
       username: student.user?.username || "",
       email: student.user?.email || "",
       password: "",
-      name: student.name,
+      name: student.name || "",
       dob: student.dob ? new Date(student.dob).toISOString().split("T")[0] : "",
       enrollmentNo: student.enrollmentNo || "",
       personalEmail: student.personalEmail || "",
       phoneNo: student.phoneNo || "",
       studentAvatar: student.studentAvatar || "",
       gender: student.gender ? student.gender.toUpperCase() : "",
-      isLocalStudent: student.isLocalStudent,
-      isDifferentlyAbled: student.isDifferentlyAbled,
-      programId: student.program.id,
-      departmentId: student.department.id,
-      batchYearId: student.batchYearId,
-
-      admissionYearId: student.admissionYearId,
-      academicYearId: student.academicYearId,
-      termId: student.termId,
+      isLocalStudent: student.isLocalStudent ?? false,
+      isDifferentlyAbled: student.isDifferentlyAbled ?? false,
+      programId: student.program?.id || "",
+      departmentId: student.department?.id || "",
+      batchYearId: student.batchYearId || "",
+      admissionYearId: student.admissionYearId || "",
+      academicYearId: student.academicYearId || "",
+      termId: student.termId || "",
       abcId: student.abcId || "",
       lastCollegeAttended: student.lastCollegeAttended || "",
       admissionDate: student.admissionDate
@@ -209,8 +212,8 @@ export function EditStudentModal({
         ? new Date(student.graduateDate).toISOString().split("T")[0]
         : "",
       admissionCategory: student.admissionCategory || "",
-      motherName: student.motherName,
-      fatherName: student.fatherName,
+      motherName: student.motherName || "",
+      fatherName: student.fatherName || "",
       guardianName: student.guardianName || "",
       guardianGender: student.guardianGender
         ? student.guardianGender.toUpperCase()
@@ -223,11 +226,11 @@ export function EditStudentModal({
       nationality: student.nationality || "",
       caste: student.caste || "",
       resident: student.resident || "",
-      permanentAddress: student.permanentAddress,
-      permanentCountry: student.permanentCountry,
-      permanentState: student.permanentState,
-      permanentCity: student.permanentCity,
-      permanentPincode: student.permanentPincode,
+      permanentAddress: student.permanentAddress || "",
+      permanentCountry: student.permanentCountry || "",
+      permanentState: student.permanentState || "",
+      permanentCity: student.permanentCity || "",
+      permanentPincode: student.permanentPincode || "",
     },
   });
 

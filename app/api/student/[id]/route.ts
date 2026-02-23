@@ -10,7 +10,7 @@ import { hash } from "bcryptjs";
 // GET student by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const session = await getServerSession(authOptions);
   const { id } = params;
@@ -45,7 +45,7 @@ export async function GET(
     if (!student) {
       return NextResponse.json(
         { message: "Student not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -62,14 +62,14 @@ export async function GET(
     console.error("Error fetching student:", error);
     return NextResponse.json(
       { message: "Error fetching student", error: (error as Error).message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   const session = await getServerSession(authOptions);
   const { id } = params;
@@ -99,7 +99,7 @@ export async function DELETE(
     if (!student) {
       return NextResponse.json(
         { message: "Student not found" },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -116,7 +116,7 @@ export async function DELETE(
 
     return NextResponse.json(
       { message: "Student and associated user deleted successfully" },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Error deleting student and user:", error);
@@ -125,7 +125,7 @@ export async function DELETE(
         message: "Error deleting student and associated user",
         error: (error as Error).message,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -145,7 +145,11 @@ const studentUpdateSchema = z.object({
   name: z.string().optional(),
   dob: z.string().optional(),
   enrollmentNo: z.string().optional(),
-  personalEmail: z.string().email("Invalid personal email").optional(),
+  personalEmail: z
+    .string()
+    .email("Invalid personal email")
+    .optional()
+    .or(z.literal("")),
   phoneNo: z.string().optional(),
   studentAvatar: z.string().optional(),
   abcId: z.string().optional(),
@@ -174,7 +178,7 @@ const studentUpdateSchema = z.object({
   permanentPincode: z.string().optional(),
   guardianName: z.string().optional(),
   guardianGender: z.string().optional(),
-  guardianEmail: z.string().email().optional(),
+  guardianEmail: z.string().email().optional().or(z.literal("")),
   guardianMobileNo: z.string().optional(),
   guardianRelation: z.string().optional(),
   programId: z.string().optional(),
@@ -183,7 +187,7 @@ const studentUpdateSchema = z.object({
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
     const session = await getServerSession(authOptions);
@@ -238,7 +242,7 @@ export async function PUT(
         student.collegeId !== session.user.collegeId
       ) {
         throw new Error(
-          "Unauthorized to update student from a different college"
+          "Unauthorized to update student from a different college",
         );
       }
 
@@ -287,7 +291,7 @@ export async function PUT(
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { message: "Validation error", errors: error.errors },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -297,7 +301,7 @@ export async function PUT(
 
     return NextResponse.json(
       { message: "Error updating student and user" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

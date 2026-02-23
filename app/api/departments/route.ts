@@ -26,7 +26,24 @@ export async function POST(request: NextRequest) {
     if (!data.name || !data.collegeId) {
       return NextResponse.json(
         { error: "Missing required fields" },
-        { status: 400 }
+        { status: 400 },
+      );
+    }
+
+    // Check if a department with the same name already exists for this college
+    const existingDepartment = await prisma.department.findFirst({
+      where: {
+        name: data.name,
+        collegeId: data.collegeId,
+      },
+    });
+
+    if (existingDepartment) {
+      return NextResponse.json(
+        {
+          error: "A department with this name already exists for this college",
+        },
+        { status: 409 },
       );
     }
 
@@ -48,7 +65,7 @@ export async function POST(request: NextRequest) {
     console.error("Error creating department:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

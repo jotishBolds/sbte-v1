@@ -40,6 +40,16 @@ const userSchema = z.object({
   departmentId: z.string().optional(),
 });
 
+const coerceBoolean = (val: unknown): boolean => {
+  if (typeof val === "boolean") return val;
+  if (typeof val === "number") return val !== 0;
+  if (typeof val === "string") {
+    const lower = val.toLowerCase().trim();
+    return lower === "true" || lower === "yes" || lower === "1";
+  }
+  return false;
+};
+
 const studentSchema = z.object({
   name: z.string().optional(),
   dob: z
@@ -60,8 +70,8 @@ const studentSchema = z.object({
   academicYearId: z.string(),
   termId: z.string(),
   gender: z.enum(["Male", "Female", "Other"]),
-  isLocalStudent: z.boolean().default(false),
-  isDifferentlyAbled: z.boolean().default(false),
+  isLocalStudent: z.preprocess(coerceBoolean, z.boolean().default(false)),
+  isDifferentlyAbled: z.preprocess(coerceBoolean, z.boolean().default(false)),
   motherName: z.string().optional(),
   fatherName: z.string().optional(),
   bloodGroup: z.string().optional(),
@@ -103,7 +113,7 @@ export async function POST(req: NextRequest) {
     if (!collegeId) {
       return NextResponse.json(
         { error: "No college ID found in session" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -220,10 +230,10 @@ export async function POST(req: NextRequest) {
             rowData["gender"] = cellValue;
             break;
           case 17:
-            rowData["isLocalStudent"] = cellValue;
+            rowData["isLocalStudent"] = coerceBoolean(cellValue);
             break;
           case 18:
-            rowData["isDifferentlyAbled"] = cellValue;
+            rowData["isDifferentlyAbled"] = coerceBoolean(cellValue);
             break;
           case 19:
             rowData["motherName"] = cellValue;
@@ -359,7 +369,7 @@ export async function POST(req: NextRequest) {
           if (typeof rowData[numField] === "number") {
             rowData[numField] = rowData[numField].toString();
           }
-        }
+        },
       );
 
       rowData.admissionYear = +rowData.admissionYear;
@@ -404,7 +414,7 @@ export async function POST(req: NextRequest) {
       } else {
         missingAdmissionYearRows.push(row.number);
         console.log(
-          `Invalid admissionYear value in row ${row.number}: setting admissionYearId to null.`
+          `Invalid admissionYear value in row ${row.number}: setting admissionYearId to null.`,
         );
       }
 
@@ -422,14 +432,17 @@ export async function POST(req: NextRequest) {
       } else {
         missingBatchYearRows.push(row.number);
         console.log(
-          `Invalid batchYear value in row ${row.number}: setting batchYearId to null.`
+          `Invalid batchYear value in row ${row.number}: setting batchYearId to null.`,
         );
       }
 
       let programId = null;
       if (rowData.program) {
         const program = await prisma.program.findMany({
-          where: { name: rowData.program },
+          where: {
+            name: rowData.program,
+            department: { collegeId: collegeId },
+          },
           take: 1, // Limit to one result
         });
         programId = program.length > 0 ? program[0].id : null;
@@ -443,7 +456,7 @@ export async function POST(req: NextRequest) {
       let departmentId = null;
       if (rowData.department) {
         const department = await prisma.department.findMany({
-          where: { name: rowData.department },
+          where: { name: rowData.department, collegeId: collegeId },
           take: 1, // Limit to one result
         });
         departmentId = department.length > 0 ? department[0].id : null;
@@ -522,7 +535,7 @@ export async function POST(req: NextRequest) {
             `Missing email addresses in rows: ${missingEmailRows.join(", ")}`,
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (missingPersonalEmailRows.length > 0) {
@@ -533,11 +546,11 @@ export async function POST(req: NextRequest) {
           rows: missingPersonalEmailRows,
           details: [
             `Missing personal email addresses in rows: ${missingPersonalEmailRows.join(
-              ", "
+              ", ",
             )}`,
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (missingNameRows.length > 0) {
@@ -550,7 +563,7 @@ export async function POST(req: NextRequest) {
             `Missing student names in rows: ${missingNameRows.join(", ")}`,
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
     if (missingEnrollmentRows.length > 0) {
@@ -561,11 +574,11 @@ export async function POST(req: NextRequest) {
           rows: missingEnrollmentRows,
           details: [
             `Missing enrollment numbers in rows: ${missingEnrollmentRows.join(
-              ", "
+              ", ",
             )}`,
           ],
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -605,7 +618,7 @@ export async function POST(req: NextRequest) {
           duplicates: duplicateDetails,
           details: duplicateDetails.map((d) => d.message),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -625,7 +638,7 @@ export async function POST(req: NextRequest) {
           duplicates: duplicateDetails,
           details: duplicateDetails.map((d) => d.message),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -645,7 +658,7 @@ export async function POST(req: NextRequest) {
           duplicates: duplicateDetails,
           details: duplicateDetails.map((d) => d.message),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -680,7 +693,7 @@ export async function POST(req: NextRequest) {
     existingPersonalEmails.push(
       ...dbPersonalEmails
         .map((entry) => entry.personalEmail)
-        .filter((email): email is string => email !== null)
+        .filter((email): email is string => email !== null),
     );
     // console.log("ExistingPersonalEmails:", existingPersonalEmails);
 
@@ -694,7 +707,9 @@ export async function POST(req: NextRequest) {
     existingEnrollmentNumbers.push(
       ...dbEnrollmentNumbers
         .map((entry) => entry.enrollmentNo)
-        .filter((enrollmentNo): enrollmentNo is string => enrollmentNo !== null)
+        .filter(
+          (enrollmentNo): enrollmentNo is string => enrollmentNo !== null,
+        ),
     );
 
     // const duplicates = [];
@@ -758,7 +773,7 @@ export async function POST(req: NextRequest) {
         message: `Email "${
           dup.email
         }" already exists in the system (found in rows: ${(dup.rows || []).join(
-          ", "
+          ", ",
         )})`,
       }));
 
@@ -769,7 +784,7 @@ export async function POST(req: NextRequest) {
           emailDuplicates: duplicateDetails,
           details: duplicateDetails.map((d) => d.message),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -781,7 +796,7 @@ export async function POST(req: NextRequest) {
         message: `Personal email "${
           dup.personalEmail
         }" already exists in the system (found in rows: ${(dup.rows || []).join(
-          ", "
+          ", ",
         )})`,
       }));
 
@@ -792,7 +807,7 @@ export async function POST(req: NextRequest) {
           personalEmailDuplicates: personalEmailDetails,
           details: personalEmailDetails.map((d) => d.message),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -804,7 +819,7 @@ export async function POST(req: NextRequest) {
         message: `Enrollment number "${
           dup.enrollmentNo
         }" already exists in the system (found in rows: ${(dup.rows || []).join(
-          ", "
+          ", ",
         )})`,
       }));
 
@@ -815,46 +830,46 @@ export async function POST(req: NextRequest) {
           enrollmentDuplicates: enrollmentDetails,
           details: enrollmentDetails.map((d) => d.message),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (missingAcademicYearRows.length > 0) {
       errorMessages.push(
         `Academic Year missing or invalid in rows: ${missingAcademicYearRows.join(
-          ", "
-        )}`
+          ", ",
+        )}`,
       );
     }
     if (missingAdmissionYearRows.length > 0) {
       errorMessages.push(
         `Admission Year missing or invalid in rows: ${missingAdmissionYearRows.join(
-          ", "
-        )}`
+          ", ",
+        )}`,
       );
     }
     if (missingBatchYearRows.length > 0) {
       errorMessages.push(
         `Batch Year missing or invalid in rows: ${missingBatchYearRows.join(
-          ", "
-        )}`
+          ", ",
+        )}`,
       );
     }
     if (missingProgramRows.length > 0) {
       errorMessages.push(
-        `Program missing or invalid in rows: ${missingProgramRows.join(", ")}`
+        `Program missing or invalid in rows: ${missingProgramRows.join(", ")}`,
       );
     }
     if (missingDepartmentRows.length > 0) {
       errorMessages.push(
         `Department missing or invalid in rows: ${missingDepartmentRows.join(
-          ", "
-        )}`
+          ", ",
+        )}`,
       );
     }
     if (missingTermRows.length > 0) {
       errorMessages.push(
-        `Term missing or invalid in rows: ${missingTermRows.join(", ")}`
+        `Term missing or invalid in rows: ${missingTermRows.join(", ")}`,
       );
     }
     // If there are any error messages, return them as a response
@@ -863,7 +878,7 @@ export async function POST(req: NextRequest) {
         {
           errors: errorMessages,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -878,7 +893,7 @@ export async function POST(req: NextRequest) {
     // Initialize progress tracking
     const progress = new BulkOperationProgress(jsonData.length, (info) => {
       console.log(
-        `Import progress: ${info.percentage}% (${info.completed}/${info.total})`
+        `Import progress: ${info.percentage}% (${info.completed}/${info.total})`,
       );
     });
 
@@ -941,7 +956,7 @@ export async function POST(req: NextRequest) {
         {
           timeout: 30000, // 30 second timeout for each transaction
           maxWait: 10000, // 10 second maximum wait time
-        }
+        },
       );
     };
 
@@ -958,7 +973,7 @@ export async function POST(req: NextRequest) {
     progress.update(result.processed || 0, result.failed || 0);
 
     console.log(
-      `Bulk import completed: ${result.processed} successful, ${result.failed} failed`
+      `Bulk import completed: ${result.processed} successful, ${result.failed} failed`,
     );
 
     // Prepare response based on results
@@ -969,7 +984,7 @@ export async function POST(req: NextRequest) {
           details: result.error,
           failures: result.details?.slice(0, 10), // Limit error details
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -989,7 +1004,7 @@ export async function POST(req: NextRequest) {
             failed: result.failed,
           },
         },
-        { status: 207 }
+        { status: 207 },
       ); // 207 Multi-Status
     }
 
@@ -1002,7 +1017,7 @@ export async function POST(req: NextRequest) {
           failed: 0,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (error) {
     console.error("Error in processing the uploaded file:", error);
@@ -1011,7 +1026,7 @@ export async function POST(req: NextRequest) {
         error: "Failed to process the uploaded file",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -100,7 +100,7 @@ export default function ExamMarksDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedExamMark, setSelectedExamMark] = useState<ExamMark | null>(
-    null
+    null,
   );
   const { toast } = useToast();
   const [formData, setFormData] = useState<ExamMark>({
@@ -112,6 +112,7 @@ export default function ExamMarksDashboard() {
     debarred: false,
     malpractice: false,
   });
+  const [marksInputValue, setMarksInputValue] = useState<string>("0");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
   // Fetch function
@@ -149,7 +150,7 @@ export default function ExamMarksDashboard() {
         try {
           setLoading(true);
           const subjectsData = await fetchData(
-            `/api/batch/${selectedBatch}/subject`
+            `/api/batch/${selectedBatch}/subject`,
           );
           setBatchSubjects(subjectsData);
           setSelectedSubject(""); // Reset subject selection
@@ -197,6 +198,39 @@ export default function ExamMarksDashboard() {
     setLoading(true);
     setError(null);
 
+    // Validate required fields
+    if (!formData.studentId) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a student",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    if (!formData.examTypeId) {
+      toast({
+        title: "Validation Error",
+        description: "Please select an exam type",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
+    // Validate marks input - must not be empty when student is not absent
+    if (!formData.wasAbsent && marksInputValue.trim() === "") {
+      toast({
+        title: "Validation Error",
+        description:
+          "Please enter the achieved marks or mark the student as absent",
+        variant: "destructive",
+      });
+      setLoading(false);
+      return;
+    }
+
     const submitData = {
       ...formData,
       batchSubjectId: selectedSubject,
@@ -232,7 +266,7 @@ export default function ExamMarksDashboard() {
 
       // Refresh exam marks
       const updatedMarks = await fetchData(
-        `/api/examMarks?batchSubjectId=${selectedSubject}`
+        `/api/examMarks?batchSubjectId=${selectedSubject}`,
       );
       setExamMarks(Array.isArray(updatedMarks) ? updatedMarks : []);
       setIsDialogOpen(false);
@@ -288,7 +322,7 @@ export default function ExamMarksDashboard() {
       });
 
       const updatedMarks = await fetchData(
-        `/api/examMarks?batchSubjectId=${selectedSubject}`
+        `/api/examMarks?batchSubjectId=${selectedSubject}`,
       );
       setExamMarks(Array.isArray(updatedMarks) ? updatedMarks : []);
     } catch (err) {
@@ -313,6 +347,7 @@ export default function ExamMarksDashboard() {
       debarred: false,
       malpractice: false,
     });
+    setMarksInputValue("0");
     setSelectedExamMark(null);
   };
   const examMarksArray = Array.isArray(examMarks) ? examMarks : [];
@@ -483,13 +518,17 @@ export default function ExamMarksDashboard() {
                             id="marks"
                             type="number"
                             min="0"
-                            value={formData.achievedMarks}
-                            onChange={(e) =>
+                            value={marksInputValue}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setMarksInputValue(val);
                               setFormData({
                                 ...formData,
-                                achievedMarks: Number(e.target.value) || 0,
-                              })
-                            }
+                                achievedMarks: val === "" ? 0 : Number(val),
+                              });
+                            }}
+                            placeholder="Enter marks"
+                            disabled={formData.wasAbsent}
                             className=""
                           />
                         </div>
@@ -499,15 +538,19 @@ export default function ExamMarksDashboard() {
                             <Checkbox
                               id="absent"
                               checked={formData.wasAbsent}
-                              onCheckedChange={(checked) =>
+                              onCheckedChange={(checked) => {
+                                const isAbsent = checked as boolean;
                                 setFormData({
                                   ...formData,
-                                  wasAbsent: checked as boolean,
-                                  achievedMarks: checked
+                                  wasAbsent: isAbsent,
+                                  achievedMarks: isAbsent
                                     ? 0
                                     : formData.achievedMarks,
-                                })
-                              }
+                                });
+                                if (isAbsent) {
+                                  setMarksInputValue("0");
+                                }
+                              }}
                             />
                             <Label htmlFor="absent">Absent</Label>
                           </div>
@@ -642,6 +685,9 @@ export default function ExamMarksDashboard() {
                                     ...mark,
                                     batchSubjectId: selectedSubject,
                                   });
+                                  setMarksInputValue(
+                                    String(mark.achievedMarks ?? 0),
+                                  );
                                   setIsDialogOpen(true);
                                 }}
                               >
@@ -653,7 +699,7 @@ export default function ExamMarksDashboard() {
                                 onClick={async () => {
                                   if (
                                     !confirm(
-                                      "Are you sure you want to delete this exam mark?"
+                                      "Are you sure you want to delete this exam mark?",
                                     )
                                   )
                                     return;
@@ -663,7 +709,7 @@ export default function ExamMarksDashboard() {
                                       method: "DELETE",
                                     });
                                     const updatedMarks = await fetchData(
-                                      `/api/examMarks?batchSubjectId=${selectedSubject}`
+                                      `/api/examMarks?batchSubjectId=${selectedSubject}`,
                                     );
                                     setExamMarks(updatedMarks);
                                   } catch (err) {

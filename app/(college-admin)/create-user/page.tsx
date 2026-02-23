@@ -35,14 +35,7 @@ import {
 import SideBarLayout from "@/components/sidebar/layout";
 
 // Schemas
-const roleSchema = z.enum([
-  "ADM",
-  "HOD",
-  "TEACHER",
-  "FINANCE_MANAGER",
-  "STUDENT",
-  "ALUMNUS",
-]);
+const roleSchema = z.enum(["ADM", "HOD", "TEACHER", "FINANCE_MANAGER"]);
 
 const userSchema = z
   .object({
@@ -113,7 +106,7 @@ const UserRegistrationForm: React.FC = () => {
   const username = watch("username");
 
   useEffect(() => {
-    setShowDepartmentField(["HOD", "STUDENT"].includes(selectedRole));
+    setShowDepartmentField(["HOD"].includes(selectedRole));
   }, [selectedRole]);
 
   useEffect(() => {
@@ -152,7 +145,7 @@ const UserRegistrationForm: React.FC = () => {
       toast({
         title: "Success",
         description: `${username} (${formatRoleName(
-          data.role
+          data.role,
         )}) account created successfully`,
         duration: 3000,
       });
