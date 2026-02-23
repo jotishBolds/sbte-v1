@@ -37,7 +37,7 @@ const convocationData: ConvocationData[] = [
       "/Convocation1/selected5.jpg",
       "/Convocation1/selected6.jpg",
     ],
-    videoUrl: "https://www.youtube.com/watch?v=L1pHS6ra3JQ",
+    videoUrl: "No Video Available",
   },
   {
     year: "Second",
@@ -323,16 +323,21 @@ const ConvocationPage = () => {
                 </CardHeader>
 
                 <CardContent>
-                  <div className="aspect-video relative rounded-lg overflow-hidden bg-gray-100">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${getVideoId(
-                        convocation.videoUrl
-                      )}`}
-                      allowFullScreen
-                      className="absolute inset-0 w-full h-full"
-                    />
+                  <div className="aspect-video relative rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                    {convocation?.videoUrl ? (
+                      <iframe
+                        src={`https://www.youtube.com/embed/${getVideoId(
+                          convocation.videoUrl
+                        )}`}
+                        allowFullScreen
+                        className="absolute inset-0 w-full h-full"
+                      />
+                    ) : (
+                      <p className="text-gray-500 text-lg font-medium">
+                        Video will be uploaded soon
+                      </p>
+                    )}
                   </div>
-
                   <div className="mt-4 text-sm space-y-1">
                     <p className="text-blue-600 font-medium">
                       Venue: {convocation.venue}

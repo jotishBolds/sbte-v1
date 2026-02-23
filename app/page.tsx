@@ -20,11 +20,11 @@ export default function HomePage() {
 
   const slides = [
     { image: "/Convocation1/selected4.jpg" },
+    { image: "/Convocation1/selected5.jpg" },
     { image: "/Convocation3/convo1.jpg" },
     { image: "/Convocation3/convo2.jpg" },
     { image: "/Convocation3/convo3.jpg" },
     { image: "/Convocation3/convo4.jpg" },
-    { image: "/Convocation1/selected5.jpg" },
   ];
 
   // Auto Slide
@@ -71,13 +71,16 @@ export default function HomePage() {
         "Diploma In Mechatronics",
         "Diploma in Civil Engineering",
         "Diploma In Computer Engineering",
+        "Diploma In Manufacturing Engineering"
       ],
     },
     {
       name: "Centre for Computers and Communication Technology (CCCT)",
       location: "Chisopani, Namchi District",
       courses: [
+        "Diploma In Mechanical Engineering",
         "Diploma In Electrical and Electronics Engineering",
+        "Diploma in Civil Engineering",
         "Diploma In Computer Science and Technology",
         "Diploma In Electronics and Communication Engineering",
       ],
