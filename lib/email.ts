@@ -5,15 +5,15 @@ type EmailTemplate = "OTP_LOGIN" | "OTP_RESET_PASSWORD" | "PASSWORD_CHANGED";
 
 // Configure transporter
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false, // use STARTTLS on port 587
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-  // Enhanced security settings
-  secure: true,
   tls: {
-    rejectUnauthorized: true,
+    rejectUnauthorized: false,
   },
 });
 
@@ -189,7 +189,7 @@ const templates = {
 export async function sendEmail(
   to: string,
   template: EmailTemplate,
-  data?: { otp?: string }
+  data?: { otp?: string },
 ) {
   try {
     const templateFn = templates[template];
@@ -217,7 +217,7 @@ export async function sendEmail(
     console.log(
       `Email sent successfully to ${to.replace(/(.{2}).*(@.*)/, "$1***$2")}${
         data?.otp ? ` with OTP: ${data.otp}` : ""
-      }`
+      }`,
     );
   } catch (error) {
     console.error("Error sending email:", error);

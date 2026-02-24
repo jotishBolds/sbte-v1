@@ -52,7 +52,7 @@ function formatTimeRemaining(seconds: number): string {
 
 function checkRateLimit(
   email: string,
-  clientIp: string
+  clientIp: string,
 ): {
   allowed: boolean;
   waitTime?: number;
@@ -81,7 +81,7 @@ function checkRateLimit(
       return {
         allowed: false,
         waitTime: Math.ceil(
-          (DAY_IN_MS - (now - emailAttempts.lastAttempt)) / 1000
+          (DAY_IN_MS - (now - emailAttempts.lastAttempt)) / 1000,
         ),
         reason: "daily_limit_exceeded",
       };
@@ -95,7 +95,7 @@ function checkRateLimit(
       return {
         allowed: false,
         waitTime: Math.ceil(
-          (HOUR_IN_MS - (now - emailAttempts.lastAttempt)) / 1000
+          (HOUR_IN_MS - (now - emailAttempts.lastAttempt)) / 1000,
         ),
         reason: "hourly_limit_exceeded",
       };
@@ -109,7 +109,7 @@ function checkRateLimit(
       return {
         allowed: false,
         waitTime: Math.ceil(
-          (IP_LOCKOUT_DURATION - (now - ipAttempts.lastAttempt)) / 1000
+          (IP_LOCKOUT_DURATION - (now - ipAttempts.lastAttempt)) / 1000,
         ),
         reason: "ip_rate_limited",
       };
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
           error: "Validation failed",
           details: validationResult.error.format(),
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
           waitTime: rateLimitResult.waitTime,
           formattedWaitTime: formattedTime,
         },
-        { status: 429 }
+        { status: 429 },
       );
     }
 
@@ -242,7 +242,7 @@ export async function POST(request: NextRequest) {
           error: "No account found with this email address.",
           errorCode: "USER_NOT_FOUND",
         },
-        { status: 404 }
+        { status: 404 },
       );
     }
 
@@ -256,7 +256,7 @@ export async function POST(request: NextRequest) {
 
       if (timeDifference < minInterval) {
         const remainingWaitTime = Math.ceil(
-          (minInterval - timeDifference) / 1000
+          (minInterval - timeDifference) / 1000,
         );
         const formattedTime = formatTimeRemaining(remainingWaitTime);
         recordOtpAttempt(email, clientIp, false);
@@ -267,7 +267,7 @@ export async function POST(request: NextRequest) {
             waitTime: remainingWaitTime,
             formattedWaitTime: formattedTime,
           },
-          { status: 429 }
+          { status: 429 },
         );
       }
     }
@@ -287,7 +287,21 @@ export async function POST(request: NextRequest) {
     });
 
     // Send OTP email
-    await sendOtpEmail(email, otp, purpose);
+    try {
+      await sendOtpEmail(email, otp, purpose);
+    } catch (emailError) {
+      console.error("Failed to send OTP email:", emailError);
+      return NextResponse.json(
+        {
+          error:
+            emailError instanceof Error
+              ? emailError.message
+              : "Failed to send OTP email. Please try again later.",
+          errorCode: "EMAIL_SEND_FAILED",
+        },
+        { status: 500 },
+      );
+    }
 
     // Record successful attempt
     recordOtpAttempt(email, clientIp, true);
@@ -297,7 +311,7 @@ export async function POST(request: NextRequest) {
         message: "OTP has been sent to your email.",
         messageType: "OTP_SENT",
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Error in Send OTP API:", error);
@@ -312,7 +326,7 @@ export async function POST(request: NextRequest) {
         error: "Internal Server Error",
         errorCode: "INTERNAL_SERVER_ERROR",
       },
-      { status: 500 }
+      { status: 500 },
     );
   } finally {
     await prisma.$disconnect();
@@ -323,20 +337,36 @@ export async function POST(request: NextRequest) {
 async function sendOtpEmail(
   email: string,
   otp: string,
-  purpose: string
+  purpose: string,
 ): Promise<void> {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error(
+      "Email credentials are not configured. Please set EMAIL_USER and EMAIL_PASS.",
+    );
+  }
+
   const transporter = nodemailer.createTransport({
-    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 587,
+    secure: false, // use STARTTLS on port 587
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    // Enhanced security settings
-    secure: true,
     tls: {
-      rejectUnauthorized: true,
+      rejectUnauthorized: false,
     },
   });
+
+  // Verify transporter connection
+  try {
+    await transporter.verify();
+  } catch (verifyError) {
+    console.error("SMTP connection verification failed:", verifyError);
+    throw new Error(
+      "Email service connection failed. Please check EMAIL_USER and EMAIL_PASS credentials.",
+    );
+  }
 
   const purposeText =
     purpose === "verification" ? "Account Verification" : "Login";
@@ -560,7 +590,7 @@ async function sendOtpEmail(
     });
 
     console.log(
-      `Secure OTP sent to ${email.replace(/(.{2}).*(@.*)/, "$1***$2")}`
+      `Secure OTP sent to ${email.replace(/(.{2}).*(@.*)/, "$1***$2")}`,
     );
   } catch (emailError) {
     console.error("Email sending error:", emailError);
